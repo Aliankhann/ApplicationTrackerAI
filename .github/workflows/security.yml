@@ -1,0 +1,51 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan full history for secrets
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.2 git /repo --redact --verbose
+
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: pip-audit
+        working-directory: backend
+        run: uv export --locked --no-dev --no-hashes -o /tmp/req.txt && uvx pip-audit -r /tmp/req.txt
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: pnpm audit
+        working-directory: frontend
+        run: pnpm audit --prod
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    strategy:
+      matrix:
+        language: [python, javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/analyze@v3
