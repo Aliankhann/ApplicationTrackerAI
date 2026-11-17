@@ -33,7 +33,7 @@ jobs:
       DATABASE_URL: postgresql+psycopg://tracker:tracker@localhost:5432/tracker
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - run: uv sync --locked
@@ -62,7 +62,7 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: pnpm install --frozen-lockfile
       - name: API client matches backend schema
         run: |
