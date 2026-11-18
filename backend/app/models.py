@@ -1,13 +1,14 @@
 """Tables: users, tokens, invites, threads, applications, sync state (docs/build-plan.md)."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Enum,
     Float,
@@ -43,6 +44,9 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     timezone: Mapped[str | None] = mapped_column(String(64))
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    digest_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
 
 
 class OAuthToken(TimestampMixin, Base):
@@ -360,3 +364,29 @@ class AuditLog(Base):
     user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     action: Mapped[str] = mapped_column(String(32), nullable=False)
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class DigestLog(Base):
+    """One row per user and local date: the unique key makes the daily digest send at most once.
+
+    `claimed_at` is when the current attempt started; a 'sending' row that stays stale means the
+    process died around the send, so the outcome is unknown and it is never resent.
+    """
+
+    __tablename__ = "digest_log"
+    __table_args__ = (
+        UniqueConstraint("user_id", "digest_date", name="uq_digest_log_user_id_digest_date"),
+        CheckConstraint(
+            "status in ('sending', 'sent', 'failed', 'skipped_empty')", name="status_valid"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    digest_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    claimed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

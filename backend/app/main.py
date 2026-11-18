@@ -1,7 +1,8 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import applications, auth, followups, gmail, health, sequences
+from app.api import applications, auth, followups, gmail, health, sequences, unsubscribe
+from app.api import settings as settings_api
 from app.api.deps import require_csrf
 from app.config import get_settings
 from app.log import configure_logging
@@ -38,6 +39,8 @@ def create_app() -> FastAPI:
     app.include_router(followups.router)
     app.include_router(gmail.router)
     app.include_router(sequences.router)
+    app.include_router(settings_api.router)
+    app.include_router(unsubscribe.router)
     return app
 
 

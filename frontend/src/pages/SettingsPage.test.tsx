@@ -188,3 +188,39 @@ test('US-80: goodbye page tells the user to remove access when Google revocation
     ).toBeVisible(),
   )
 })
+
+test('US-72: the digest toggle is disabled in the demo and never fetches', async () => {
+  renderRoute('/demo/settings')
+  const toggle = await screen.findByRole('checkbox', { name: 'Daily digest' })
+  expect(toggle).toBeDisabled()
+  expect(screen.getByText('Digest settings are not available in the demo.')).toBeVisible()
+  await expect(createDemoDataSource().updateSettings({ digest_enabled: false })).rejects.toThrow(
+    'Not available in the demo',
+  )
+  expect(throwingFetch).not.toHaveBeenCalled()
+})
+
+test('US-72: toggling the digest updates optimistically and sends the new value', async () => {
+  const user = userEvent.setup()
+  let stored = { digest_enabled: true }
+  const updateSettings = vi.fn<DataSource['updateSettings']>(async (patch) => (stored = patch))
+  renderSettings({ getSettings: async () => stored, updateSettings })
+  const toggle = await screen.findByRole('checkbox', { name: 'Daily digest' })
+  await waitFor(() => expect(toggle).toBeChecked())
+  await user.click(toggle)
+  await waitFor(() => expect(updateSettings).toHaveBeenCalledWith({ digest_enabled: false }))
+  await waitFor(() => expect(toggle).not.toBeChecked())
+})
+
+test('US-72: a failed save rolls the toggle back and says so', async () => {
+  const user = userEvent.setup()
+  const updateSettings = vi.fn<DataSource['updateSettings']>(async () => {
+    throw new ApiError(500, 'boom')
+  })
+  renderSettings({ getSettings: async () => ({ digest_enabled: true }), updateSettings })
+  const toggle = await screen.findByRole('checkbox', { name: 'Daily digest' })
+  await waitFor(() => expect(toggle).toBeChecked())
+  await user.click(toggle)
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not save')
+  await waitFor(() => expect(toggle).toBeChecked())
+})

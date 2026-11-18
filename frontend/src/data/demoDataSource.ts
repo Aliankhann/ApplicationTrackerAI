@@ -151,6 +151,12 @@ export function createDemoDataSource(now: Date = new Date()): DataSource {
       }
       return { text: renderPreview(template, tone) }
     },
+    async getSettings() {
+      return { digest_enabled: true }
+    },
+    async updateSettings() {
+      throw new ApiError(501, NOT_IN_DEMO)
+    },
     // The UI disables these controls in the demo; this guards against any other caller.
     async disconnectGmail() {
       throw new ApiError(501, NOT_IN_DEMO)

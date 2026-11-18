@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.models import User, UserSession
-from app.providers.email import EmailSender, NoopEmailSender
+from app.providers.email import EmailSender, sender_for
 from app.providers.google.revoke import TokenRevoker, UnconfiguredTokenRevoker
 from app.repositories import users
 from app.security import sessions
@@ -35,8 +35,8 @@ def get_token_revoker() -> TokenRevoker:
 
 
 def get_email_sender() -> EmailSender:
-    """Production wiring; US-71 adds the real sender."""
-    return NoopEmailSender()
+    """Production wiring; the real provider is not wired yet."""
+    return sender_for(get_settings().environment)
 
 
 Db = Annotated[Session, Depends(get_db)]
@@ -74,8 +74,10 @@ CurrentUser = Annotated[User, Depends(current_user)]
 
 
 # (method, route path) pairs that skip session and CSRF checks. Add deliberately, e.g. an OAuth
-# callback or signed unsubscribe link.
-PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset()
+# callback. The unsubscribe routes are public because the signed token is the authorization.
+PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
+    {("GET", "/unsubscribe"), ("POST", "/unsubscribe")}
+)
 
 
 def require_csrf(request: Request, db: Db, settings: Config, clock: Clock) -> None:

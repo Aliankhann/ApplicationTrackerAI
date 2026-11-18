@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { DataControls } from '../components/DataControls'
+import { DigestToggle } from '../components/DigestToggle'
 import { useBasePath } from '../data/context'
 
 export default function SettingsPage() {
@@ -14,6 +15,7 @@ export default function SettingsPage() {
           </Link>
         </li>
       </ul>
+      <DigestToggle />
       <DataControls />
     </main>
   )

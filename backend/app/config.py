@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,6 +21,7 @@ class Settings(BaseSettings):
     environment: Literal["local", "staging", "prod"] = "local"
     database_url: str = "postgresql+psycopg://tracker:tracker@localhost:5432/tracker"
     frontend_origin: str = "http://localhost:5173"
+    api_base_url: str = "http://localhost:8000"
     log_level: str = "INFO"
     max_users: int = 100
     token_encryption_keys: SecretStr = SecretStr("")
@@ -31,6 +33,8 @@ class Settings(BaseSettings):
     ghosted_after_days: int = Field(default=21, ge=1)
     scheduler_lease_minutes: int = Field(default=15, ge=1)
     default_timezone: str = "America/Toronto"
+    digest_hour: int = Field(default=8, ge=0, le=23)
+    digest_unsubscribe_days: int = Field(default=60, ge=1)
     session_cookie_name: str = "tracker_session"
     csrf_cookie_name: str = "tracker_csrf"
     session_absolute_days: int = Field(default=14, ge=1)
@@ -60,6 +64,15 @@ class Settings(BaseSettings):
             raise ConfigError(
                 f"SESSION_SECRET must be set and at least {MIN_SESSION_SECRET_BYTES} bytes"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _check_api_base_url(self) -> "Settings":
+        """Unsubscribe links must be public https URLs outside local."""
+        if self.environment != "local":
+            url = urlparse(self.api_base_url)
+            if url.scheme != "https" or url.hostname in (None, "localhost", "127.0.0.1", "::1"):
+                raise ConfigError("API_BASE_URL must be a public https URL outside local")
         return self
 
 

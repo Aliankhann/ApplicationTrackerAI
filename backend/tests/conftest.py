@@ -9,6 +9,12 @@ from app.security.crypto import clear_keyring_cache
 
 
 @pytest.fixture(autouse=True)
+def _public_api_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Non-local environments require a public https API_BASE_URL."""
+    monkeypatch.setenv("API_BASE_URL", "https://api.example.test")
+
+
+@pytest.fixture(autouse=True)
 def _clear_caches() -> Iterator[None]:
     get_settings.cache_clear()
     clear_keyring_cache()

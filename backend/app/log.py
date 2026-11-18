@@ -33,6 +33,9 @@ ALLOWED_FIELDS = frozenset(
         "error_code",
         "count",
         "job",
+        "sent",
+        "failed",
+        "skipped",
         "exc_type",
     }
 )
@@ -49,6 +52,9 @@ _NUMBER_FIELDS = frozenset(
     {
         "status",
         "count",
+        "sent",
+        "failed",
+        "skipped",
         "duration_ms",
         "threads_seen",
         "threads_kept",

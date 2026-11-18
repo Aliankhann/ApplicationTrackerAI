@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import ColumnElement, Table, bindparam, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser, Db
+from app.api.deps import PUBLIC_ROUTES, CurrentUser, Db
 from app.db import Base
 from app.models import (
     Application,
@@ -180,7 +180,11 @@ def two_users(env: Env) -> tuple[World, World, TestClient]:  # noqa: F811
 
 
 PARAM_ROUTES = [(m, p) for m, p in all_routes() if PARAM.search(p)]
-LIST_ROUTES = [p for m, p in all_routes() if m == "GET" and not PARAM.search(p)]
+LIST_ROUTES = [
+    p
+    for m, p in all_routes()
+    if m == "GET" and not PARAM.search(p) and (m, p) not in PUBLIC_ROUTES  # token-authorized
+]
 
 
 def test_ac5_world_has_a_row_of_every_owned_kind(

@@ -131,6 +131,8 @@ export type SchemaDriftChecks = [
   Assert<Fits<SequenceInput, Schemas['SequenceCreate']>>,
   Assert<Fits<SequencePatch, Schemas['SequencePatch']>>,
   Assert<Fits<Preview, Schemas['PreviewOut']>>,
+  Assert<Fits<Settings, Schemas['SettingsOut']>>,
+  Assert<Fits<Schemas['SettingsOut'], Settings>>,
 ]
 
 export const COMPANY_MAX = 80
@@ -146,6 +148,9 @@ export const DisconnectResultSchema = z.object({
   revoked_at_google: z.boolean().nullable(),
 })
 export type DisconnectResult = z.infer<typeof DisconnectResultSchema>
+
+export const SettingsSchema = z.object({ digest_enabled: z.boolean() })
+export type Settings = z.infer<typeof SettingsSchema>
 
 export const DeleteResultSchema = z.object({
   deleted: z.literal(true),

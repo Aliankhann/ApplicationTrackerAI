@@ -12,7 +12,7 @@ from app.log import get_logger, parse_request_id
 
 logger = get_logger("app.request")
 
-CSP_STRICT = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+CSP_STRICT = "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
 # Swagger UI and ReDoc load assets from a CDN and use inline scripts; local environment only.
 CSP_DOCS = (
     "default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; "
@@ -111,6 +111,11 @@ class RequestLogMiddleware:
 STATE_CHANGING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 
+# Signed public links are posted from the API's own page (Origin is the API, not the frontend)
+# and by mail providers; the token authorizes them, not the browser origin.
+ORIGIN_EXEMPT_PATHS = frozenset({"/unsubscribe"})
+
+
 class OriginCheckMiddleware:
     """Defense in depth: reject state-changing requests from a foreign Origin."""
 
@@ -119,7 +124,8 @@ class OriginCheckMiddleware:
         self.allowed_origin = allowed_origin
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] == "http" and scope["method"] in STATE_CHANGING:
+        exempt = scope["type"] == "http" and scope["path"] in ORIGIN_EXEMPT_PATHS
+        if scope["type"] == "http" and scope["method"] in STATE_CHANGING and not exempt:
             origin = Headers(scope=scope).get("origin")
             if origin is not None and origin != self.allowed_origin:
                 await JSONResponse({"detail": "origin_rejected"}, status_code=403)(
