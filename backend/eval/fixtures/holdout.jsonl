@@ -1,0 +1,67 @@
+{"id": "h001", "from_domain": "careers.northwind-labs.example", "subject": "Your application to Northwind Labs", "snippet": "Thank you for your interest. After review we have chosen to go with other candidates for this internship.", "label": "rejection"}
+{"id": "h002", "from_domain": "jobs.bluepeak.example", "subject": "Update on your Bluepeak application", "snippet": "We will not be offering you a position on the platform team this summer.", "label": "rejection"}
+{"id": "h003", "from_domain": "talent.quillworks.example", "subject": "Regarding your application", "snippet": "We are unable to take your application further at this time. We wish you well.", "label": "rejection"}
+{"id": "h004", "from_domain": "hr.zephyrsoft.example", "subject": "Your application status", "snippet": "After a long review we have decided to close your application for the data internship.", "label": "rejection"}
+{"id": "h005", "from_domain": "careers.marlowfin.example", "subject": "Marlow Financial internship", "snippet": "Thanks for interviewing. We won't be extending an offer for the analyst role.", "label": "rejection"}
+{"id": "h006", "from_domain": "recruiting.tidalgrid.example", "subject": "Tidal Grid application", "snippet": "We have decided not to pursue your candidacy for the SWE intern position.", "label": "rejection"}
+{"id": "h007", "from_domain": "people.orchardai.example", "subject": "An update from Orchard AI", "snippet": "We regret that we cannot offer you the position of research intern this year.", "label": "rejection"}
+{"id": "h008", "from_domain": "jobs.cobaltworks.example", "subject": "Cobalt Works update", "snippet": "After discussion we decided to pass on your application. Best of luck with your search.", "label": "rejection"}
+{"id": "h009", "from_domain": "hiring.ironleaf.example", "subject": "Ironleaf application", "snippet": "Many strong applicants this cycle; we will not be continuing with yours.", "label": "rejection"}
+{"id": "h010", "from_domain": "talent.sunvale.example", "subject": "Next steps at Sunvale", "snippet": "You were not selected for the next stage of our internship process.", "label": "rejection"}
+{"id": "h011", "from_domain": "careers.helioscape.example", "subject": "Application update", "snippet": "Unfortunately we will not be moving forward with your application.", "label": "rejection"}
+{"id": "h012", "from_domain": "jobs.pinebrook.example", "subject": "Your Pinebrook application", "snippet": "We've decided to move ahead with other applicants for the role.", "label": "rejection"}
+{"id": "h013", "from_domain": "people.glassmere.example", "subject": "Thank you from Glassmere", "snippet": "We appreciate your time, but we have filled the position with another candidate.", "label": "rejection"}
+{"id": "h014", "from_domain": "hr.nimbusforge.example", "subject": "Decision on your candidacy", "snippet": "We are sorry to share that you have not been successful in your application.", "label": "rejection"}
+{"id": "h015", "from_domain": "recruit.stonebridge.example", "subject": "Stonebridge careers", "snippet": "After careful review, your profile is not a match for this opening and we will close your file.", "label": "rejection"}
+{"id": "h016", "from_domain": "talent.lumenpath.example", "subject": "Lumenpath update", "snippet": "We regret to let you know your application will not progress to interviews.", "label": "rejection"}
+{"id": "h017", "from_domain": "careers.farrowtech.example", "subject": "Farrow Tech", "snippet": "Thanks for applying. We will be declining your application for the intern role.", "label": "rejection"}
+{"id": "h018", "from_domain": "jobs.ambercove.example", "subject": "Re: Amber Cove internship", "snippet": "Sadly we can't offer you an interview for this position.", "label": "rejection"}
+{"id": "h019", "from_domain": "hiring.kestrelio.example", "subject": "Kestrel IO decision", "snippet": "We have decided to go in a different direction and will not be hiring you for this role.", "label": "rejection"}
+{"id": "h020", "from_domain": "people.driftwood.example", "subject": "About your application", "snippet": "Your application was not chosen for further consideration.", "label": "rejection"}
+{"id": "h021", "from_domain": "jobs.alderpoint.example", "subject": "Alder Point application result", "snippet": "We're sorry, but you won't be joining our summer cohort.", "label": "rejection"}
+{"id": "h022", "from_domain": "talent.mossgate.example", "subject": "Mossgate update", "snippet": "Following review, we are not going to proceed with your application.", "label": "rejection"}
+{"id": "h023", "from_domain": "careers.vantaline.example", "subject": "Vantaline Systems", "snippet": "The team has opted to continue with different applicants for this internship.", "label": "rejection"}
+{"id": "h024", "from_domain": "hr.copperfield.example", "subject": "Your recent interview", "snippet": "Thank you for interviewing with us. We have decided against extending an offer.", "label": "rejection"}
+{"id": "h025", "from_domain": "jobs.larkspur.example", "subject": "Larkspur careers", "snippet": "We regret that we are unable to move your application to the next round.", "label": "rejection"}
+{"id": "h026", "from_domain": "greenhouse.io", "subject": "Thank you for applying to Fernwick", "snippet": "After consideration, we will not be pursuing your application further.", "label": "rejection"}
+{"id": "h027", "from_domain": "hiring.quarrybay.example", "subject": "Quarry Bay intern program", "snippet": "Unfortunately your application has not been selected this time.", "label": "rejection"}
+{"id": "h028", "from_domain": "jobs.northwind-labs.example", "subject": "We received your application", "snippet": "Thanks for applying to the data intern role. Your application has been received.", "label": "confirmation"}
+{"id": "h029", "from_domain": "myworkday.example", "subject": "Application submitted", "snippet": "Your application was submitted successfully. We will review it soon.", "label": "confirmation"}
+{"id": "h030", "from_domain": "hiring.bluepeak.example", "subject": "Thank you for applying", "snippet": "Thank you for your interest in Bluepeak. We'll be in touch if there is a fit.", "label": "confirmation"}
+{"id": "h031", "from_domain": "greenhouse.io", "subject": "Confirmation: Tidal Grid", "snippet": "Your submission to the SWE internship was received by our recruiting team.", "label": "confirmation"}
+{"id": "h032", "from_domain": "jobs.lever.co", "subject": "Application received", "snippet": "We got your application for the Quillworks research intern role.", "label": "confirmation"}
+{"id": "h033", "from_domain": "careers.ironleaf.example", "subject": "Applied: Ironleaf", "snippet": "Application confirmation for the product intern position. No action needed.", "label": "confirmation"}
+{"id": "h034", "from_domain": "hackerrank.com", "subject": "Your Zephyr assessment", "snippet": "You have been invited to complete a coding test within 5 days.", "label": "online_assessment"}
+{"id": "h035", "from_domain": "codesignal.com", "subject": "Complete your assessment", "snippet": "Please take the general coding assessment linked below.", "label": "online_assessment"}
+{"id": "h036", "from_domain": "careers.marlowfin.example", "subject": "Next step: online assessment", "snippet": "Please finish the online assessment within 72 hours.", "label": "online_assessment"}
+{"id": "h037", "from_domain": "hr.cobaltworks.example", "subject": "Technical screen task", "snippet": "Attached is a take-home project; please return it by Friday.", "label": "online_assessment"}
+{"id": "h038", "from_domain": "testing.orchardai.example", "subject": "Coding challenge", "snippet": "Complete this coding challenge as the next part of the process.", "label": "online_assessment"}
+{"id": "h039", "from_domain": "careers.sunvale.example", "subject": "Interview invitation", "snippet": "We would like to invite you to an interview next week.", "label": "interview"}
+{"id": "h040", "from_domain": "recruiting.helioscape.example", "subject": "Schedule your interview", "snippet": "Please schedule your interview using the link below.", "label": "interview"}
+{"id": "h041", "from_domain": "jobs.pinebrook.example", "subject": "Phone screen", "snippet": "Let's set up a phone screen with a recruiter on Thursday.", "label": "interview"}
+{"id": "h042", "from_domain": "people.glassmere.example", "subject": "Rescheduling our call", "snippet": "Unfortunately I cannot make Tuesday. Can we reschedule our interview to Wednesday?", "label": "interview"}
+{"id": "h043", "from_domain": "hr.nimbusforge.example", "subject": "Final round details", "snippet": "Your onsite interview is confirmed for May 3 at our office.", "label": "interview"}
+{"id": "h044", "from_domain": "talent.lumenpath.example", "subject": "Interview with the team", "snippet": "We are pleased to offer you an interview with our engineering lead.", "label": "interview"}
+{"id": "h045", "from_domain": "jobs.farrowtech.example", "subject": "Next round", "snippet": "You advance to the next round: a technical interview on Monday.", "label": "interview"}
+{"id": "h046", "from_domain": "careers.stonebridge.example", "subject": "Offer of employment", "snippet": "We are pleased to offer you the software intern position. Offer letter attached.", "label": "offer"}
+{"id": "h047", "from_domain": "hr.ambercove.example", "subject": "Your offer", "snippet": "Congratulations, we are extending an offer for the summer internship.", "label": "offer"}
+{"id": "h048", "from_domain": "people.kestrelio.example", "subject": "Welcome aboard", "snippet": "We're happy to extend an offer of employment for the intern role.", "label": "offer"}
+{"id": "h049", "from_domain": "jobs.driftwood.example", "subject": "Internship offer", "snippet": "Please find your offer letter attached; sign by June 1.", "label": "offer"}
+{"id": "h050", "from_domain": "talent.alderpoint.example", "subject": "Offer details", "snippet": "Your job offer is ready for review in the portal.", "label": "offer"}
+{"id": "h051", "from_domain": "recruiter.mossgate.example", "subject": "Opportunity at Mossgate", "snippet": "I came across your profile and think you'd be a great fit for a role on our team.", "label": "recruiter_message"}
+{"id": "h052", "from_domain": "talent.vantaline.example", "subject": "Quick intro", "snippet": "Reaching out about an internship in our platform group. Would you be open to a chat?", "label": "recruiter_message"}
+{"id": "h053", "from_domain": "recruit.copperfield.example", "subject": "Hello from Copperfield", "snippet": "I found your background on a campus site and wanted to connect.", "label": "recruiter_message"}
+{"id": "h054", "from_domain": "people.larkspur.example", "subject": "Hi there", "snippet": "Are you interested in joining our early talent program?", "label": "recruiter_message"}
+{"id": "h055", "from_domain": "hr.quarrybay.example", "subject": "Campus outreach", "snippet": "I'm a recruiter at Quarry Bay and would love to tell you about summer roles.", "label": "recruiter_message"}
+{"id": "h056", "from_domain": "alerts.jobboard.example", "subject": "New jobs for you", "snippet": "12 new jobs for you this week in software engineering.", "label": "irrelevant"}
+{"id": "h057", "from_domain": "news.careerhub.example", "subject": "This week's newsletter", "snippet": "A reader shared: 'They wrote that they will not be moving forward with my application.' How to cope.", "label": "irrelevant"}
+{"id": "h058", "from_domain": "news.internguide.example", "subject": "Weekly newsletter", "snippet": "How to handle it when a company says it regrets to inform you. Unsubscribe anytime.", "label": "irrelevant"}
+{"id": "h059", "from_domain": "billing.cloudbox.example", "subject": "Payment failed", "snippet": "Unfortunately we were unable to charge your card for the storage plan.", "label": "irrelevant"}
+{"id": "h060", "from_domain": "hr.glassmere.example", "subject": "Visa note", "snippet": "We are not able to sponsor visas for this role but you remain under consideration.", "label": "confirmation"}
+{"id": "h061", "from_domain": "events.campusfair.example", "subject": "Career fair reminder", "snippet": "Unfortunately the venue changed. The career fair is now in Hall B.", "label": "irrelevant"}
+{"id": "h062", "from_domain": "shop.bookbarn.example", "subject": "Your order shipped", "snippet": "Your package is on its way and will arrive Thursday.", "label": "irrelevant"}
+{"id": "h063", "from_domain": "noreply.socialnet.example", "subject": "You have a new follower", "snippet": "Someone viewed your profile this week.", "label": "irrelevant"}
+{"id": "h064", "from_domain": "jobs.helioscape.example", "subject": "Fall hiring webinar", "snippet": "Join our webinar to learn about openings and unsubscribe if not interested.", "label": "irrelevant"}
+{"id": "h065", "from_domain": "careers.farrowtech.example", "subject": "Update", "snippet": "We will not be moving forward with the 2025 cohort but would like to interview you for 2026.", "label": "interview"}
+{"id": "h066", "from_domain": "jobs.nimbusforge.example", "subject": "Role update", "snippet": "The position has been filled, but we have another opening and would like to interview you.", "label": "interview"}
+{"id": "h067", "from_domain": "hr.lumenpath.example", "subject": "Calendar note", "snippet": "Unfortunately I am out Friday, please pick another time for the interview.", "label": "interview"}

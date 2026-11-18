@@ -16,6 +16,7 @@ from app.providers.classifier.types import ClassificationInput, ClassificationRe
 from app.text import normalize_text
 
 STRONG = 0.8
+SPECIFIC = 0.9  # specific rejection rules may outrank a negated interview/offer match
 VETOED_CONFIDENCE = 0.5
 _FIELDS = ("subject", "snippet")
 
@@ -28,6 +29,11 @@ _CONTRAST = re.compile(
     r"|\blove\s+to\s+consider\b|\bstill\s+under\s+consideration\b|\bfor\s+20\d\d\b"
     r"|\bnewsletter\b|\bunsubscribe\b|\bwebinar\b"
 )
+# "will not be extending an offer" must never read as an offer.
+_NEG_OFFER = (
+    r"\b(?:not|won't|wont|cannot|can't|unable|never)\s+(?:be\s+|to\s+)?"
+    r"(?:extending|offering|making|extend|offer|make)\b"
+)
 _RESCINDED = r"\brescind(?:ed|ing)?\b|\bwithdr(?:aw|awn|ew)\b|\brevok(?:e|ed)\b"
 
 _S = r"[^.!?;\n]"  # one sentence
@@ -35,7 +41,7 @@ _SENT = r"(?:\A|(?<=[.!?;\n]))"
 _APP = r"application|candidacy|candidature|role|position|candidates?|applicants?"
 _SUBJ = r"(?:we|we're|we are|we've|we have|we will|we won't|our team|the team|the hiring team)"
 _NOT_FORWARD = r"(?:not|won't|wont)\s+(?:be\s+)?(?:moving|move|proceeding|proceed)\s+forward"
-_CANDIDATES = r"(?:other|another)\s+(?:candidates?|applicants?)"
+_CANDIDATES = r"(?:other|another|different)\s+(?:candidates?|applicants?)"
 
 
 def _in_sentence(core: str, objects: str) -> str:
@@ -66,7 +72,7 @@ def _rejection(body: str) -> re.Pattern[str]:
 
 def _offer(body: str) -> re.Pattern[str]:
     interview = r"(?!\s+(?:to\s+)?(?:an?\s+|the\s+)?(?:interview|call|chat|opportunity\s+to)\b)"
-    return _guarded(_RESCINDED, rf"(?:{body}){interview}")
+    return _guarded(f"{_RESCINDED}|{_NEG_OFFER}", rf"(?:{body}){interview}")
 
 
 _OA_DOMAINS = r"(?:^|\.)(?:hackerrank|hackerrankforwork|codesignal|codility)\.com$"
@@ -149,8 +155,8 @@ RULES: tuple[Rule, ...] = (
         "rej.unable_to_offer",
         Label.REJECTION,
         _rejection(
-            r"\b(?:won't|will\s+not|cannot|can't|unable|not\s+able)\s+(?:be\s+able\s+)?to\s+offer\s+you"
-            r"\s+(?:the|a|an)\s+(?:role|position|internship|job)\b"
+            r"\b(?:won't|will\s+not|cannot|can't|unable|not\s+able)\s+(?:be\s+able\s+)?(?:to\s+)?offer\s+you"
+            r"\s+(?:the|a|an)\s+(?:role|position|internship|job|place|spot)\b"
         ),
         0.9,
     ),
@@ -186,6 +192,83 @@ RULES: tuple[Rule, ...] = (
         "rej.ne_pas_donner_suite",
         Label.REJECTION,
         _rejection(r"\bne\s+(?:\w+\s+){0,3}pas\s+donner\s+suite\b"),
+        0.9,
+    ),
+    Rule(
+        "rej.decided_not_to_pursue",
+        Label.REJECTION,
+        _rejection(
+            r"\b(?:we(?:'ve|\s+have)?|(?:our|the)\s+team\s+(?:has|have))\s+(?:\w+\s+)?"
+            r"(?:decided|chosen|elected|opted)\s+"
+            r"(?:not\s+to\s+(?:pursue|continue|advance|extend|hire)\b"
+            rf"|to\s+(?:pass\s+on|close|decline){_S}*?\b(?:application|candidacy)\b)"
+        ),
+        0.9,
+    ),
+    Rule(
+        "rej.not_offering_position",
+        Label.REJECTION,
+        _rejection(
+            rf"\b{_SUBJ}\s+(?:\w+\s+)?(?:not|won't|wont)\s+(?:be\s+)?(?:offering|extending|making)"
+            r"\s+(?:you\s+)?(?:an?\s+|the\s+)?(?:offer|position|role|internship)\b"
+        ),
+        0.9,
+    ),
+    Rule(
+        "rej.unable_to_advance",
+        Label.REJECTION,
+        _rejection(
+            _in_sentence(
+                rf"\b{_SUBJ}\s+(?:are\s+)?(?:unable|cannot|can't|not\s+able|won't\s+be\s+able"
+                r"|declining)\s+(?:to\s+)?(?:move\s+forward|proceed|advance"
+                r"|take\s+your\s+(?:application|candidacy)\s+(?:any\s+)?further)\b",
+                _APP,
+            )
+        ),
+        0.9,
+    ),
+    Rule(
+        "rej.not_selected",
+        Label.REJECTION,
+        _rejection(
+            _in_sentence(
+                r"\byou\s+(?:have\s+|were\s+|are\s+)?(?:not|n't)\s+(?:been\s+)?(?:selected|chosen)\b",
+                r"stage|round|interview|internship|position|role|candidacy|application",
+            )
+        ),
+        0.9,
+    ),
+    Rule(
+        "rej.go_with_other",
+        Label.REJECTION,
+        _rejection(
+            _in_sentence(
+                rf"\b(?:go|going|went)\s+with\s+{_CANDIDATES}\b"
+                r"|\b(?:hire|hiring)\s+(?:someone|somebody)\s+else\b",
+                _APP + "|internship",
+            )
+        ),
+        0.9,
+    ),
+    Rule(
+        "rej.application_not_successful",
+        Label.REJECTION,
+        _rejection(
+            r"\b(?:application|candidacy)\s+(?:has\s+|was\s+)?(?:not|n't)\s+(?:been\s+)?successful\b"
+        ),
+        0.9,
+    ),
+    Rule(
+        "rej.not_taking_forward",
+        Label.REJECTION,
+        _rejection(
+            _in_sentence(
+                rf"(?:{_SUBJ}|\band\s+will)\s+(?:\w+\s+)?(?:not|won't|wont)\s+(?:be\s+)?"
+                r"(?:continuing|pursuing|advancing|progressing|taking)\b"
+                r"|\byou\s+(?:will\s+)?not\s+be\s+(?:moving\s+on|advancing|progressing)\b",
+                _APP + "|stage",
+            )
+        ),
         0.9,
     ),
     Rule(
@@ -238,8 +321,9 @@ RULES: tuple[Rule, ...] = (
         _p(r"\bavailability\s+for\s+(?:a|an)\s+(?:call|interview|chat)\b"),
         0.85,
     ),
-    Rule("int.onsite", Label.INTERVIEW, _p(r"\bon-?site\b"), 0.75),
-    Rule("int.next_round", Label.INTERVIEW, _p(r"\bnext\s+round\b"), 0.75),
+    # Weak, context-free cues: never auto-apply (below the review threshold).
+    Rule("int.onsite", Label.INTERVIEW, _p(r"\bon-?site\b"), 0.6),
+    Rule("int.next_round", Label.INTERVIEW, _p(r"\bnext\s+round\b"), 0.6),
     Rule(
         "oa.hackerrank_invite",
         Label.ONLINE_ASSESSMENT,
@@ -303,6 +387,33 @@ def _confidence(rule: Rule, texts: dict[str, str]) -> float:
     return rule.confidence
 
 
+# Negative or regret wording in the same sentence turns an interview/offer match into noise.
+_NEGATIVE_CUE = re.compile(
+    r"\bregret|\bunfortunately\b|\bunable\b|\bnot\s+able\b|\bdecided\s+against\b"
+    r"|\b(?:chose|chosen|choose)\s+not\s+to\b|\bno\s+longer\b|\bwill\s+not\b|\bwon't\b"
+    r"|\bcannot\b|\bcan't\b|\bdeclin(?:e|ed|ing)\b"
+    r"|\bnot\s+(?:be|been|move|moving|advance|advancing|proceed|proceeding)\b",
+    re.IGNORECASE,
+)
+_BOUNDARY = ".!?;\n"
+_INTERVIEW_OFFER = (Label.INTERVIEW, Label.OFFER)
+
+
+def _sentence_at(text: str, pos: int) -> str:
+    start = max((text.rfind(ch, 0, pos) for ch in _BOUNDARY), default=-1) + 1
+    ends = [i for ch in _BOUNDARY if (i := text.find(ch, pos)) != -1]
+    return text[start : min(ends) if ends else len(text)]
+
+
+def _negated(rule: Rule, texts: dict[str, str]) -> bool:
+    """True when the sentence holding the rule's match carries a negative cue."""
+    for field_name in rule.fields:
+        match = rule.pattern.search(texts[field_name])
+        if match and _NEGATIVE_CUE.search(_sentence_at(texts[field_name], max(match.end() - 1, 0))):
+            return True
+    return False
+
+
 class RulesProvider:
     def __init__(self, threshold: float | None = None) -> None:
         value = get_settings().classifier_review_threshold if threshold is None else threshold
@@ -317,9 +428,16 @@ class RulesProvider:
             "snippet": normalize_text(inp.snippet).lower(),
         }
         hits = [(r, _confidence(r, texts)) for r in RULES if _matches(r, texts)]
+        negated = [h for h in hits if h[0].label in _INTERVIEW_OFFER and _negated(h[0], texts)]
+        hits = [h for h in hits if h not in negated]
+        strong = [(r, c) for r, c in hits if c >= STRONG]
+        has_rejection = any(r.label is Label.REJECTION for r, _ in strong)
+        if negated and not any(r.label is Label.REJECTION and c >= SPECIFIC for r, c in strong):
+            return self._undecided(negated[0][0].id)
         if not hits:
             return self._undecided(None)
-        strong = [(r, c) for r, c in hits if c >= STRONG]
+        if has_rejection and any(r.label in _INTERVIEW_OFFER for r, _ in hits):
+            return self._undecided(strong[0][0].id)
         if strong:
             if any(r.label != strong[0][0].label for r, _ in strong):
                 return self._undecided(strong[0][0].id)

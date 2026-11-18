@@ -39,13 +39,15 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run mypy app tests
+      - run: uv run mypy app tests eval
       - name: Migrations apply and roll back cleanly
         run: |
           uv run alembic upgrade head
           uv run alembic downgrade base
           uv run alembic upgrade head
       - run: uv run pytest
+      - name: Classifier eval
+        run: uv run python -m eval.run --split all
 
   frontend:
     runs-on: ubuntu-latest

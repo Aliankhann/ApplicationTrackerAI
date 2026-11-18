@@ -1,0 +1,139 @@
+{"id": "t001", "from_domain": "careers.acme.example", "subject": "Your application", "snippet": "Acme Robotics: We have chosen to proceed with other candidates whose experience more closely matches the role.", "label": "rejection"}
+{"id": "t002", "from_domain": "careers.birchwood.example", "subject": "Application update", "snippet": "Birchwood Data: We will not be offering you a position at this time.", "label": "rejection"}
+{"id": "t003", "from_domain": "careers.cinder.example", "subject": "Update on your candidacy", "snippet": "Cinder Cloud: We are unable to move forward with your application.", "label": "rejection"}
+{"id": "t004", "from_domain": "careers.dunmore.example", "subject": "Thank you for your interest", "snippet": "Dunmore Bio: We have decided to close your application as the role is no longer open to new candidates.", "label": "rejection"}
+{"id": "t005", "from_domain": "careers.eastvale.example", "subject": "Decision", "snippet": "Eastvale Games: We won't be making you an offer for the internship this season.", "label": "rejection"}
+{"id": "t006", "from_domain": "careers.fathom.example", "subject": "Your application", "snippet": "Fathom Maps: We decided not to pursue your application any further.", "label": "rejection"}
+{"id": "t007", "from_domain": "careers.granite.example", "subject": "Application update", "snippet": "Granite Pay: Regrettably, we cannot offer you the role of software intern.", "label": "rejection"}
+{"id": "t008", "from_domain": "careers.harbor.example", "subject": "Update on your candidacy", "snippet": "Harbor Health: We have decided to pass on your candidacy for now.", "label": "rejection"}
+{"id": "t009", "from_domain": "careers.ivory.example", "subject": "Thank you for your interest", "snippet": "Ivory Audio: We will not be continuing with your application.", "label": "rejection"}
+{"id": "t010", "from_domain": "careers.juniper.example", "subject": "Decision", "snippet": "Juniper Rail: You have not been selected for the next round of interviews.", "label": "rejection"}
+{"id": "t011", "from_domain": "careers.kilnworks.example", "subject": "Your application", "snippet": "Kilnworks: Unfortunately, we will not be moving forward with your candidacy.", "label": "rejection"}
+{"id": "t012", "from_domain": "careers.lotus.example", "subject": "Application update", "snippet": "Lotus Grid: After careful consideration, we selected other candidates for this position.", "label": "rejection"}
+{"id": "t013", "from_domain": "careers.mintleaf.example", "subject": "Update on your candidacy", "snippet": "Mintleaf: The position has been filled by another applicant.", "label": "rejection"}
+{"id": "t014", "from_domain": "careers.nordic.example", "subject": "Thank you for your interest", "snippet": "Nordic Pixel: Your application was unsuccessful on this occasion.", "label": "rejection"}
+{"id": "t015", "from_domain": "careers.oakridge.example", "subject": "Decision", "snippet": "Oakridge Bank: We regret to inform you that we are not proceeding with your application.", "label": "rejection"}
+{"id": "t016", "from_domain": "careers.prism.example", "subject": "Your application", "snippet": "Prism Foods: We are not able to offer you the internship at this time.", "label": "rejection"}
+{"id": "t017", "from_domain": "careers.quartz.example", "subject": "Application update", "snippet": "Quartz Labs: You are no longer being considered for the data analyst role.", "label": "rejection"}
+{"id": "t018", "from_domain": "careers.redfern.example", "subject": "Update on your candidacy", "snippet": "Redfern Tools: We will be moving forward with other applicants.", "label": "rejection"}
+{"id": "t019", "from_domain": "careers.saltmarsh.example", "subject": "Thank you for your interest", "snippet": "Saltmarsh AI: We've decided to go with another candidate for the intern position.", "label": "rejection"}
+{"id": "t020", "from_domain": "careers.thistle.example", "subject": "Decision", "snippet": "Thistle Ops: Thank you for applying. Unfortunately we are not going to move forward with your application.", "label": "rejection"}
+{"id": "t021", "from_domain": "careers.umber.example", "subject": "Your application", "snippet": "Umber Media: We have reviewed your application and will not be taking it to the next stage.", "label": "rejection"}
+{"id": "t022", "from_domain": "careers.verity.example", "subject": "Application update", "snippet": "Verity Cyber: We are sorry to tell you that we cannot proceed with your candidacy.", "label": "rejection"}
+{"id": "t023", "from_domain": "careers.willow.example", "subject": "Update on your candidacy", "snippet": "Willow Aero: We decided to hire someone else for this role.", "label": "rejection"}
+{"id": "t024", "from_domain": "careers.xenon.example", "subject": "Thank you for your interest", "snippet": "Xenon Retail: We will not be extending an offer to you for the analyst internship.", "label": "rejection"}
+{"id": "t025", "from_domain": "careers.yarrow.example", "subject": "Decision", "snippet": "Yarrow Soft: We have chosen not to continue with your application.", "label": "rejection"}
+{"id": "t026", "from_domain": "careers.zinc.example", "subject": "Your application", "snippet": "Zinc Energy: Our team has decided not to advance your application.", "label": "rejection"}
+{"id": "t027", "from_domain": "careers.alpine.example", "subject": "Application update", "snippet": "Alpine Logic: We're afraid we won't be able to offer you a place in our summer program.", "label": "rejection"}
+{"id": "t028", "from_domain": "careers.brightcove.example", "subject": "Update on your candidacy", "snippet": "Brightcove Labs: Your application has not been successful this time around.", "label": "rejection"}
+{"id": "t029", "from_domain": "careers.cedar.example", "subject": "Thank you for your interest", "snippet": "Cedar Quant: We have elected to pursue different candidates for the position.", "label": "rejection"}
+{"id": "t030", "from_domain": "careers.delta.example", "subject": "Decision", "snippet": "Delta Orchard: We are declining to move forward with your candidacy.", "label": "rejection"}
+{"id": "t031", "from_domain": "careers.ember.example", "subject": "Your application", "snippet": "Ember Works: We cannot take your application any further.", "label": "rejection"}
+{"id": "t032", "from_domain": "careers.flint.example", "subject": "Application update", "snippet": "Flint Security: After review, you will not be moving on to the next stage of our hiring process.", "label": "rejection"}
+{"id": "t033", "from_domain": "mail.acme.example", "subject": "Application received", "snippet": "Thanks for applying to Acme Robotics. We have received your application.", "label": "confirmation"}
+{"id": "t034", "from_domain": "mail.birchwood.example", "subject": "Application received", "snippet": "Thanks for applying to Birchwood Data. We have received your application.", "label": "confirmation"}
+{"id": "t035", "from_domain": "mail.dunmore.example", "subject": "Application received", "snippet": "Your application to Dunmore Bio was submitted. We will review it.", "label": "confirmation"}
+{"id": "t036", "from_domain": "mail.eastvale.example", "subject": "Application received", "snippet": "Your application to Eastvale Games was submitted. We will review it.", "label": "confirmation"}
+{"id": "t037", "from_domain": "mail.granite.example", "subject": "Application received", "snippet": "We got your application for the Granite Pay internship.", "label": "confirmation"}
+{"id": "t038", "from_domain": "mail.harbor.example", "subject": "Application received", "snippet": "We got your application for the Harbor Health internship.", "label": "confirmation"}
+{"id": "t039", "from_domain": "mail.juniper.example", "subject": "Application received", "snippet": "Juniper Rail confirms we received your resume for the summer role.", "label": "confirmation"}
+{"id": "t040", "from_domain": "mail.kilnworks.example", "subject": "Application received", "snippet": "Kilnworks confirms we received your resume for the summer role.", "label": "confirmation"}
+{"id": "t041", "from_domain": "mail.mintleaf.example", "subject": "Application received", "snippet": "Thank you for your application to Mintleaf; a recruiter will be in touch if there is a match.", "label": "confirmation"}
+{"id": "t042", "from_domain": "mail.nordic.example", "subject": "Application received", "snippet": "Thank you for your application to Nordic Pixel; a recruiter will be in touch if there is a match.", "label": "confirmation"}
+{"id": "t043", "from_domain": "mail.prism.example", "subject": "Application received", "snippet": "Application confirmation from Prism Foods: your materials are in our system.", "label": "confirmation"}
+{"id": "t044", "from_domain": "mail.quartz.example", "subject": "Application received", "snippet": "Application confirmation from Quartz Labs: your materials are in our system.", "label": "confirmation"}
+{"id": "t045", "from_domain": "mail.saltmarsh.example", "subject": "Assessment", "snippet": "Saltmarsh AI invites you to complete an online assessment within 3 days.", "label": "online_assessment"}
+{"id": "t046", "from_domain": "mail.thistle.example", "subject": "Assessment", "snippet": "Thistle Ops invites you to complete an online assessment within 3 days.", "label": "online_assessment"}
+{"id": "t047", "from_domain": "mail.verity.example", "subject": "Assessment", "snippet": "Please complete the coding challenge for Verity Cyber by Sunday.", "label": "online_assessment"}
+{"id": "t048", "from_domain": "mail.willow.example", "subject": "Assessment", "snippet": "Please complete the coding challenge for Willow Aero by Sunday.", "label": "online_assessment"}
+{"id": "t049", "from_domain": "mail.yarrow.example", "subject": "Assessment", "snippet": "Yarrow Soft: your technical assessment link is below.", "label": "online_assessment"}
+{"id": "t050", "from_domain": "mail.zinc.example", "subject": "Assessment", "snippet": "Zinc Energy: your technical assessment link is below.", "label": "online_assessment"}
+{"id": "t051", "from_domain": "mail.brightcove.example", "subject": "Assessment", "snippet": "Take-home assignment from Brightcove Labs attached; due in one week.", "label": "online_assessment"}
+{"id": "t052", "from_domain": "mail.cedar.example", "subject": "Assessment", "snippet": "Take-home assignment from Cedar Quant attached; due in one week.", "label": "online_assessment"}
+{"id": "t053", "from_domain": "mail.ember.example", "subject": "Assessment", "snippet": "Ember Works sent a HackerRank test for the intern role.", "label": "online_assessment"}
+{"id": "t054", "from_domain": "mail.flint.example", "subject": "Assessment", "snippet": "Flint Security sent a HackerRank test for the intern role.", "label": "online_assessment"}
+{"id": "t055", "from_domain": "mail.birchwood.example", "subject": "Assessment", "snippet": "Start your Birchwood Data online assessment. It takes about 90 minutes.", "label": "online_assessment"}
+{"id": "t056", "from_domain": "mail.cinder.example", "subject": "Assessment", "snippet": "Start your Cinder Cloud online assessment. It takes about 90 minutes.", "label": "online_assessment"}
+{"id": "t057", "from_domain": "mail.eastvale.example", "subject": "Interview", "snippet": "Eastvale Games would like to schedule an interview with you.", "label": "interview"}
+{"id": "t058", "from_domain": "mail.fathom.example", "subject": "Interview", "snippet": "Fathom Maps would like to schedule an interview with you.", "label": "interview"}
+{"id": "t059", "from_domain": "mail.granite.example", "subject": "Interview", "snippet": "Granite Pay would like to schedule an interview with you.", "label": "interview"}
+{"id": "t060", "from_domain": "mail.harbor.example", "subject": "Interview", "snippet": "Harbor Health: we'd like to invite you to an interview on Tuesday.", "label": "interview"}
+{"id": "t061", "from_domain": "mail.ivory.example", "subject": "Interview", "snippet": "Ivory Audio: we'd like to invite you to an interview on Tuesday.", "label": "interview"}
+{"id": "t062", "from_domain": "mail.juniper.example", "subject": "Interview", "snippet": "Juniper Rail: we'd like to invite you to an interview on Tuesday.", "label": "interview"}
+{"id": "t063", "from_domain": "mail.kilnworks.example", "subject": "Interview", "snippet": "Please share your availability for a call with the Kilnworks team.", "label": "interview"}
+{"id": "t064", "from_domain": "mail.lotus.example", "subject": "Interview", "snippet": "Please share your availability for a call with the Lotus Grid team.", "label": "interview"}
+{"id": "t065", "from_domain": "mail.mintleaf.example", "subject": "Interview", "snippet": "Please share your availability for a call with the Mintleaf team.", "label": "interview"}
+{"id": "t066", "from_domain": "mail.nordic.example", "subject": "Interview", "snippet": "Nordic Pixel phone screen: pick a time that works.", "label": "interview"}
+{"id": "t067", "from_domain": "mail.oakridge.example", "subject": "Interview", "snippet": "Oakridge Bank phone screen: pick a time that works.", "label": "interview"}
+{"id": "t068", "from_domain": "mail.prism.example", "subject": "Interview", "snippet": "Prism Foods phone screen: pick a time that works.", "label": "interview"}
+{"id": "t069", "from_domain": "mail.quartz.example", "subject": "Interview", "snippet": "Quartz Labs superday agenda: four back-to-back interviews.", "label": "interview"}
+{"id": "t070", "from_domain": "mail.redfern.example", "subject": "Interview", "snippet": "Redfern Tools superday agenda: four back-to-back interviews.", "label": "interview"}
+{"id": "t071", "from_domain": "mail.saltmarsh.example", "subject": "Interview", "snippet": "Saltmarsh AI superday agenda: four back-to-back interviews.", "label": "interview"}
+{"id": "t072", "from_domain": "mail.thistle.example", "subject": "Interview", "snippet": "Thistle Ops next round: a panel interview with two engineers.", "label": "interview"}
+{"id": "t073", "from_domain": "mail.umber.example", "subject": "Interview", "snippet": "Umber Media next round: a panel interview with two engineers.", "label": "interview"}
+{"id": "t074", "from_domain": "mail.verity.example", "subject": "Interview", "snippet": "Verity Cyber next round: a panel interview with two engineers.", "label": "interview"}
+{"id": "t075", "from_domain": "mail.willow.example", "subject": "Interview", "snippet": "Unfortunately I have a conflict Monday, can we reschedule the Willow Aero interview?", "label": "interview"}
+{"id": "t076", "from_domain": "mail.xenon.example", "subject": "Interview", "snippet": "Unfortunately I have a conflict Monday, can we reschedule the Xenon Retail interview?", "label": "interview"}
+{"id": "t077", "from_domain": "mail.yarrow.example", "subject": "Interview", "snippet": "Unfortunately I have a conflict Monday, can we reschedule the Yarrow Soft interview?", "label": "interview"}
+{"id": "t078", "from_domain": "mail.zinc.example", "subject": "Interview", "snippet": "We are pleased to offer you an interview at Zinc Energy.", "label": "interview"}
+{"id": "t079", "from_domain": "mail.alpine.example", "subject": "Interview", "snippet": "We are pleased to offer you an interview at Alpine Logic.", "label": "interview"}
+{"id": "t080", "from_domain": "mail.brightcove.example", "subject": "Interview", "snippet": "We are pleased to offer you an interview at Brightcove Labs.", "label": "interview"}
+{"id": "t081", "from_domain": "mail.cedar.example", "subject": "Offer", "snippet": "Cedar Quant is pleased to offer you the internship. Offer letter attached.", "label": "offer"}
+{"id": "t082", "from_domain": "mail.delta.example", "subject": "Offer", "snippet": "Delta Orchard is pleased to offer you the internship. Offer letter attached.", "label": "offer"}
+{"id": "t083", "from_domain": "mail.flint.example", "subject": "Offer", "snippet": "Your Flint Security offer of employment is ready to sign.", "label": "offer"}
+{"id": "t084", "from_domain": "mail.acme.example", "subject": "Offer", "snippet": "Your Acme Robotics offer of employment is ready to sign.", "label": "offer"}
+{"id": "t085", "from_domain": "mail.cinder.example", "subject": "Offer", "snippet": "Cinder Cloud is extending an offer for the summer analyst role.", "label": "offer"}
+{"id": "t086", "from_domain": "mail.dunmore.example", "subject": "Offer", "snippet": "Dunmore Bio is extending an offer for the summer analyst role.", "label": "offer"}
+{"id": "t087", "from_domain": "mail.fathom.example", "subject": "Offer", "snippet": "Congratulations from Fathom Maps: your job offer details are attached.", "label": "offer"}
+{"id": "t088", "from_domain": "mail.granite.example", "subject": "Offer", "snippet": "Congratulations from Granite Pay: your job offer details are attached.", "label": "offer"}
+{"id": "t089", "from_domain": "mail.ivory.example", "subject": "Offer", "snippet": "Welcome to Ivory Audio. Please sign the attached offer letter.", "label": "offer"}
+{"id": "t090", "from_domain": "mail.juniper.example", "subject": "Offer", "snippet": "Welcome to Juniper Rail. Please sign the attached offer letter.", "label": "offer"}
+{"id": "t091", "from_domain": "mail.lotus.example", "subject": "Hello", "snippet": "I came across your profile and wanted to talk about Lotus Grid roles.", "label": "recruiter_message"}
+{"id": "t092", "from_domain": "mail.mintleaf.example", "subject": "Hello", "snippet": "I came across your profile and wanted to talk about Mintleaf roles.", "label": "recruiter_message"}
+{"id": "t093", "from_domain": "mail.nordic.example", "subject": "Hello", "snippet": "I came across your profile and wanted to talk about Nordic Pixel roles.", "label": "recruiter_message"}
+{"id": "t094", "from_domain": "mail.oakridge.example", "subject": "Hello", "snippet": "Reaching out about an early-career role at Oakridge Bank. Would you be open to chatting?", "label": "recruiter_message"}
+{"id": "t095", "from_domain": "mail.prism.example", "subject": "Hello", "snippet": "Reaching out about an early-career role at Prism Foods. Would you be open to chatting?", "label": "recruiter_message"}
+{"id": "t096", "from_domain": "mail.quartz.example", "subject": "Hello", "snippet": "Reaching out about an early-career role at Quartz Labs. Would you be open to chatting?", "label": "recruiter_message"}
+{"id": "t097", "from_domain": "mail.redfern.example", "subject": "Hello", "snippet": "Are you interested in a campus program at Redfern Tools?", "label": "recruiter_message"}
+{"id": "t098", "from_domain": "mail.saltmarsh.example", "subject": "Hello", "snippet": "Are you interested in a campus program at Saltmarsh AI?", "label": "recruiter_message"}
+{"id": "t099", "from_domain": "mail.thistle.example", "subject": "Hello", "snippet": "Are you interested in a campus program at Thistle Ops?", "label": "recruiter_message"}
+{"id": "t100", "from_domain": "mail.umber.example", "subject": "Hello", "snippet": "Recruiter at Umber Media here, your background looks relevant to our team.", "label": "recruiter_message"}
+{"id": "t101", "from_domain": "mail.verity.example", "subject": "Hello", "snippet": "Recruiter at Verity Cyber here, your background looks relevant to our team.", "label": "recruiter_message"}
+{"id": "t102", "from_domain": "mail.willow.example", "subject": "Hello", "snippet": "Recruiter at Willow Aero here, your background looks relevant to our team.", "label": "recruiter_message"}
+{"id": "t103", "from_domain": "mail.xenon.example", "subject": "Hello", "snippet": "Hi, I work in talent at Xenon Retail and found your resume online.", "label": "recruiter_message"}
+{"id": "t104", "from_domain": "mail.yarrow.example", "subject": "Hello", "snippet": "Hi, I work in talent at Yarrow Soft and found your resume online.", "label": "recruiter_message"}
+{"id": "t105", "from_domain": "mail.zinc.example", "subject": "Hello", "snippet": "Hi, I work in talent at Zinc Energy and found your resume online.", "label": "recruiter_message"}
+{"id": "t106", "from_domain": "mail.alpine.example", "subject": "Notification", "snippet": "Alpine Logic: new jobs for you this week.", "label": "irrelevant"}
+{"id": "t107", "from_domain": "mail.brightcove.example", "subject": "Notification", "snippet": "Brightcove Labs: new jobs for you this week.", "label": "irrelevant"}
+{"id": "t108", "from_domain": "mail.cedar.example", "subject": "Notification", "snippet": "Cedar Quant: new jobs for you this week.", "label": "irrelevant"}
+{"id": "t109", "from_domain": "mail.delta.example", "subject": "Notification", "snippet": "Job alert from Delta Orchard: 8 matching roles posted.", "label": "irrelevant"}
+{"id": "t110", "from_domain": "mail.ember.example", "subject": "Notification", "snippet": "Job alert from Ember Works: 8 matching roles posted.", "label": "irrelevant"}
+{"id": "t111", "from_domain": "mail.flint.example", "subject": "Notification", "snippet": "Job alert from Flint Security: 8 matching roles posted.", "label": "irrelevant"}
+{"id": "t112", "from_domain": "mail.acme.example", "subject": "Notification", "snippet": "Acme Robotics newsletter: a reader says they will not be moving forward with their application, how to cope.", "label": "irrelevant"}
+{"id": "t113", "from_domain": "mail.birchwood.example", "subject": "Notification", "snippet": "Birchwood Data newsletter: a reader says they will not be moving forward with their application, how to cope.", "label": "irrelevant"}
+{"id": "t114", "from_domain": "mail.cinder.example", "subject": "Notification", "snippet": "Cinder Cloud newsletter: a reader says they will not be moving forward with their application, how to cope.", "label": "irrelevant"}
+{"id": "t115", "from_domain": "mail.dunmore.example", "subject": "Notification", "snippet": "Dunmore Bio billing: unfortunately your payment could not be processed.", "label": "irrelevant"}
+{"id": "t116", "from_domain": "mail.eastvale.example", "subject": "Notification", "snippet": "Eastvale Games billing: unfortunately your payment could not be processed.", "label": "irrelevant"}
+{"id": "t117", "from_domain": "mail.fathom.example", "subject": "Notification", "snippet": "Fathom Maps billing: unfortunately your payment could not be processed.", "label": "irrelevant"}
+{"id": "t118", "from_domain": "mail.granite.example", "subject": "Notification", "snippet": "Your Granite Pay order has shipped and arrives Friday.", "label": "irrelevant"}
+{"id": "t119", "from_domain": "mail.harbor.example", "subject": "Notification", "snippet": "Your Harbor Health order has shipped and arrives Friday.", "label": "irrelevant"}
+{"id": "t120", "from_domain": "mail.ivory.example", "subject": "Notification", "snippet": "Your Ivory Audio order has shipped and arrives Friday.", "label": "irrelevant"}
+{"id": "t121", "from_domain": "mail.juniper.example", "subject": "Notification", "snippet": "Juniper Rail webinar invite on resume tips. Unsubscribe any time.", "label": "irrelevant"}
+{"id": "t122", "from_domain": "mail.kilnworks.example", "subject": "Notification", "snippet": "Kilnworks webinar invite on resume tips. Unsubscribe any time.", "label": "irrelevant"}
+{"id": "t123", "from_domain": "mail.lotus.example", "subject": "Notification", "snippet": "Lotus Grid webinar invite on resume tips. Unsubscribe any time.", "label": "irrelevant"}
+{"id": "t124", "from_domain": "mail.mintleaf.example", "subject": "Notification", "snippet": "Mintleaf security notice: a new device signed in to your account.", "label": "irrelevant"}
+{"id": "t125", "from_domain": "mail.nordic.example", "subject": "Notification", "snippet": "Nordic Pixel security notice: a new device signed in to your account.", "label": "irrelevant"}
+{"id": "t126", "from_domain": "mail.oakridge.example", "subject": "Notification", "snippet": "Oakridge Bank security notice: a new device signed in to your account.", "label": "irrelevant"}
+{"id": "t127", "from_domain": "mail.prism.example", "subject": "Notification", "snippet": "Unfortunately the Prism Foods cafeteria is closed for renovation next week.", "label": "irrelevant"}
+{"id": "t128", "from_domain": "mail.quartz.example", "subject": "Notification", "snippet": "Unfortunately the Quartz Labs cafeteria is closed for renovation next week.", "label": "irrelevant"}
+{"id": "t129", "from_domain": "mail.redfern.example", "subject": "Notification", "snippet": "Unfortunately the Redfern Tools cafeteria is closed for renovation next week.", "label": "irrelevant"}
+{"id": "t130", "from_domain": "mail.saltmarsh.example", "subject": "Notification", "snippet": "Saltmarsh AI: we regret to inform you our office is closed Monday.", "label": "irrelevant"}
+{"id": "t131", "from_domain": "mail.thistle.example", "subject": "Notification", "snippet": "Thistle Ops: we regret to inform you our office is closed Monday.", "label": "irrelevant"}
+{"id": "t132", "from_domain": "mail.umber.example", "subject": "Notification", "snippet": "Umber Media: we regret to inform you our office is closed Monday.", "label": "irrelevant"}
+{"id": "t133", "from_domain": "hr.tricky1.example", "subject": "Role update", "snippet": "That internship was filled, but another team has an opening and would like to interview you.", "label": "interview"}
+{"id": "t134", "from_domain": "hr.tricky2.example", "subject": "Visa", "snippet": "We cannot sponsor visas, but your application is still under consideration.", "label": "confirmation"}
+{"id": "t135", "from_domain": "hr.tricky3.example", "subject": "Cohort", "snippet": "We will not be moving forward with the 2025 cohort but invite you to apply for 2026.", "label": "confirmation"}
+{"id": "t136", "from_domain": "hr.tricky4.example", "subject": "Status", "snippet": "Your application has not been reviewed yet.", "label": "confirmation"}
+{"id": "t137", "from_domain": "hackerrank.com", "subject": "Invitation", "snippet": "You've been invited to a coding test by Birchwood Data.", "label": "online_assessment"}
+{"id": "t138", "from_domain": "codility.com", "subject": "Task", "snippet": "Your coding challenge from Dunmore Bio is ready.", "label": "online_assessment"}
+{"id": "t139", "from_domain": "lever.co", "subject": "Hi", "snippet": "Thanks for applying to Kilnworks, your application has been received.", "label": "confirmation"}

@@ -72,6 +72,34 @@ EXAMPLES: dict[str, tuple[Case, Case]] = {
         (JOB, "Update", "We won't be able to offer you the role"),
         (JOB, "Update", "We are able to offer you the role"),
     ),
+    "rej.decided_not_to_pursue": (
+        (JOB, "Update", "We have decided not to pursue your application"),
+        (JOB, "Update", "We have decided to close the office early"),
+    ),
+    "rej.not_offering_position": (
+        (JOB, "Update", "We will not be offering you a position"),
+        (JOB, "Update", "We will not be offering free parking"),
+    ),
+    "rej.unable_to_advance": (
+        (JOB, "Update", "We are unable to move forward with your application"),
+        (JOB, "Update", "We are unable to move your interview forward a day"),
+    ),
+    "rej.not_selected": (
+        (JOB, "Update", "You were not selected for the next stage"),
+        (JOB, "Update", "If you are not selected for the next stage, we will tell you"),
+    ),
+    "rej.go_with_other": (
+        (JOB, "Update", "We decided to go with another candidate for the role"),
+        (JOB, "Update", "We decided to go with another caterer for the event"),
+    ),
+    "rej.application_not_successful": (
+        (JOB, "Update", "Your application has not been successful"),
+        (JOB, "Update", "Your application has not been reviewed yet"),
+    ),
+    "rej.not_taking_forward": (
+        (JOB, "Update", "We reviewed your application and will not be taking it further"),
+        (JOB, "Update", "We will not be taking questions about the cohort"),
+    ),
     "int.interview_you": (
         (JOB, "Next", "We would like to interview you"),
         (JOB, "Next", "The interviewer is out"),
@@ -321,3 +349,16 @@ def test_us47_ac9_threshold_out_of_range_raises(value: float) -> None:
 
 def test_us47_ac9_threshold_default() -> None:
     assert Settings().classifier_review_threshold == 0.7
+
+
+@pytest.mark.parametrize(
+    "snippet",
+    [
+        "We are going to pass on moving you to the next round.",
+        "You were not picked for the next round this time.",
+        "Our onsite office will be closed next week.",
+    ],
+)
+def test_us42_weak_interview_cues_never_auto_apply(snippet: str) -> None:
+    result = RulesProvider().classify(ClassificationInput("acme.example", "Update", snippet))
+    assert result.needs_review or result.label is not Label.INTERVIEW
