@@ -70,3 +70,11 @@ def rotate_all(session: Session, keyring: Keyring) -> RotationResult:
         rotated += 1
     session.flush()
     return RotationResult(rotated, tuple(failed))
+
+
+def mark_revoked(session: Session, user_id: uuid.UUID) -> None:
+    """Flag the user's token revoked; a no-op when the user has no token."""
+    row = session.get(OAuthToken, user_id)
+    if row is not None:
+        row.status = TokenStatus.REVOKED
+        session.flush()
