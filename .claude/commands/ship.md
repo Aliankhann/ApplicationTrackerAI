@@ -6,8 +6,9 @@ Run this workflow for: $ARGUMENTS
 
 You are the manager. Subagents cannot call each other, so every hand-off goes through you.
 
-1. Make sure the working tree is clean and you are on a feature branch named after the story
-   (for example `feat/US-10-invite-codes`), created from the latest `main`.
+1. Make sure the working tree is clean and you are on `main`, up to date with `origin/main`.
+   Until staging deploys from `main` (US-05), stories commit straight to `main`. After that,
+   use a feature branch and a PR per story.
 2. Use the ba agent to write the spec. If it returns questions, relay them to me and wait, then
    call it again with my answers.
 3. Show me the spec and wait for my approval.
@@ -17,5 +18,6 @@ You are the manager. Subagents cannot call each other, so every hand-off goes th
    escalate to me with the open findings.
 7. Before finishing, run all checks yourself and check every acceptance criterion against the
    diff. Summarize what was done, what is left, and any risks.
-8. Do not commit, push, or open a PR until I approve. When I do, use a Conventional Commit title
-   that includes the story ID.
+8. When QA passes and your own checks are green, make one commit for the story with a
+   Conventional Commit title that includes the story ID, mark the story `[x]` in
+   `docs/backlog.md`, and push to `main`. Then confirm CI on `main` passes; fix forward if not.
