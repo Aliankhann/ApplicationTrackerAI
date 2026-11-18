@@ -571,7 +571,11 @@ As the operator, I want prod deployed only from a tag with my approval.
 - **Tests:** Manual first release; smoke step in the workflow.
 - **Depends on:** US-101 · **Estimate:** 1.5h
 
-### [ ] US-103 README and launch
+### [~] US-103 README and launch
+_README is written in the planned order with screenshots, architecture, security highlights,
+badges, and roadmap. Still to do after launch: the hosted demo link, a short GIF, and inviting
+the first 10 friends._
+
 As a recruiter, I want to understand the project in two minutes.
 - **AC:** README in the plan's order with demo link, GIF, screenshots, diagram, badges; first 10
   friends invited.
