@@ -4,9 +4,10 @@ Never log or return email text: decisions carry only short stable reason identif
 """
 
 import re
-import unicodedata
 from dataclasses import dataclass
 from email.utils import parseaddr
+
+from app.text import normalize_text
 
 ATS_DOMAINS: tuple[str, ...] = (
     "greenhouse.io",
@@ -122,14 +123,6 @@ _SENDER_RE = _compile(SENDER_KEYWORDS)
 _NON_JOB_RE = _compile(NON_JOB_PHRASES)
 
 
-def _normalize(text: str) -> str:
-    """Strip accents so French text and 'r\u00e9sum\u00e9' match the accent-free keywords."""
-    if text.isascii():
-        return text
-    decomposed = unicodedata.normalize("NFKD", text or "")
-    return "".join(c for c in decomposed if not unicodedata.combining(c))
-
-
 @dataclass(frozen=True)
 class EmailMeta:
     from_address: str
@@ -169,7 +162,7 @@ def sender_local_part(from_address: str) -> str:
 
 
 def has_job_keyword(*texts: str) -> bool:
-    return any(_has_keyword(_normalize(t)) for t in texts)
+    return any(_has_keyword(normalize_text(t)) for t in texts)
 
 
 def _has_keyword(text: str) -> bool:
@@ -179,7 +172,7 @@ def _has_keyword(text: str) -> bool:
 
 def has_job_sender(email: EmailMeta) -> bool:
     return any(
-        _SENDER_RE.search(_normalize(t))
+        _SENDER_RE.search(normalize_text(t))
         for t in (sender_local_part(email.from_address), email.from_name)
     )
 
