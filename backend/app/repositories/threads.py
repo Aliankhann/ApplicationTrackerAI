@@ -95,7 +95,7 @@ def add_classification(
     latest = session.scalars(
         select(Classification)
         .where(Classification.thread_id == thread.id)
-        .order_by(Classification.created_at.desc())
+        .order_by(Classification.seq.desc())
         .limit(1)
     ).one_or_none()
     if latest is not None and _same_result(latest, result):

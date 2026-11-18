@@ -120,11 +120,12 @@ class EmailThread(TimestampMixin, Base):
 
 
 class Classification(TimestampMixin, Base):
-    """Append-only history; the latest row by created_at is current."""
+    """Append-only history; the latest row by seq is current (created_at ties within a txn)."""
 
     __tablename__ = "classifications"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    seq: Mapped[int] = mapped_column(BigInteger, Identity(), nullable=False)
     thread_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("email_threads.id", ondelete="CASCADE"), nullable=False, index=True
     )

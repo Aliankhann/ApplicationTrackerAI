@@ -1,40 +1,16 @@
-import re
-import uuid
-from collections.abc import Iterator, Sequence
-from typing import Any
-
 import pytest
 from fastapi import APIRouter, FastAPI
 
 from app.api.deps import PUBLIC_ROUTES
 from app.cli import main as cli_main
-from app.main import app as real_app
+from tests.routes import state_changing_routes
 from tests.test_sessions import Env, cookies, env  # noqa: F401
-
-STATE_CHANGING = {"POST", "PUT", "PATCH", "DELETE"}
-
-
-def walk(routes: Sequence[Any], prefix: str = "") -> Iterator[tuple[str, str]]:
-    """Yield (METHOD, path) for every route, including hidden ones and wrapped included routers."""
-    for route in routes:
-        if hasattr(route, "original_router"):  # fastapi's wrapped included router
-            inner = prefix + route.include_context.prefix
-            yield from walk(route.original_router.routes, inner)
-        elif getattr(route, "methods", None):
-            for method in route.methods:
-                yield method, prefix + route.path
-
-
-def state_changing_routes(app: FastAPI = real_app) -> list[tuple[str, str]]:
-    return sorted(
-        (method, re.sub(r"\{[^}]+\}", str(uuid.uuid4()), path))
-        for method, path in walk(app.routes)
-        if method in STATE_CHANGING and (method, path) not in PUBLIC_ROUTES
-    )
 
 
 def test_state_changing_routes_are_enumerated() -> None:
-    assert ("POST", "/auth/logout") in state_changing_routes()
+    routes = state_changing_routes()
+    assert ("POST", "/auth/logout") in routes
+    assert any(m == "PATCH" and p.startswith("/applications/") for m, p in routes)
 
 
 @pytest.mark.parametrize(("method", "path"), state_changing_routes())
@@ -57,7 +33,8 @@ def test_state_changing_route_requires_matching_csrf_header(
     client.cookies.set("tracker_csrf", "tampered")  # cookie must match too
     assert client.request(method, path, headers={"X-CSRF-Token": csrf}).status_code == 403
     client.cookies.set("tracker_csrf", csrf)
-    assert client.request(method, path, headers={"X-CSRF-Token": csrf}).status_code < 300
+    passed = client.request(method, path, headers={"X-CSRF-Token": csrf})
+    assert passed.status_code not in (401, 403)  # CSRF cleared; the handler may still 404/422
 
 
 def test_disallowed_origin_on_state_change_is_rejected_and_gets_no_cors_headers(
