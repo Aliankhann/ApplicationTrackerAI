@@ -26,3 +26,14 @@ def get_by_email(session: Session, email: str) -> User | None:
 def set_digest_enabled(session: Session, user_id: uuid.UUID, enabled: bool) -> None:
     """Idempotent; a missing user (deleted account) is a no-op."""
     session.execute(sa_update(User).where(User.id == user_id).values(digest_enabled=enabled))
+
+
+def get_by_google_sub(session: Session, google_sub: str) -> User | None:
+    return session.execute(select(User).where(User.google_sub == google_sub)).scalar_one_or_none()
+
+
+def create(session: Session, google_sub: str, email: str) -> User:
+    user = User(google_sub=google_sub, email=email)
+    session.add(user)
+    session.flush()
+    return user

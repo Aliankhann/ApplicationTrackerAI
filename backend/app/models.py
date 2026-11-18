@@ -83,6 +83,16 @@ class InviteCode(TimestampMixin, Base):
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class RateLimit(Base):
+    """Fixed-window counters shared by all instances. Keys are HMACs, never raw IPs."""
+
+    __tablename__ = "rate_limits"
+
+    key_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
 def _values(enum_cls: type[StrEnum]) -> list[str]:
     return [m.value for m in enum_cls]
 

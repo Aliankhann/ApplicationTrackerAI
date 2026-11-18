@@ -41,6 +41,38 @@ class Settings(BaseSettings):
     session_idle_hours: int = Field(default=72, ge=1)
     cookie_domain: str | None = None
     session_secret: SecretStr = SecretStr("")
+    google_client_id: str = ""
+    google_client_secret: SecretStr = SecretStr("")
+    google_redirect_uri: str = ""
+    google_issuer: str = "https://accounts.google.com"
+    google_authorization_endpoint: str = "https://accounts.google.com/o/oauth2/v2/auth"
+    google_token_endpoint: str = "https://oauth2.googleapis.com/token"  # noqa: S105
+    google_jwks_uri: str = "https://www.googleapis.com/oauth2/v3/certs"
+    allowlist_emails: str = ""
+    trusted_proxy_count: int = Field(default=0, ge=0)
+    oauth_cookie_name: str = "tracker_oauth"
+    invite_cookie_name: str = "tracker_invite"
+
+    @property
+    def google_configured(self) -> bool:
+        return bool(
+            self.google_client_id
+            and self.google_client_secret.get_secret_value()
+            and self.google_redirect_uri
+        )
+
+    @property
+    def allowlist(self) -> frozenset[str]:
+        parts = (part.strip().lower() for part in self.allowlist_emails.split(","))
+        return frozenset(part for part in parts if part)
+
+    @property
+    def oauth_cookie(self) -> str:
+        return f"{self._cookie_prefix}{self.oauth_cookie_name}"
+
+    @property
+    def invite_cookie(self) -> str:
+        return f"{self._cookie_prefix}{self.invite_cookie_name}"
 
     @property
     def session_cookie(self) -> str:

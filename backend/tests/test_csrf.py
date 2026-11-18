@@ -6,13 +6,22 @@ from app.cli import main as cli_main
 from tests.routes import state_changing_routes
 from tests.test_sessions import Env, cookies, env  # noqa: F401
 
+EXPECTED_PUBLIC = {
+    ("GET", "/unsubscribe"),
+    ("POST", "/unsubscribe"),
+    ("POST", "/auth/invite"),
+    ("GET", "/auth/google/start"),
+    ("GET", "/auth/google/callback"),
+}
 
-def test_public_routes_exist_and_are_only_the_unsubscribe_routes() -> None:
+
+def test_public_routes_exist_and_are_only_unsubscribe_invite_and_the_two_oauth_gets() -> None:
     from tests.routes import all_routes
 
     assert set(PUBLIC_ROUTES) <= set(all_routes())
-    assert {path for _, path in PUBLIC_ROUTES} == {"/unsubscribe"}
+    assert set(PUBLIC_ROUTES) == EXPECTED_PUBLIC
     assert ("POST", "/unsubscribe") not in state_changing_routes()
+    assert ("POST", "/auth/invite") not in state_changing_routes()
 
 
 def test_state_changing_routes_are_enumerated() -> None:
@@ -95,7 +104,7 @@ def test_cli_session_create_in_local_prints_cookie(
 
 
 def test_hidden_unprotected_route_is_csrf_protected_by_default(env: Env) -> None:  # noqa: F811
-    assert {("GET", "/unsubscribe"), ("POST", "/unsubscribe")} == PUBLIC_ROUTES
+    assert EXPECTED_PUBLIC == PUBLIC_ROUTES
     client = env.app()
     app = client.app
     assert isinstance(app, FastAPI)

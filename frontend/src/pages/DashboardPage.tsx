@@ -6,7 +6,7 @@ import { statusLabel } from '../components/format'
 import { ApiError } from '../data/dataSource'
 import { useApplications } from '../data/hooks'
 import { FILTER_STATUSES, type FilterStatus, type ListParams } from '../data/schemas'
-import SignInPage from './SignInPage'
+import SignInRequired from './SignInRequired'
 
 type View = 'board' | 'table'
 const VIEW_KEY = 'tracker:view'
@@ -77,7 +77,7 @@ export default function DashboardPage() {
     saveView(next)
   }
 
-  if (query.error instanceof ApiError && query.error.status === 401) return <SignInPage />
+  if (query.error instanceof ApiError && query.error.status === 401) return <SignInRequired />
 
   const items = query.data?.pages.flatMap((p) => p.items) ?? []
 

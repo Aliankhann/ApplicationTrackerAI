@@ -13,6 +13,9 @@ export default function LandingPage() {
         <Link to="/demo" className="rounded bg-gray-900 px-4 py-2 text-white">
           Try the demo
         </Link>
+        <Link to="/sign-in" className="link self-center">
+          Sign in
+        </Link>
       </div>
       <div className="mt-8">
         <ApiStatus />

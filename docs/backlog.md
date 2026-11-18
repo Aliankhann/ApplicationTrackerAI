@@ -108,7 +108,10 @@ As the operator, I want to create single-use invite codes so I control who uses 
   generations; expiry is set.
 - **Depends on:** US-01 · **Estimate:** 0.5h
 
-### [ ] US-11 Google sign-in with PKCE
+### [x] US-11 Google sign-in with PKCE
+_Built and tested against a local fake Google (signed ID tokens, PKCE, JWKS). A live round trip
+waits on the Google Cloud projects (US-04); see `backend/.env.example` for the config to set._
+
 As an invited user, I want to sign in with Google so I don't need another password.
 - **AC:** `GET /auth/google/start` redirects to Google with `state`, a PKCE challenge, and only
   `openid email profile`; the callback rejects a missing or mismatched `state`; the ID token's
@@ -117,7 +120,7 @@ As an invited user, I want to sign in with Google so I don't need another passwo
   audience, replayed code.
 - **Depends on:** US-04, US-10 · **Estimate:** 2h
 
-### [ ] US-12 Invite gate
+### [x] US-12 Invite gate
 As the operator, I want uninvited people rejected before anything about them is stored.
 - **AC:** A new user must present a valid code or be on the allowlist; an invalid, used, or
   expired code is rejected and no user or token row is written; a valid code is marked used by
@@ -143,7 +146,7 @@ As a user, I want malicious sites unable to act on my behalf.
   wrong header gives 403, correct header passes. A request from another origin fails CORS.
 - **Depends on:** US-13 · **Estimate:** 1h
 
-### [ ] US-15 Invite and sign-in pages
+### [x] US-15 Invite and sign-in pages
 As an invited friend, I want a clear page to enter my code and sign in.
 - **AC:** An invite page takes a code and then starts sign-in; errors for a bad code are shown in
   plain language; loading, error, and success states exist; the page is keyboard accessible.
@@ -538,7 +541,7 @@ As a user, I want the browser to block injected scripts.
 - **Tests:** Integration: headers present on responses.
 - **Depends on:** US-01 · **Estimate:** 0.5h
 
-### [ ] US-92 Rate limiting
+### [x] US-92 Rate limiting
 As the operator, I want abuse limited on sensitive endpoints.
 - **AC:** Invite code, sign-in, and sync endpoints are rate limited per IP and per user.
 - **Tests:** Integration: limit exceeded returns 429.

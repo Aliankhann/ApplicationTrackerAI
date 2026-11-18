@@ -96,7 +96,7 @@ def attack_path(template: str, world: World, mapping: dict[str, dict[str, str]])
 
 
 # Tables with no per-user rows: nothing to snapshot or leak.
-GLOBAL_TABLES = frozenset({"invite_codes", "alembic_version"})
+GLOBAL_TABLES = frozenset({"invite_codes", "alembic_version", "rate_limits"})
 
 
 def user_scope(table: Table) -> ColumnElement[bool] | None:

@@ -7,6 +7,7 @@ import LandingPage from './pages/LandingPage.tsx'
 import GoodbyePage from './pages/GoodbyePage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
 import PrivacyPage from './pages/PrivacyPage.tsx'
+import SignInPage from './pages/SignInPage.tsx'
 import SettingsPage from './pages/SettingsPage.tsx'
 import { ApiShell, DemoShell } from './pages/Shells.tsx'
 
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="settings" element={<SettingsPage />} />
         <Route path="settings/follow-ups" element={<FollowUpSettingsPage />} />
       </Route>
+      <Route path="/sign-in" element={<SignInPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/goodbye" element={<GoodbyePage />} />
       <Route path="*" element={<NotFoundPage />} />
