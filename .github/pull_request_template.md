@@ -1,3 +1,7 @@
+## Story
+
+US-xx · Closes #
+
 ## What
 
 ## Why
@@ -6,5 +10,6 @@
 
 ## Checklist
 - [ ] No secrets, real emails, or personal data in the diff
-- [ ] Tests added or updated
+- [ ] Every acceptance criterion has a test (or a written manual check)
+- [ ] All local checks pass (ruff, mypy, pytest, lint, typecheck, Vitest, build)
 - [ ] Docs updated if behavior changed
