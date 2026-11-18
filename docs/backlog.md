@@ -332,7 +332,7 @@ As a user, I want unsure results flagged instead of guessed.
 
 Goal: you use it on your real recruiting inbox.
 
-### [ ] US-50 Applications from threads
+### [x] US-50 Applications from threads
 As a user, I want each job thread turned into one application with a status.
 - **AC:** A classified thread creates or updates an application; statuses are Applied, Online
   assessment, Interview, Offer, Rejected; status only moves forward unless the user changes it;
@@ -341,7 +341,10 @@ As a user, I want each job thread turned into one application with a status.
   duplicates on the same thread don't create a second application.
 - **Depends on:** US-41, US-43 · **Estimate:** 1.5h
 
-### [ ] US-51 Manual status fix
+### [~] US-51 Manual status fix
+_Service part done with US-50 (`set_status_manually` locks and records a manual event);
+the `PATCH /applications/{id}` route waits on sessions (US-13)._
+
 As a user, I want to correct a wrong status and have it stick.
 - **AC:** `PATCH /applications/{id}` sets status and `status_locked`; later syncs never overwrite
   a locked status; the change appears in the timeline.
