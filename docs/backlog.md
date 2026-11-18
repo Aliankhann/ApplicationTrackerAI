@@ -361,14 +361,14 @@ As the frontend, I want to list applications and their timelines.
 - **Tests:** Integration: filters, sort, ghosted calculation with a fake clock.
 - **Depends on:** US-50 · **Estimate:** 0.5h
 
-### [ ] US-53 Dashboard board and table
+### [x] US-53 Dashboard board and table
 As a user, I want to see all my applications by status at a glance.
 - **AC:** A board grouped by status with a table toggle; loading, empty, and error states;
   keyboard navigable; snippets rendered as plain text, never HTML.
 - **Tests:** Vitest: each state renders; a snippet containing `<script>` renders as text.
 - **Depends on:** US-52 · **Estimate:** 2.5h
 
-### [ ] US-54 Application detail page
+### [x] US-54 Application detail page
 As a user, I want one application's history and a way to fix its status.
 - **AC:** Shows company, role, status, and timeline; the status control calls US-51 and updates
   the page without a reload.
@@ -538,7 +538,10 @@ As the operator, I want abuse limited on sensitive endpoints.
 
 Goal: prod is live behind the approval step; 10 friends are invited.
 
-### [ ] US-100 Demo mode
+### [~] US-100 Demo mode
+_`/demo` runs the dashboard and detail pages on a static synthetic dataset with no network calls.
+Still to add: follow-up queue in the demo (after US-66) and the Playwright demo flow (US-101)._
+
 As a recruiter on GitHub, I want to see the product without signing in.
 - **AC:** `/demo` uses the same components against a static seeded dataset; no backend calls.
 - **Tests:** Vitest: demo pages render with fetch stubbed to fail; Playwright demo flow.
