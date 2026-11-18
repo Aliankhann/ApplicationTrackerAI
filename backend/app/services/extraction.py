@@ -21,6 +21,7 @@ SOURCE_DISPLAY_NAME = "display_name"
 SOURCE_SUBJECT = "subject"
 SOURCE_DOMAIN = "domain"
 SOURCE_SNIPPET = "snippet"
+SOURCE_LLM = "llm"
 
 VENDOR_NAMES: frozenset[str] = frozenset(
     {
@@ -637,6 +638,26 @@ def _implicit_company(domain: str, from_name: str, snippet: str) -> tuple[str | 
         return display, SOURCE_DISPLAY_NAME
     from_domain = _domain_company(domain)
     return (from_domain, SOURCE_DOMAIN) if from_domain else (None, None)
+
+
+_PII_RE = re.compile(r"\S*@\S*|\+?\d[\d\s().-]{6,}\d")
+MAX_LLM_FIELD_INPUT = 200
+
+
+def _masked(raw: str) -> str:
+    return _collapse(_PII_RE.sub(" ", raw[:MAX_LLM_FIELD_INPUT]))
+
+
+def clean_llm_company(raw: str | None) -> str | None:
+    """Untrusted model output: mask emails/phones, then the same validation as extraction."""
+    company = _valid_company(_masked(raw)) if raw else None
+    if company and set(_key(company).split()) & GENERIC_WORDS:
+        return None
+    return company
+
+
+def clean_llm_role(raw: str | None) -> str | None:
+    return _valid_role(_masked(raw)) if raw else None
 
 
 def extract(from_address: str, from_name: str, subject: str, snippet: str) -> Extracted:

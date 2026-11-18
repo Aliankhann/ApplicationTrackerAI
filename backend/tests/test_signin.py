@@ -212,9 +212,11 @@ def test_ac_missing_expired_or_tampered_flow_cookie_is_rejected(env: Env) -> Non
     good = flow.client.cookies["tracker_oauth"]
     # tampered payload with the original signature
     body, sig = good.split(".")
+    flow.client.cookies.delete("tracker_oauth")
     flow.client.cookies.set("tracker_oauth", f"{body[:-2]}AA.{sig}")
     assert_rejected(env, flow.callback(auth, state), "sign_in_failed", before)
     # expired
+    flow.client.cookies.delete("tracker_oauth")
     flow.client.cookies.set("tracker_oauth", good)
     env.clock.now = T0 + timedelta(minutes=11)
     assert_rejected(env, flow.callback(auth, state), "sign_in_failed", before)
@@ -367,6 +369,7 @@ def test_ac_tampered_invite_claim_is_ignored(env: Env) -> None:  # noqa: F811
     flow = Flow(env)
     flow.submit_code(flow.invite())
     claim = flow.client.cookies["tracker_invite"]
+    flow.client.cookies.delete("tracker_invite")
     flow.client.cookies.set("tracker_invite", claim[:-3] + "AAA")
     before = counts(env.db)
     assert_rejected(env, flow.sign_in(NEW), "not_invited", before)

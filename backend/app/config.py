@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     token_encryption_keys: SecretStr = SecretStr("")
     token_encryption_current_version: str = ""
     classifier_review_threshold: float = Field(default=0.7, ge=0, le=1)
+    llm_enabled: bool = False  # off until the Limited Use review and vendor data terms are done
+    anthropic_api_key: SecretStr = SecretStr("")
+    llm_model: str = "claude-haiku-5-5"
+    llm_daily_cap_per_user: int = Field(default=50, ge=0)
+    llm_monthly_call_budget: int = Field(default=5000, ge=0)
+    llm_rejection_threshold: float = Field(default=0.9, ge=0, le=1)
+    llm_offer_interview_threshold: float = Field(default=0.85, ge=0, le=1)
+    llm_timeout_seconds: float = Field(default=10.0, gt=0)
     sync_lease_minutes: int = Field(default=15, ge=1)
     followup_daily_draft_cap: int = Field(default=5, ge=1)
     followup_stale_days: int = Field(default=3, ge=0)
@@ -55,6 +63,11 @@ class Settings(BaseSettings):
     oauth_cookie_name: str = "tracker_oauth"
     invite_cookie_name: str = "tracker_invite"
     connect_cookie_name: str = "tracker_connect"
+
+    @property
+    def llm_active(self) -> bool:
+        """The kill switch is on only when explicitly enabled and a key exists."""
+        return self.llm_enabled and bool(self.anthropic_api_key.get_secret_value())
 
     @property
     def google_configured(self) -> bool:

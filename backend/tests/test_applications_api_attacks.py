@@ -1,5 +1,6 @@
 import base64
 from datetime import timedelta
+from typing import Any
 
 import pytest
 from sqlalchemy import select
@@ -37,7 +38,7 @@ def test_ac1_cursor_from_other_users_row_leaks_nothing(env: Env) -> None:  # noq
         {"cursor": "x" * 301},
     ],
 )
-def test_ac1_bad_params_rejected(env: Env, params: dict[str, object]) -> None:  # noqa: F811
+def test_ac1_bad_params_rejected(env: Env, params: dict[str, Any]) -> None:  # noqa: F811
     c = login(env, env.user())
     assert c.get("/applications", params=params).status_code == 422
 

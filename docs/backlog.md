@@ -308,7 +308,7 @@ As a developer, I want classifiers swappable without touching callers.
 - **Tests:** Unit: same input hits the cache; callers depend only on the interface.
 - **Depends on:** US-41 · **Estimate:** 0.5h
 
-### [ ] US-45 Claude fallback provider
+### [x] US-45 Claude fallback provider
 As a user, I want odd emails classified well instead of marked unknown.
 - **AC:** Called only when no rule fires or rules conflict; input is domain, subject, and snippet
   only; output is strict JSON validated against a schema; invalid output falls back to "needs
@@ -316,8 +316,15 @@ As a user, I want odd emails classified well instead of marked unknown.
 - **Tests:** Unit with a fake LLM: valid JSON, invalid JSON, injection-style snippet that tries to
   change the label format. Nightly eval against the real API.
 - **Depends on:** US-44, Limited Use review (open item) · **Estimate:** 1.5h
+- **Note:** Built and off by default. Before enabling: complete the Google Limited Use review and
+  the vendor data-terms check (Open items).
 
-### [ ] US-46 LLM cost and safety controls
+### [x] US-46 LLM cost and safety controls
+_Before enabling: (1) usage rows are written in the sync transaction, so a rolled-back batch can
+undercount spend by one batch; move `LlmControls.record` to its own short committed session if
+the budget must be exact. (2) Update the privacy page's "Currently nothing" line in the same
+change that turns the LLM on._
+
 As the operator, I want LLM spend capped and switchable off.
 - **AC:** Per-user daily call cap; an environment kill switch forces rules-only; LLM share of
   calls is reported by the eval.
