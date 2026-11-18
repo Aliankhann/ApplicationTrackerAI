@@ -1,0 +1,317 @@
+[
+ {
+  "id": "person_ats_subject",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Priya Natarajan",
+  "subject": "Thank you for applying to Wavecrest",
+  "snippet": "ok",
+  "company": "Wavecrest",
+  "role": null
+ },
+ {
+  "id": "person_ats_no_evidence",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Marcus Oyelaran",
+  "subject": "Application received",
+  "snippet": "ok",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "person_corp_domain_fallback",
+  "from_address": "linda@harbourlight.example",
+  "from_name": "Linda Varga",
+  "subject": "Quick note",
+  "snippet": "Hi",
+  "company": "Harbourlight",
+  "role": null
+ },
+ {
+  "id": "on_behalf_uncorroborated",
+  "from_address": "no-reply@ashbyhq.com",
+  "from_name": "Kai Lindgren on behalf of Peregrine Foods",
+  "subject": "Application received",
+  "snippet": "ok",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "on_behalf_corroborated",
+  "from_address": "no-reply@ashbyhq.com",
+  "from_name": "Kai Lindgren on behalf of Peregrine Foods",
+  "subject": "Thank you for applying to Peregrine Foods",
+  "snippet": "ok",
+  "company": "Peregrine Foods",
+  "role": null
+ },
+ {
+  "id": "subject_beats_display",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Ostrander Hiring Team",
+  "subject": "Thank you for applying to Brindle Works",
+  "snippet": "ok",
+  "company": "Brindle Works",
+  "role": null
+ },
+ {
+  "id": "newsletter_stripped",
+  "from_address": "hello@brightpath.example",
+  "from_name": "Brightpath Newsletter",
+  "subject": "Weekly digest",
+  "snippet": "Hi",
+  "company": "Brightpath",
+  "role": null
+ },
+ {
+  "id": "generic_only_name",
+  "from_address": "x@gmail.com",
+  "from_name": "Events Team",
+  "subject": "Join us",
+  "snippet": "Hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "marketing_stripped",
+  "from_address": "marketing@fennick.example",
+  "from_name": "Fennick Marketing",
+  "subject": "Offers inside",
+  "snippet": "Hi",
+  "company": "Fennick",
+  "role": null
+ },
+ {
+  "id": "mailer_domain",
+  "from_address": "noreply@mailer.example",
+  "from_name": "",
+  "subject": "Hello",
+  "snippet": "Hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "vendor_lookalike_domain",
+  "from_address": "a@workdayhr-notify.example",
+  "from_name": "",
+  "subject": "Update",
+  "snippet": "Hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "vendor_lookalike_name",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Greenhouse Software",
+  "subject": "Update",
+  "snippet": "Hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "esp_subject_company",
+  "from_address": "bounce@sendgrid.net",
+  "from_name": "Hiring",
+  "subject": "Thanks for applying to Opaline Studio",
+  "snippet": "ok",
+  "company": "Opaline Studio",
+  "role": null
+ },
+ {
+  "id": "jobboard_subject_company",
+  "from_address": "jobs-noreply@linkedin.com",
+  "from_name": "LinkedIn Job Alerts",
+  "subject": "Your application to Cresta Logistics",
+  "snippet": "ok",
+  "company": "Cresta Logistics",
+  "role": null
+ },
+ {
+  "id": "jobboard_no_company",
+  "from_address": "no-reply@indeed.com",
+  "from_name": "Indeed",
+  "subject": "Your application was sent",
+  "snippet": "ok",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "domain_lowest",
+  "from_address": "a@velmora.example",
+  "from_name": "",
+  "subject": "Next steps",
+  "snippet": "Hi",
+  "company": "Velmora",
+  "role": null
+ },
+ {
+  "id": "subject_beats_domain",
+  "from_address": "a@velmora.example",
+  "from_name": "",
+  "subject": "Thank you for applying to Orrin Biotech",
+  "snippet": "Hi",
+  "company": "Orrin Biotech",
+  "role": null
+ },
+ {
+  "id": "welcome_to",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Welcome to Thornbury Capital!",
+  "snippet": "Hi",
+  "company": "Thornbury Capital",
+  "role": null
+ },
+ {
+  "id": "interest_in",
+  "from_address": "no-reply@lever.co",
+  "from_name": "Jobs",
+  "subject": "Thank you for your interest in Galewind",
+  "snippet": "ok",
+  "company": "Galewind",
+  "role": null
+ },
+ {
+  "id": "application_with",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Your application with Duskfield",
+  "snippet": "ok",
+  "company": "Duskfield",
+  "role": null
+ },
+ {
+  "id": "role_season_prefix",
+  "from_address": "hr@kelvane.example",
+  "from_name": "",
+  "subject": "Summer 2026 Software Engineer Intern - Application received",
+  "snippet": "Hi",
+  "company": "Kelvane",
+  "role": "Software Engineer Intern"
+ },
+ {
+  "id": "role_location_paren",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Application for Data Analyst Intern (Toronto)",
+  "snippet": "ok",
+  "company": null,
+  "role": "Data Analyst Intern"
+ },
+ {
+  "id": "role_engineering_intern",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Thank you for applying: Engineering Intern",
+  "snippet": "ok",
+  "company": null,
+  "role": "Engineering Intern"
+ },
+ {
+  "id": "role_coop_field",
+  "from_address": "no-reply@lever.co",
+  "from_name": "Kelvane Recruiting",
+  "subject": "Kelvane | Co-op Student - Data Engineering",
+  "snippet": "ok",
+  "company": "Kelvane",
+  "role": "Co-op Student - Data Engineering"
+ },
+ {
+  "id": "role_your_x_application",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Your Backend Developer application",
+  "snippet": "ok",
+  "company": null,
+  "role": "Backend Developer"
+ },
+ {
+  "id": "role_invitation_assessment",
+  "from_address": "no-reply@codesignal.com",
+  "from_name": "Tamarind Labs",
+  "subject": "Invitation: Data Scientist Assessment",
+  "snippet": "ok",
+  "company": "Tamarind Labs",
+  "role": "Data Scientist"
+ },
+ {
+  "id": "role_no_noun",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Application for the Rotational Program",
+  "snippet": "ok",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "role_sentence_false",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Internship fair next week",
+  "snippet": "ok",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "role_snippet_only",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Update",
+  "snippet": "Regarding your application for the Security Analyst position at Ravenmoor.",
+  "company": "Ravenmoor",
+  "role": "Security Analyst"
+ },
+ {
+  "id": "role_pipe_company",
+  "from_address": "no-reply@ashbyhq.com",
+  "from_name": "Hiring",
+  "subject": "Ravenmoor | Research Engineer",
+  "snippet": "ok",
+  "company": "Ravenmoor",
+  "role": "Research Engineer"
+ },
+ {
+  "id": "role_at_company_ampersand",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Product Designer at Pelham & Cole",
+  "snippet": "ok",
+  "company": "Pelham & Cole",
+  "role": "Product Designer"
+ },
+ {
+  "id": "person_corp_subject",
+  "from_address": "rosa@tilbury.example",
+  "from_name": "Rosa Delgado",
+  "subject": "Software Engineer at Tilbury",
+  "snippet": "ok",
+  "company": "Tilbury",
+  "role": "Software Engineer"
+ },
+ {
+  "id": "org_suffix_not_person",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Alder Labs",
+  "subject": "Update",
+  "snippet": "ok",
+  "company": "Alder Labs",
+  "role": null
+ },
+ {
+  "id": "connective_from",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Recruiting from Zenith",
+  "subject": "Hi",
+  "snippet": "ok",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "accent_subject_company",
+  "from_address": "x@gmail.com",
+  "from_name": "",
+  "subject": "Thank you for applying to Étoile Verte",
+  "snippet": "ok",
+  "company": "Étoile Verte",
+  "role": null
+ }
+]
