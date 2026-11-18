@@ -126,7 +126,7 @@ As the operator, I want uninvited people rejected before anything about them is 
   code, no row written on rejection, rate limit returns 429.
 - **Depends on:** US-10, US-11 · **Estimate:** 1h
 
-### [ ] US-13 Sessions and logout
+### [x] US-13 Sessions and logout
 As a signed-in user, I want to stay signed in safely and be able to sign out.
 - **AC:** The session cookie is `HttpOnly`, `Secure` (outside local), `SameSite=Lax`, scoped to
   the parent domain; `GET /me` returns the profile when signed in and 401 otherwise;
@@ -135,7 +135,7 @@ As a signed-in user, I want to stay signed in safely and be able to sign out.
   logout is rejected.
 - **Depends on:** US-11 · **Estimate:** 1h
 
-### [ ] US-14 CSRF protection
+### [x] US-14 CSRF protection
 As a user, I want malicious sites unable to act on my behalf.
 - **AC:** Every state-changing route (POST, PATCH, DELETE) requires an `X-CSRF-Token` header that
   matches the CSRF cookie; CORS allows only the app origin with credentials.

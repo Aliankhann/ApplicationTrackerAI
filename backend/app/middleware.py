@@ -106,3 +106,24 @@ class RequestLogMiddleware:
         fields["status"] = status
         fields["duration_ms"] = round((time.perf_counter() - started) * 1000, 2)
         logger.log(logging.ERROR if status >= 500 else logging.INFO, "http.request", extra=fields)
+
+
+STATE_CHANGING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+class OriginCheckMiddleware:
+    """Defense in depth: reject state-changing requests from a foreign Origin."""
+
+    def __init__(self, app: ASGIApp, allowed_origin: str) -> None:
+        self.app = app
+        self.allowed_origin = allowed_origin
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["method"] in STATE_CHANGING:
+            origin = Headers(scope=scope).get("origin")
+            if origin is not None and origin != self.allowed_origin:
+                await JSONResponse({"detail": "origin_rejected"}, status_code=403)(
+                    scope, receive, send
+                )
+                return
+        await self.app(scope, receive, send)
