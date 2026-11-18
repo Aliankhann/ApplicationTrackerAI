@@ -192,7 +192,7 @@ As the operator, I want to rotate the encryption key without logging everyone ou
 
 Goal: your own inbox syncs into staging, keeping only job-related threads.
 
-### [ ] US-30 Gmail client interface and fake
+### [x] US-30 Gmail client interface and fake
 As a developer, I want Gmail behind an interface so tests never call Google.
 - **AC:** A `GmailClient` protocol covers list threads, get thread metadata, get profile, history
   list, and (later) create draft; a `FakeGmailClient` serves synthetic threads from fixtures.
@@ -403,7 +403,8 @@ As a user, I want due follow-ups turned into drafts automatically.
 - **AC:** Runs every 15 minutes; selects Applied or Online assessment applications whose last
   message is from the user and whose step is due; re-fetches the thread right before acting and
   cancels if anything new arrived; checks the window and cap; stops on every stop condition in
-  the plan.
+  the plan. Messages labelled DRAFT are ignored when deciding who sent last (the fake
+  reports `last_sender_is_user` as true for a trailing draft).
 - **Tests:** US-63 passes; integration tests for each stop condition.
 - **Depends on:** US-63, US-33 · **Estimate:** 2h
 
