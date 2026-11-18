@@ -1,0 +1,605 @@
+[
+ {
+  "id": "gh_hiring_team",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Northwind Hiring Team",
+  "subject": "Thank you for applying to Northwind",
+  "snippet": "We received your application.",
+  "company": "Northwind",
+  "role": null
+ },
+ {
+  "id": "gh_via",
+  "from_address": "no-reply@us.greenhouse-mail.io",
+  "from_name": "Brightwave via Greenhouse",
+  "subject": "Your application to Brightwave",
+  "snippet": "Thanks for your interest.",
+  "company": "Brightwave",
+  "role": null
+ },
+ {
+  "id": "gh_careers_at",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Careers at Quillfeather",
+  "subject": "Application received - Software Engineer Intern",
+  "snippet": "Hello",
+  "company": "Quillfeather",
+  "role": "Software Engineer Intern"
+ },
+ {
+  "id": "gh_vendor_name_subject_company",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Greenhouse",
+  "subject": "Thank you for applying to Tidepool Labs",
+  "snippet": "We got it.",
+  "company": "Tidepool Labs",
+  "role": null
+ },
+ {
+  "id": "lever_recruiting",
+  "from_address": "jobs@hire.lever.co",
+  "from_name": "Marlowe Recruiting",
+  "subject": "Marlowe | Data Analyst Intern",
+  "snippet": "Your application was received.",
+  "company": "Marlowe",
+  "role": "Data Analyst Intern"
+ },
+ {
+  "id": "lever_role_at",
+  "from_address": "no-reply@lever.co",
+  "from_name": "Jobs",
+  "subject": "Software Engineer Intern at Ironbark",
+  "snippet": "Thanks for applying.",
+  "company": "Ironbark",
+  "role": "Software Engineer Intern"
+ },
+ {
+  "id": "lever_vendor_only",
+  "from_address": "no-reply@lever.co",
+  "from_name": "Lever",
+  "subject": "Your application was received",
+  "snippet": "See portal.",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "lever_tenant_domain",
+  "from_address": "hello@copperfield.jobs.lever.co",
+  "from_name": "",
+  "subject": "Update on your application",
+  "snippet": "We will be in touch.",
+  "company": "Copperfield",
+  "role": null
+ },
+ {
+  "id": "lever_tenant_snippet",
+  "from_address": "no-reply@lever.co",
+  "from_name": "Notifications",
+  "subject": "Application update",
+  "snippet": "Track status at jobs.lever.co/silver-fern/abc",
+  "company": "Silver Fern",
+  "role": null
+ },
+ {
+  "id": "ashby_talent",
+  "from_address": "no-reply@ashbyhq.com",
+  "from_name": "Halcyon Talent Acquisition",
+  "subject": "Application received",
+  "snippet": "Thanks for applying to the Product Designer role.",
+  "company": "Halcyon",
+  "role": "Product Designer"
+ },
+ {
+  "id": "ashby_subject_dash",
+  "from_address": "no-reply@ashbyhq.com",
+  "from_name": "No Reply",
+  "subject": "Orchard Works - Application received",
+  "snippet": "Thanks!",
+  "company": "Orchard Works",
+  "role": null
+ },
+ {
+  "id": "workday_tenant",
+  "from_address": "donotreply@acmeco.wd5.myworkdayjobs.com",
+  "from_name": "",
+  "subject": "Thank you for your application",
+  "snippet": "We have received it.",
+  "company": "Acmeco",
+  "role": null
+ },
+ {
+  "id": "workday_tenant_hyphen",
+  "from_address": "donotreply@blue-harbor.wd1.myworkdayjobs.com",
+  "from_name": "Workday",
+  "subject": "Your application has been received",
+  "snippet": "Hello",
+  "company": "Blue Harbor",
+  "role": null
+ },
+ {
+  "id": "workday_display",
+  "from_address": "donotreply@myworkday.workday.com",
+  "from_name": "Starling Recruiting",
+  "subject": "Application for Associate Consultant (R12345)",
+  "snippet": "Thanks",
+  "company": "Starling",
+  "role": "Associate Consultant"
+ },
+ {
+  "id": "workday_vendor",
+  "from_address": "donotreply@workday.com",
+  "from_name": "Workday",
+  "subject": "Application received",
+  "snippet": "Hello",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "icims_people_team",
+  "from_address": "noreply@icims.com",
+  "from_name": "Fernhill People Team",
+  "subject": "Thank you for applying to Fernhill",
+  "snippet": "Done",
+  "company": "Fernhill",
+  "role": null
+ },
+ {
+  "id": "icims_role_for_the",
+  "from_address": "noreply@careers-mail.icims.com",
+  "from_name": "Dunmore Careers",
+  "subject": "Your application for the Research Scientist position",
+  "snippet": "We review it.",
+  "company": "Dunmore",
+  "role": "Research Scientist"
+ },
+ {
+  "id": "smartrecruiters_at",
+  "from_address": "no-reply@smartrecruiters.com",
+  "from_name": "SmartRecruiters",
+  "subject": "Thank you for applying for Data Engineer at Larkspur",
+  "snippet": "ok",
+  "company": "Larkspur",
+  "role": "Data Engineer"
+ },
+ {
+  "id": "smartrecruiters_display",
+  "from_address": "noreply@smartrecruiters.com",
+  "from_name": "Vireo Jobs",
+  "subject": "Your application",
+  "snippet": "ok",
+  "company": "Vireo",
+  "role": null
+ },
+ {
+  "id": "workable_hr",
+  "from_address": "no-reply@workable.com",
+  "from_name": "Pinecrest HR",
+  "subject": "Thanks for applying to Pinecrest!",
+  "snippet": "ok",
+  "company": "Pinecrest",
+  "role": null
+ },
+ {
+  "id": "workable_role_pos",
+  "from_address": "no-reply@workable.com",
+  "from_name": "Workable",
+  "subject": "Application for the position of Backend Developer",
+  "snippet": "Thanks",
+  "company": null,
+  "role": "Backend Developer"
+ },
+ {
+  "id": "jobvite_recruitment",
+  "from_address": "jobs@jobvite.com",
+  "from_name": "Maple Grove Recruitment",
+  "subject": "Your Application: Marketing Coordinator",
+  "snippet": "Thanks",
+  "company": null,
+  "role": "Marketing Coordinator"
+ },
+ {
+  "id": "taleo_vendor",
+  "from_address": "no-reply@taleo.net",
+  "from_name": "Taleo Notifications",
+  "subject": "Application confirmation",
+  "snippet": "Hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "hackerrank_vendor",
+  "from_address": "no-reply@hackerrankforwork.com",
+  "from_name": "HackerRank",
+  "subject": "Coding assessment invitation",
+  "snippet": "Complete by Friday",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "hackerrank_company",
+  "from_address": "no-reply@hackerrank.com",
+  "from_name": "Zephyr Systems via HackerRank",
+  "subject": "Assessment for Software Engineer Intern",
+  "snippet": "Take the test",
+  "company": "Zephyr Systems",
+  "role": "Software Engineer Intern"
+ },
+ {
+  "id": "codesignal_company",
+  "from_address": "no-reply@codesignal.com",
+  "from_name": "Redwood Robotics",
+  "subject": "Your CodeSignal assessment",
+  "snippet": "Please complete",
+  "company": "Redwood Robotics",
+  "role": null
+ },
+ {
+  "id": "codility_vendor",
+  "from_address": "no-reply@codility.com",
+  "from_name": "Codility Team",
+  "subject": "Test invitation",
+  "snippet": "Complete",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "bamboo_at",
+  "from_address": "jobs@bamboohr.com",
+  "from_name": "Talent Team",
+  "subject": "Software Developer at Cobalt Peak",
+  "snippet": "Thanks",
+  "company": "Cobalt Peak",
+  "role": "Software Developer"
+ },
+ {
+  "id": "successfactors_vendor",
+  "from_address": "noreply@successfactors.com",
+  "from_name": "SAP SuccessFactors",
+  "subject": "Candidate update",
+  "snippet": "hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "recruitee_team",
+  "from_address": "no-reply@recruitee.com",
+  "from_name": "Team",
+  "subject": "Update from Tern Studio",
+  "snippet": "We reviewed",
+  "company": "Tern Studio",
+  "role": null
+ },
+ {
+  "id": "ats_pipe_role",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Juniper",
+  "subject": "Juniper | Machine Learning Engineer Intern",
+  "snippet": "received",
+  "company": "Juniper",
+  "role": "Machine Learning Engineer Intern"
+ },
+ {
+  "id": "ats_colon_subject",
+  "from_address": "no-reply@lever.co",
+  "from_name": "",
+  "subject": "Application: UX Designer",
+  "snippet": "Thanks",
+  "company": null,
+  "role": "UX Designer"
+ },
+ {
+  "id": "ats_french_name",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Café Lumière Recrutement",
+  "subject": "Merci pour votre candidature",
+  "snippet": "Nous avons bien reçu",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "ats_french_subject",
+  "from_address": "no-reply@ashbyhq.com",
+  "from_name": "No Reply",
+  "subject": "Thank you for applying to Éclat Numérique",
+  "snippet": "ok",
+  "company": "Éclat Numérique",
+  "role": null
+ },
+ {
+  "id": "ats_role_and_req_hash",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Mosaic Hiring Team",
+  "subject": "Application for Software Engineer Intern #4567",
+  "snippet": "ok",
+  "company": "Mosaic",
+  "role": "Software Engineer Intern"
+ },
+ {
+  "id": "ats_role_req_dash",
+  "from_address": "no-reply@lever.co",
+  "from_name": "Mosaic Careers",
+  "subject": "Mosaic - Data Scientist Intern - Req 123",
+  "snippet": "ok",
+  "company": "Mosaic",
+  "role": "Data Scientist Intern"
+ },
+ {
+  "id": "ats_role_jr",
+  "from_address": "no-reply@workable.com",
+  "from_name": "Ember Recruiting",
+  "subject": "Ember | Research Intern JR-2025-001",
+  "snippet": "ok",
+  "company": "Ember",
+  "role": "Research Intern"
+ },
+ {
+  "id": "ats_no_role_subject",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Ridgeway Hiring Team",
+  "subject": "Thanks for your interest",
+  "snippet": "ok",
+  "company": "Ridgeway",
+  "role": null
+ },
+ {
+  "id": "ats_role_no_noun",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Ridgeway Hiring Team",
+  "subject": "Application for the Summer Program position",
+  "snippet": "ok",
+  "company": "Ridgeway",
+  "role": null
+ },
+ {
+  "id": "ats_at_sign",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Recruiter @ Sable Works",
+  "subject": "Interview availability",
+  "snippet": "ok",
+  "company": "Sable Works",
+  "role": null
+ },
+ {
+  "id": "corp_subdomain",
+  "from_address": "jane@careers.acme-robotics.example",
+  "from_name": "",
+  "subject": "Your interview schedule",
+  "snippet": "Hi",
+  "company": "Acme Robotics",
+  "role": null
+ },
+ {
+  "id": "corp_display_consistent",
+  "from_address": "recruiting@meridian.example",
+  "from_name": "Meridian Talent Acquisition",
+  "subject": "Next steps",
+  "snippet": "Hi",
+  "company": "Meridian",
+  "role": null
+ },
+ {
+  "id": "corp_display_person",
+  "from_address": "jane.doe@halberd.example",
+  "from_name": "Jane Doe",
+  "subject": "Quick chat?",
+  "snippet": "Hi",
+  "company": "Halberd",
+  "role": null
+ },
+ {
+  "id": "corp_hyphen",
+  "from_address": "hr@north-star-labs.example",
+  "from_name": "",
+  "subject": "Interview invitation",
+  "snippet": "Hi",
+  "company": "North Star Labs",
+  "role": null
+ },
+ {
+  "id": "corp_co_uk",
+  "from_address": "jobs@willowbrook.co.uk",
+  "from_name": "",
+  "subject": "Application received",
+  "snippet": "Hi",
+  "company": "Willowbrook",
+  "role": null
+ },
+ {
+  "id": "corp_role_pipe",
+  "from_address": "careers@thistledown.example",
+  "from_name": "",
+  "subject": "Thistledown | Software Engineer Intern",
+  "snippet": "Hi",
+  "company": "Thistledown",
+  "role": "Software Engineer Intern"
+ },
+ {
+  "id": "corp_french_display",
+  "from_address": "recrutement@cafe-lumiere.example",
+  "from_name": "Café Lumière Recrutement",
+  "subject": "Votre candidature",
+  "snippet": "Bonjour",
+  "company": "Café Lumière",
+  "role": null
+ },
+ {
+  "id": "corp_openai_case",
+  "from_address": "talent@openbrook.example",
+  "from_name": "OpenBrook Careers",
+  "subject": "Thanks",
+  "snippet": "Hi",
+  "company": "OpenBrook",
+  "role": null
+ },
+ {
+  "id": "corp_jp_dots",
+  "from_address": "talent@jp-harrow.example",
+  "from_name": "J.P. Harrow Recruiting",
+  "subject": "Interview next steps",
+  "snippet": "Hi",
+  "company": "J.P. Harrow",
+  "role": null
+ },
+ {
+  "id": "corp_snippet_role",
+  "from_address": "hr@umbra.example",
+  "from_name": "",
+  "subject": "Update",
+  "snippet": "Your application for the Cloud Architect position is in review.",
+  "company": "Umbra",
+  "role": "Cloud Architect"
+ },
+ {
+  "id": "gmail_recruiter_subject",
+  "from_address": "jane.recruiter@gmail.com",
+  "from_name": "Jane Smith",
+  "subject": "Software Engineer Intern at Foxglove",
+  "snippet": "Hi",
+  "company": "Foxglove",
+  "role": "Software Engineer Intern"
+ },
+ {
+  "id": "gmail_recruiter_none",
+  "from_address": "jane.recruiter@gmail.com",
+  "from_name": "Jane Smith at Foxglove",
+  "subject": "Quick call?",
+  "snippet": "Hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "outlook_none",
+  "from_address": "recruiter@outlook.com",
+  "from_name": "Recruiting Team",
+  "subject": "Hello",
+  "snippet": "Are you free?",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "hotmail_thanks",
+  "from_address": "hr@hotmail.com",
+  "from_name": "",
+  "subject": "Thank you for applying to Quarry Street",
+  "snippet": "ok",
+  "company": "Quarry Street",
+  "role": null
+ },
+ {
+  "id": "yahoo_none",
+  "from_address": "bob@yahoo.com",
+  "from_name": "Bob",
+  "subject": "Hi",
+  "snippet": "hello",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "icloud_pipe",
+  "from_address": "bob@icloud.com",
+  "from_name": "Bob",
+  "subject": "Lantern | Business Analyst Intern",
+  "snippet": "hello",
+  "company": "Lantern",
+  "role": "Business Analyst Intern"
+ },
+ {
+  "id": "proton_none",
+  "from_address": "x@proton.me",
+  "from_name": "X",
+  "subject": "Role opportunity",
+  "snippet": "Hello",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "gmx_none",
+  "from_address": "x@gmx.de",
+  "from_name": "X",
+  "subject": "Hello",
+  "snippet": "Hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "edu_none",
+  "from_address": "careers@cs.stateuniv.edu",
+  "from_name": "Career Services",
+  "subject": "Internship fair",
+  "snippet": "Hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "ac_uk_none",
+  "from_address": "careers@ox.ac.uk",
+  "from_name": "Careers",
+  "subject": "Event",
+  "snippet": "Hi",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "edu_subject_company",
+  "from_address": "careers@campus.edu",
+  "from_name": "Careers",
+  "subject": "Thank you for applying to Birchwood Analytics",
+  "snippet": "Hi",
+  "company": "Birchwood Analytics",
+  "role": null
+ },
+ {
+  "id": "empty_everything",
+  "from_address": "",
+  "from_name": "",
+  "subject": "",
+  "snippet": "",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "malformed_address",
+  "from_address": "not-an-address",
+  "from_name": "???",
+  "subject": "!!!",
+  "snippet": "...",
+  "company": null,
+  "role": null
+ },
+ {
+  "id": "role_snippet_application_for",
+  "from_address": "hr@gmail.com",
+  "from_name": "",
+  "subject": "Update",
+  "snippet": "Thank you for your application for Software Engineer Intern, we will review.",
+  "company": null,
+  "role": "Software Engineer Intern"
+ },
+ {
+  "id": "role_position_of",
+  "from_address": "no-reply@lever.co",
+  "from_name": "Sunvale Hiring",
+  "subject": "Your application",
+  "snippet": "Regarding the position of Quantitative Analyst at Sunvale.",
+  "company": "Sunvale",
+  "role": "Quantitative Analyst"
+ },
+ {
+  "id": "subject_dash_dash_role",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Opal Jobs",
+  "subject": "Opal - Technical Program Manager",
+  "snippet": "ok",
+  "company": "Opal",
+  "role": "Technical Program Manager"
+ },
+ {
+  "id": "role_co_op",
+  "from_address": "no-reply@icims.com",
+  "from_name": "Kestrel Recruiting",
+  "subject": "Kestrel | Software Co-op",
+  "snippet": "ok",
+  "company": "Kestrel",
+  "role": "Software Co-op"
+ }
+]

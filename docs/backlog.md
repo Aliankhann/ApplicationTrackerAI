@@ -280,12 +280,17 @@ As a developer, I want accuracy measured on every PR so rule changes can't silen
   offer you the position", "decided to pass on your application", "will not be continuing with
   yours", "not selected for the next stage". Keep a held-out split that rules are never tuned on.
 
-### [ ] US-43 Company and role extraction
+### [x] US-43 Company and role extraction
 As a user, I want each application to show the right company and role.
 - **AC:** Parses sender display name and subject; dedicated patterns for each ATS domain;
   returns unknown rather than guessing.
 - **Tests:** Unit fixtures per ATS; unknown cases return none.
 - **Depends on:** US-41 · **Estimate:** 2h
+
+- **Known gap from QA:** only runs on threads the prefilter and classifier kept. Staffing agencies
+  and job boards ("HireFast Staffing", "Job Hunt Weekly") come back as the company because nothing
+  in the email separates them from an employer; the manual fix in US-51 covers these. Two-word
+  names with no org suffix or corroboration ("Maple Grove") are deliberately returned as None.
 
 ### [x] US-44 Classifier provider interface
 As a developer, I want classifiers swappable without touching callers.
