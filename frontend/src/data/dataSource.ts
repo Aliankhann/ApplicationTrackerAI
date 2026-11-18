@@ -1,5 +1,7 @@
 import type {
   Application,
+  DeleteResult,
+  DisconnectResult,
   ApplicationDetail,
   ApplicationPage,
   ApplicationPatch,
@@ -28,6 +30,8 @@ export interface DataSource {
   createSequence(input: SequenceInput): Promise<Sequence>
   updateSequence(id: string, patch: SequencePatch): Promise<Sequence>
   previewTemplate(template: string, tone: Tone): Promise<Preview>
+  disconnectGmail(): Promise<DisconnectResult>
+  deleteAccount(): Promise<DeleteResult>
 }
 
 export type { Application }

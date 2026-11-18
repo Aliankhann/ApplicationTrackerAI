@@ -32,7 +32,7 @@ test('US-66: nav links to applications, follow-ups, and settings', async () => {
   const nav = await screen.findByRole('navigation', { name: 'Main' })
   expect(within(nav).getByRole('link', { name: 'Settings' })).toHaveAttribute(
     'href',
-    '/demo/settings/follow-ups',
+    '/demo/settings',
   )
   expect(within(nav).getByRole('link', { name: 'Applications' })).toHaveAttribute('href', '/demo')
 })

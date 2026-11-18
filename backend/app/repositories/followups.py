@@ -139,6 +139,18 @@ def cancel_pending(
     return result.rowcount
 
 
+def cancel_open(session: Session, user_id: uuid.UUID, reason: str) -> int:
+    """Cancel every pending or drafting task of the user."""
+    owned = select(Application.id).where(Application.user_id == user_id)
+    stmt = (
+        sql_update(FollowUpTask)
+        .where(FollowUpTask.application_id.in_(owned), FollowUpTask.state.in_((PENDING, DRAFTING)))
+        .values(state=CANCELLED, cancel_reason=reason, claimed_at=None)
+        .execution_options(synchronize_session="fetch")
+    )
+    return _rowcount(session, stmt)
+
+
 def count_drafted_between(
     session: Session, user_id: uuid.UUID, start: datetime, end: datetime
 ) -> int:

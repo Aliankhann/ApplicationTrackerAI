@@ -1,8 +1,9 @@
 """Thread metadata and classification history. Every query is scoped by user_id."""
 
 import uuid
+from typing import Any, cast
 
-from sqlalchemy import func, select
+from sqlalchemy import CursorResult, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -112,3 +113,9 @@ def add_classification(
     session.add(row)
     session.flush()
     return row
+
+
+def delete_all(session: Session, user_id: uuid.UUID) -> int:
+    """Delete the user's threads; classifications cascade, applications keep and lose the link."""
+    stmt = delete(EmailThread).where(EmailThread.user_id == user_id)
+    return cast(CursorResult[Any], session.execute(stmt)).rowcount

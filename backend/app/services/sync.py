@@ -19,6 +19,7 @@ from typing import Literal, TypeVar
 
 from sqlalchemy import or_, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -76,8 +77,17 @@ class SyncAlreadyRunning:
     """Returned when another sync holds the user's lock; no work was done."""
 
 
+@dataclass(frozen=True)
+class SyncUserGone:
+    """The user was deleted mid-sync; the run stopped and wrote nothing further."""
+
+
 class SyncRevoked(Exception):
     """The user's Google grant is gone; the token and sync state are flagged revoked."""
+
+
+class _UserGone(Exception):
+    """Internal: the user row vanished while syncing."""
 
 
 class SyncFailed(Exception):
@@ -143,11 +153,15 @@ def _lease() -> timedelta:
 
 def _claim(ctx: _Context) -> SyncState | None:
     """Atomically take the user's lease; None when a live sync already holds it."""
-    ctx.session.execute(
-        insert(SyncState)
-        .values(user_id=ctx.user_id)
-        .on_conflict_do_nothing(index_elements=["user_id"])
-    )
+    try:
+        ctx.session.execute(
+            insert(SyncState)
+            .values(user_id=ctx.user_id)
+            .on_conflict_do_nothing(index_elements=["user_id"])
+        )
+    except IntegrityError:  # no such user (deleted): the foreign key refuses the lease row
+        ctx.session.rollback()
+        raise _UserGone from None
     stmt = (
         update(SyncState)
         .where(
@@ -344,7 +358,7 @@ def _log_completed(ctx: _Context, result: SyncResult) -> None:
     )
 
 
-def _run_claimed(ctx: _Context) -> SyncResult:
+def _run_claimed(ctx: _Context) -> SyncResult | SyncUserGone:
     try:
         result = _dispatch(ctx, ctx.state)
         _log_completed(ctx, result)
@@ -364,7 +378,11 @@ def _run_claimed(ctx: _Context) -> SyncResult:
         raise SyncFailed(ERROR_GMAIL) from None
     except Exception:
         ctx.session.rollback()
-        ctx.state = ctx.session.get(SyncState, ctx.user_id, populate_existing=True) or ctx.state
+        state = ctx.session.get(SyncState, ctx.user_id, populate_existing=True)
+        if state is None:  # the account was deleted under us: stop, recreate nothing
+            logger.info("sync.user_gone", extra={"user_id": ctx.user_id})
+            return SyncUserGone()
+        ctx.state = state
         _record_failure(ctx, SyncStatus.ERROR, ERROR_INTERNAL)
         _log_failed(ctx, ERROR_INTERNAL)
         raise
@@ -385,7 +403,7 @@ def run_sync(
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], datetime] | None = None,
     force: bool = False,
-) -> SyncResult | SyncAlreadyRunning:
+) -> SyncResult | SyncAlreadyRunning | SyncUserGone:
     """Sync one user. Raises SyncRevoked or SyncFailed after recording the state.
 
     One sync per user: a lease row in sync_state is claimed atomically at `now` and extended
@@ -405,7 +423,10 @@ def run_sync(
         clock or _utcnow,
         force,
     )
-    state = _claim(ctx)
+    try:
+        state = _claim(ctx)
+    except _UserGone:
+        return SyncUserGone()
     if state is None:
         return SyncAlreadyRunning()
     ctx.state = state

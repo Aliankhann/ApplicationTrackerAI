@@ -432,6 +432,8 @@ def run_due(
         logger.warning("followup.rate_limited", extra={"user_id": user_id})
     except Exception:
         session.rollback()
+        if session.get(User, user_id) is None:  # account deleted mid-run: stop cleanly
+            return run.result
         raise
     finally:
         repo.release_lease(session, user_id)

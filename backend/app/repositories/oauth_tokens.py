@@ -3,6 +3,7 @@
 import uuid
 from dataclasses import dataclass
 
+from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -78,3 +79,12 @@ def mark_revoked(session: Session, user_id: uuid.UUID) -> None:
     if row is not None:
         row.status = TokenStatus.REVOKED
         session.flush()
+
+
+def get_row(session: Session, user_id: uuid.UUID) -> OAuthToken | None:
+    return session.get(OAuthToken, user_id)
+
+
+def delete_token(session: Session, user_id: uuid.UUID) -> None:
+    """Remove the encrypted token for good (disconnect)."""
+    session.execute(sa_delete(OAuthToken).where(OAuthToken.user_id == user_id))

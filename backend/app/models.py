@@ -323,3 +323,40 @@ class UserSession(Base):
     idle_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     user_agent_hash: Mapped[str | None] = mapped_column(String(64))
+
+
+class AuditAction(StrEnum):
+    """Login and gmail_connected arrive with US-11/US-31; data_exported is reserved (CSV export)."""
+
+    LOGIN = "login"
+    LOGOUT = "logout"
+    GMAIL_CONNECTED = "gmail_connected"
+    GMAIL_DISCONNECTED = "gmail_disconnected"
+    ACCOUNT_DELETED = "account_deleted"
+    FOLLOWUPS_ENABLED = "followups_enabled"
+    DATA_EXPORTED = "data_exported"
+
+
+class AuditLog(Base):
+    """Who did what and when, nothing else: no IP, user agent, email, or content.
+
+    `user_id` is deliberately NOT a foreign key: it is a random uuid with no personal data, so
+    entries can outlive an account. Deleting an account removes that user's rows and writes one
+    anonymous `account_deleted` row with `user_id` NULL.
+    """
+
+    __tablename__ = "audit_log"
+    __table_args__ = (
+        Index("ix_audit_log_user_id", "user_id"),
+        Index("ix_audit_log_at", "at"),
+        CheckConstraint(
+            "action in ('login', 'logout', 'gmail_connected', 'gmail_disconnected', "
+            "'account_deleted', 'followups_enabled', 'data_exported')",
+            name="action_valid",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    action: Mapped[str] = mapped_column(String(32), nullable=False)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

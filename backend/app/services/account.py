@@ -1,0 +1,90 @@
+"""Disconnect Gmail and delete an account. Nothing here logs tokens, emails, or content."""
+
+import uuid
+from dataclasses import dataclass
+from datetime import datetime
+
+from sqlalchemy.orm import Session
+
+from app.log import get_logger
+from app.models import AuditAction, User
+from app.providers.google.revoke import RevokeResult, TokenRevoker
+from app.repositories import audit as audit_repo
+from app.repositories import followups as followups_repo
+from app.repositories import invite_codes as invite_codes_repo
+from app.repositories import oauth_tokens as tokens_repo
+from app.repositories import sync_state as sync_state_repo
+from app.repositories import threads as threads_repo
+from app.repositories import users as users_repo
+from app.security.crypto import DecryptionError, KeyringError, get_keyring
+from app.services.followup_policy import StopReason
+
+logger = get_logger("app.account")
+
+ERROR_DECRYPT = "token_decrypt_failed"
+ERROR_REVOKE_FAILED = "revoke_failed"
+
+
+class SyncInProgress(Exception):
+    """A sync holds the lease; the caller should retry shortly."""
+
+
+@dataclass(frozen=True)
+class DisconnectResult:
+    revoked_at_google: bool | None  # None: there was no live token to revoke
+
+
+def revoke_at_google(session: Session, user_id: uuid.UUID, revoker: TokenRevoker) -> bool | None:
+    """Revoke the user's live refresh token. None: nothing to revoke; False: Google call failed.
+
+    Raises RevokerNotConfigured when no real revoker is wired.
+    """
+    try:
+        token = tokens_repo.load_refresh_token(session, user_id, get_keyring())
+    except (DecryptionError, KeyringError):
+        logger.warning("account.revoke_skipped", extra={"error_code": ERROR_DECRYPT})
+        return False
+    if token is None:
+        return None
+    result = revoker.revoke(token)
+    if result is RevokeResult.FAILED:
+        logger.warning("account.revoke_failed", extra={"error_code": ERROR_REVOKE_FAILED})
+        return False
+    return True
+
+
+def disconnect_gmail(
+    session: Session, user_id: uuid.UUID, revoker: TokenRevoker, now: datetime
+) -> DisconnectResult:
+    """Revoke, delete the token and synced threads, cancel open follow-ups, reset sync state.
+
+    Raises SyncInProgress (nothing changed) or RevokerNotConfigured (nothing changed). A failed
+    Google call does not block the local cleanup. Caller commits.
+    """
+    if sync_state_repo.lease_held(session, user_id, now):
+        raise SyncInProgress
+    had_token = tokens_repo.get_row(session, user_id) is not None
+    revoked = revoke_at_google(session, user_id, revoker)
+    tokens_repo.delete_token(session, user_id)
+    threads_repo.delete_all(session, user_id)
+    followups_repo.cancel_open(session, user_id, StopReason.GMAIL_DISCONNECTED.value)
+    sync_state_repo.reset(session, user_id)
+    if had_token:
+        audit_repo.record(session, user_id, AuditAction.GMAIL_DISCONNECTED, now)
+    return DisconnectResult(revoked)
+
+
+def delete_account(session: Session, user_id: uuid.UUID, now: datetime) -> None:
+    """Remove every row of the user in the caller's single transaction; caller commits.
+
+    Foreign-key cascades remove everything owned by the user (sessions, token, sync and
+    scheduler state, threads, applications, tasks, sequences); invite codes keep their row with
+    the user link and any email for them removed. The user's audit rows (no FK) are deleted
+    explicitly, then one
+    anonymous `account_deleted` entry is written.
+    """
+    audit_repo.delete_for_user(session, user_id)
+    user = session.get(User, user_id)
+    invite_codes_repo.forget_user(session, user_id, user.email if user else None)
+    users_repo.delete(session, user_id)
+    audit_repo.record(session, None, AuditAction.ACCOUNT_DELETED, now)

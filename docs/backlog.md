@@ -150,12 +150,16 @@ As an invited friend, I want a clear page to enter my code and sign in.
 - **Tests:** Vitest: form validation, error message on 4xx, redirect on success.
 - **Depends on:** US-12 · **Estimate:** 1h
 
-### [ ] US-16 Audit log
+### [x] US-16 Audit log
 As the operator, I want a record of sensitive actions without storing any email content.
 - **AC:** Login, logout, Gmail connect and disconnect, and delete are written to `audit_log` with
   user ID, action, and time only.
 - **Tests:** Integration: each action writes exactly one row with no extra fields.
 - **Depends on:** US-13 · **Estimate:** 0.5h
+- **Notes:** `audit_log` and `repositories/audit.record` exist; logout, disconnect, and delete write
+  entries. TODO: US-11 must call `record(..., LOGIN)` and US-31 `record(..., GMAIL_CONNECTED)`;
+  follow-ups enable (US-61/65) uses `FOLLOWUPS_ENABLED`. `purge_audit` (365 days) needs a scheduled
+  caller. `user_id` has no FK so the anonymous `account_deleted` row can outlive the user.
 
 ### Integration check, auth
 - [ ] On staging, your test account signs in with a fresh invite code, sees `/me`, logs out.
@@ -238,12 +242,14 @@ As a user, I want to trigger a sync and see whether it is running.
 - **Tests:** Integration: a second request while running returns the existing job, not a new one.
 - **Depends on:** US-32 · **Estimate:** 0.5h
 
-### [ ] US-35 Disconnect Gmail
+### [x] US-35 Disconnect Gmail
 As a user, I want to disconnect Gmail and have my synced data removed.
 - **AC:** `POST /gmail/disconnect` revokes the token at Google, marks it revoked, and deletes that
   user's threads and snippets.
 - **Tests:** Integration: zero thread rows after disconnect; revoke endpoint called once.
 - **Depends on:** US-31 · **Estimate:** 0.5h
+- **Notes:** Revocation sits behind `TokenRevoker` (`providers/google/revoke.py`); production wiring
+  raises "not configured" (503 on disconnect) until US-31 adds the real Google call.
 
 ### Integration check, week 2 exit
 - [ ] Your own inbox syncs into staging; only job-related threads are stored.
@@ -488,13 +494,16 @@ As a user, I want to turn the digest off easily.
 
 Goal: anyone can leave and take nothing of theirs left behind.
 
-### [ ] US-80 Delete my data
+### [x] US-80 Delete my data
 As a user, I want one button that removes everything about me.
 - **AC:** `DELETE /me` revokes the Google token, deletes every row for the user in one
   transaction, ends the session, and sends a confirmation email.
 - **Tests:** Integration: after delete, every user-owned table has zero rows for that user (the
   test enumerates tables from metadata, so new tables are covered automatically).
 - **Depends on:** US-35, US-71 · **Estimate:** 1.5h
+- **Notes:** Confirmation email goes through the `EmailSender` stub (no-op in production). TODO US-71:
+  real sender, then make it send. TODO: replace `BACKUP_RETENTION_DAYS` in `frontend/src/constants.ts`
+  with the host's real window.
 
 ### [ ] US-81 Privacy page and SECURITY.md
 As a friend deciding whether to connect Gmail, I want to know exactly what happens to my data.

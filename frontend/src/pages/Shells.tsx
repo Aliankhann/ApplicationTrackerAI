@@ -9,7 +9,7 @@ function Nav({ basePath }: { basePath: string }) {
   const links = [
     [basePath, 'Applications'],
     [`${basePath}/follow-ups`, 'Follow-ups'],
-    [`${basePath}/settings/follow-ups`, 'Settings'],
+    [`${basePath}/settings`, 'Settings'],
   ] as const
   return (
     <nav aria-label="Main" className="flex gap-4 border-b px-4 py-2">

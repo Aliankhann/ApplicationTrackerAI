@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, func, select, update
+from sqlalchemy import CursorResult, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.models import InviteCode, User
@@ -60,3 +60,24 @@ def slots_in_use(session: Session, now: datetime) -> int:
     referenced = select(InviteCode.used_by_user_id).where(InviteCode.used_by_user_id.is_not(None))
     users = session.scalar(select(func.count()).select_from(User).where(User.id.not_in(referenced)))
     return (codes or 0) + (users or 0)
+
+
+def forget_user(session: Session, user_id: uuid.UUID, email: str | None) -> None:
+    """Drop personal data from invites this user redeemed or that were made for their email.
+
+    Rows are kept (a redeemed one is still a used slot); only the email is removed.
+
+    Google counts every account that ever signed in, so the row (and `used_at`) must stay for
+    the 100-user cap; only the email is removed.
+    """
+    session.execute(
+        update(InviteCode)
+        .where(
+            or_(
+                InviteCode.used_by_user_id == user_id,
+                func.lower(InviteCode.created_for_email) == (email or "").lower(),
+            )
+        )
+        .values(created_for_email=None)
+        .execution_options(synchronize_session="fetch")
+    )
