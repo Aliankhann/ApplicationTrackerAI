@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://tracker:tracker@localhost:5432/tracker"
     frontend_origin: str = "http://localhost:5173"
     log_level: str = "INFO"
+    max_users: int = 100
 
 
 @lru_cache

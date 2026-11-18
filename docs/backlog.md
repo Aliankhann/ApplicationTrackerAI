@@ -100,7 +100,7 @@ As the developer, I want every merge to `main` to deploy to staging.
 
 Goal: only invited people can sign in, and sessions are safe against CSRF.
 
-### [ ] US-10 Invite code management
+### [x] US-10 Invite code management
 As the operator, I want to create single-use invite codes so I control who uses the 100 slots.
 - **AC:** A CLI command creates a long random code (at least 128 bits), prints it once, and
   stores only its hash with an expiry; optional `created_for_email`.
