@@ -12,9 +12,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.log import get_logger
 from app.models import InviteCode, User
 from app.providers.google.oidc import Identity
 from app.repositories import invite_codes, users
+
+logger = get_logger("app.signin")
 
 NOT_INVITED = "not_invited"
 ACCOUNT_DISABLED = "account_disabled"
@@ -41,8 +44,10 @@ def admit(
     if existing is not None:
         if existing.disabled_at is not None:
             raise SignInRejected(ACCOUNT_DISABLED)
+        _sync_email(existing, identity.email.lower())
         return existing
     email = identity.email.lower()
+    invite_codes.lock_user_cap(session)  # before counting slots, so the cap cannot be overshot
     allowlisted = email in settings.allowlist
     invite = None if allowlisted else _usable_invite(session, invite_id, email, now)
     if not allowlisted and invite is None:
@@ -50,6 +55,12 @@ def admit(
     if not _has_room(session, invite, settings, now):
         raise SignInRejected(NOT_INVITED)
     return _create_user(session, identity.sub, email, invite, now)
+
+
+def _sync_email(user: User, email: str) -> None:
+    if user.email != email:
+        user.email = email
+        logger.info("auth.email_updated")
 
 
 def _usable_invite(

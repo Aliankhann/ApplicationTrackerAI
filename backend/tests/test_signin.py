@@ -2,9 +2,10 @@
 
 import logging
 import threading
+import time
 import urllib.parse
 import uuid
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -12,7 +13,7 @@ from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_oidc
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.models import AuditLog, InviteCode, OAuthToken, User, UserSession
 from app.providers.google.oidc import Identity
 from app.repositories import invite_codes
@@ -123,10 +124,17 @@ def test_ac_flow_cookie_is_host_prefixed_and_secure_outside_local(env: Env) -> N
     assert cookie.startswith("__Host-tracker_oauth=") and "Secure" in cookie
 
 
-@pytest.mark.parametrize(
-    ("method", "path"),
-    [("GET", "/auth/google/start"), ("GET", "/auth/google/callback"), ("POST", "/auth/invite")],
-)
+def test_ac_oauth_get_routes_redirect_to_sign_in_when_google_is_not_configured(
+    env: Env,  # noqa: F811
+) -> None:
+    client = env.app()
+    for path in ("/auth/google/start", "/auth/google/callback"):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["location"] == f"{FRONTEND}/sign-in?error=sign_in_unavailable"
+
+
+@pytest.mark.parametrize(("method", "path"), [("POST", "/auth/invite")])
 def test_ac_sign_in_routes_fail_closed_with_503_when_google_is_not_configured(
     env: Env,  # noqa: F811
     method: str,
@@ -509,3 +517,52 @@ def test_ac_signed_cookies_are_bound_to_their_kind(env: Env) -> None:  # noqa: F
         is None
     )
     assert signed_cookie.verify(signed_cookie.INVITE_KIND, "garbage", T0, 60, settings) is None
+
+
+def test_ac_two_new_users_cannot_both_take_the_last_slot() -> None:
+    engine = create_engine(get_settings().database_url)
+    now = datetime.now(UTC)
+    tag = uuid.uuid4().hex
+    emails = [f"a{tag}@example.test", f"b{tag}@example.test"]
+    with Session(engine) as s:
+        base = invite_codes.slots_in_use(s, now)
+    settings = Settings(
+        session_secret=get_settings().session_secret,
+        max_users=base + 1,
+        allowlist_emails=",".join(emails),
+    )
+    sessions = [Session(engine), Session(engine)]
+    subs = [f"race-{tag}-{i}" for i in range(2)]
+
+    def go(i: int) -> None:
+        try:
+            signin.admit(sessions[i], Identity(subs[i], emails[i], True), None, settings, now)
+            time.sleep(0.5)  # hold the cap lock: the other admit must wait, not overshoot
+            sessions[i].commit()
+        except signin.SignInRejected:
+            sessions[i].rollback()
+
+    threads = [threading.Thread(target=go, args=(i,)) for i in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(10)
+    try:
+        with Session(engine) as s:
+            assert invite_codes.slots_in_use(s, now) <= settings.max_users
+    finally:
+        for s in sessions:
+            s.close()
+        with Session(engine) as c:
+            c.execute(delete(User).where(User.google_sub.in_(subs)))
+            c.commit()
+        engine.dispose()
+
+
+def test_ac_returning_user_email_is_updated_when_google_reports_a_new_one(env: Env) -> None:  # noqa: F811
+    flow = Flow(env)
+    user = User(google_sub="sub-old", email=OLD)
+    env.db.add(user)
+    env.db.flush()
+    flow.sign_in("Renamed@Example.test", "sub-old")
+    assert env.db.get(User, user.id).email == "renamed@example.test"  # type: ignore[union-attr]

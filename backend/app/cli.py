@@ -84,6 +84,7 @@ def main(
         return _rotate_tokens(session_factory, keyring_factory)
     now = clock()
     with session_factory() as session:
+        invite_codes.lock_user_cap(session)
         if invite_codes.slots_in_use(session, now) >= get_settings().max_users:
             print("error: user cap reached; no invite created", file=sys.stderr)
             return 1

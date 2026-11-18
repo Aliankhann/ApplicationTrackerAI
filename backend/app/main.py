@@ -1,9 +1,12 @@
-from fastapi import Depends, FastAPI
+from urllib.parse import urlencode
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from app.api import applications, auth, followups, gmail, health, sequences, unsubscribe
 from app.api import settings as settings_api
-from app.api.deps import require_csrf
+from app.api.deps import SignInRedirect, require_csrf
 from app.config import get_settings
 from app.log import configure_logging
 from app.middleware import OriginCheckMiddleware, RequestLogMiddleware, SecurityHeadersMiddleware
@@ -23,6 +26,12 @@ def create_app() -> FastAPI:
         dependencies=[Depends(require_csrf)],
         **docs,  # type: ignore[arg-type]
     )
+
+    @app.exception_handler(SignInRedirect)
+    def sign_in_redirect(_: Request, exc: SignInRedirect) -> RedirectResponse:
+        query = urlencode({"error": exc.code})
+        return RedirectResponse(f"{settings.frontend_origin}/sign-in?{query}", status_code=302)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings.frontend_origin],
