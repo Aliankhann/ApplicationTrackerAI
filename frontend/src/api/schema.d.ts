@@ -17,8 +17,7 @@ export interface paths {
         post?: never;
         delete?: never;
         options?: never;
-        /** Health */
-        head: operations["health_health_get"];
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -250,26 +249,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    health_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HealthResponse"];
-                };
-            };
-        };
-    };
     health_health_get: {
         parameters: {
             query?: never;
