@@ -10,6 +10,7 @@ import type { ApplicationDetail, FollowUp, ListParams, Sequence } from './schema
 import { validateSteps, validateTemplate } from './sequenceValidation'
 
 const DEFAULT_LIMIT = 50
+const NOT_IN_DEMO = 'Not available in the demo'
 
 function sortKey(record: DemoRecord, sort: ListParams['sort']): number {
   const { detail } = record
@@ -149,6 +150,13 @@ export function createDemoDataSource(now: Date = new Date()): DataSource {
         ])
       }
       return { text: renderPreview(template, tone) }
+    },
+    // The UI disables these controls in the demo; this guards against any other caller.
+    async disconnectGmail() {
+      throw new ApiError(501, NOT_IN_DEMO)
+    },
+    async deleteAccount() {
+      throw new ApiError(501, NOT_IN_DEMO)
     },
   }
 }

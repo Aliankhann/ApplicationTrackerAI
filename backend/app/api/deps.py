@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.models import User, UserSession
+from app.providers.email import EmailSender, NoopEmailSender
+from app.providers.google.revoke import TokenRevoker, UnconfiguredTokenRevoker
 from app.repositories import users
 from app.security import sessions
 
@@ -27,10 +29,22 @@ def get_now(clock: Annotated[Callable[[], datetime], Depends(get_clock)]) -> dat
     return clock()
 
 
+def get_token_revoker() -> TokenRevoker:
+    """Production wiring; tests override with FakeTokenRevoker. US-31 adds the real one."""
+    return UnconfiguredTokenRevoker()
+
+
+def get_email_sender() -> EmailSender:
+    """Production wiring; US-71 adds the real sender."""
+    return NoopEmailSender()
+
+
 Db = Annotated[Session, Depends(get_db)]
 Config = Annotated[Settings, Depends(get_settings)]
 Clock = Annotated[Callable[[], datetime], Depends(get_clock)]
 Now = Annotated[datetime, Depends(get_now)]
+RevokerDep = Annotated[TokenRevoker, Depends(get_token_revoker)]
+EmailDep = Annotated[EmailSender, Depends(get_email_sender)]
 
 
 def _unauthenticated() -> HTTPException:

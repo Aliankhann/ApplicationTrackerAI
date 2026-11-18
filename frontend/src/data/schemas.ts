@@ -141,3 +141,14 @@ export function validateText(value: string, max: number, label: string): string 
   if (length < 1 || length > max) return `${label} must be 1 to ${max} characters.`
   return null
 }
+
+export const DisconnectResultSchema = z.object({
+  revoked_at_google: z.boolean().nullable(),
+})
+export type DisconnectResult = z.infer<typeof DisconnectResultSchema>
+
+export const DeleteResultSchema = z.object({
+  deleted: z.literal(true),
+  revoked_at_google: z.boolean().nullable(),
+})
+export type DeleteResult = z.infer<typeof DeleteResultSchema>

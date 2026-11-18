@@ -3,6 +3,8 @@ import { ApiError, type DataSource } from './dataSource'
 import {
   ApplicationDetailSchema,
   ApplicationPageSchema,
+  DeleteResultSchema,
+  DisconnectResultSchema,
   FieldErrorsSchema,
   FollowUpSchema,
   FollowUpsSchema,
@@ -96,5 +98,12 @@ export const apiDataSource: DataSource = {
   async previewTemplate(template, tone) {
     const body = { template, tone }
     return PreviewSchema.parse(unwrap(await api.POST('/sequences/preview', { body })))
+  },
+  async disconnectGmail() {
+    return DisconnectResultSchema.parse(unwrap(await api.POST('/gmail/disconnect')))
+  },
+  async deleteAccount() {
+    const body = { confirm: 'DELETE' as const }
+    return DeleteResultSchema.parse(unwrap(await api.DELETE('/me', { body })))
   },
 }

@@ -165,6 +165,24 @@ export function useUpdateSequence(id: string) {
   })
 }
 
+export function useDisconnectGmail() {
+  const source = useDataSource()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: () => source.disconnectGmail(),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['applications', source.kind] }),
+  })
+}
+
+export function useDeleteAccount() {
+  const source = useDataSource()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: () => source.deleteAccount(),
+    onSuccess: () => client.clear(),
+  })
+}
+
 export function useDebounced<T>(value: T, ms = 250): T {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {
