@@ -397,14 +397,17 @@ As the operator, I want proof that no user can touch another user's data.
 - **Depends on:** US-52 · **Estimate:** 1.5h (moved earlier than the plan so every later route is
   covered from day one)
 
-### [ ] US-61 Sequences
+### [~] US-61 Sequences
+_Service and repository done (validation, one default per user, race-safe). The
+`/sequences` routes wait on sessions (US-13). Normalize pasted `\r\n` to `\n` in the route layer._
+
 As a user, I want a default follow-up plan I can adjust.
 - **AC:** Default sequence: day 7, day 14, stop; `GET/POST /sequences`, `PATCH /sequences/{id}`;
   steps validated (delay, template, max attempts).
 - **Tests:** Integration: default created on first use; invalid steps rejected.
 - **Depends on:** US-13 · **Estimate:** 1h
 
-### [ ] US-62 Template rendering
+### [x] US-62 Template rendering
 As a user, I want follow-ups written with the right names and dates.
 - **AC:** Variables `{recruiter_first_name}`, `{role}`, `{company}`, `{applied_date}`,
   `{your_name}`; a missing value falls back to safe text, never a raw placeholder; tone presets.
