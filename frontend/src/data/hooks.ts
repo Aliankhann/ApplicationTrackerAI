@@ -5,12 +5,17 @@ import {
   useQueryClient,
   type InfiniteData,
 } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { useDataSource } from './context'
 import type {
   Application,
   ApplicationDetail,
   ApplicationPage,
   ApplicationPatch,
+  FollowUp,
+  FollowUpFilter,
+  SequencePatch,
+  Tone,
   ListParams,
 } from './schemas'
 
@@ -87,8 +92,94 @@ export function useUpdateApplication(id: string) {
     },
     onSettled: () => {
       void client.invalidateQueries({ queryKey: key })
-      void client.invalidateQueries({ queryKey: ['applications', source.kind] })
+      void client.invalidateQueries({
+        queryKey: ['applications', source.kind],
+      })
       void client.invalidateQueries({ queryKey: ['events', source.kind, id] })
     },
+  })
+}
+
+export function useFollowUps(state: FollowUpFilter = 'all') {
+  const source = useDataSource()
+  return useQuery({
+    queryKey: ['followups', source.kind, 'list', state],
+    queryFn: () => source.listFollowUps(state),
+  })
+}
+
+type FollowUpAction = 'skip' | 'delay'
+
+function applyFollowUp(items: FollowUp[], id: string, action: FollowUpAction, days: number) {
+  if (action === 'skip') return items.filter((t) => t.id !== id)
+  return items
+    .map((t) =>
+      t.id === id
+        ? {
+            ...t,
+            due_at: new Date(Date.parse(t.due_at) + days * 86_400_000).toISOString(),
+          }
+        : t,
+    )
+    .sort((a, b) => Date.parse(a.due_at) - Date.parse(b.due_at))
+}
+
+export function useFollowUpAction(id: string, action: FollowUpAction, days = 0) {
+  const source = useDataSource()
+  const client = useQueryClient()
+  const listKey = ['followups', source.kind, 'list'] as const
+  return useMutation({
+    scope: { id: `followup-${id}` },
+    mutationFn: () =>
+      action === 'skip' ? source.skipFollowUp(id) : source.delayFollowUp(id, days),
+    onMutate: async () => {
+      await client.cancelQueries({ queryKey: listKey })
+      const previous = client.getQueriesData<FollowUp[]>({ queryKey: listKey })
+      client.setQueriesData<FollowUp[]>(
+        { queryKey: listKey },
+        (items) => items && applyFollowUp(items, id, action, days),
+      )
+      return { previous }
+    },
+    onError: (_error, _vars, context) => {
+      context?.previous.forEach(([k, data]) => client.setQueryData(k, data))
+    },
+    onSettled: () => void client.invalidateQueries({ queryKey: listKey }),
+  })
+}
+
+export function useSequences() {
+  const source = useDataSource()
+  return useQuery({
+    queryKey: ['sequences', source.kind],
+    queryFn: () => source.listSequences(),
+  })
+}
+
+export function useUpdateSequence(id: string) {
+  const source = useDataSource()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (patch: SequencePatch) => source.updateSequence(id, patch),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['sequences', source.kind] }),
+  })
+}
+
+export function useDebounced<T>(value: T, ms = 250): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), ms)
+    return () => clearTimeout(timer)
+  }, [value, ms])
+  return debounced
+}
+
+export function usePreview(template: string, tone: Tone) {
+  const source = useDataSource()
+  const debounced = useDebounced({ template, tone })
+  return useQuery({
+    queryKey: ['preview', source.kind, debounced.template, debounced.tone],
+    queryFn: () => source.previewTemplate(debounced.template, debounced.tone),
+    retry: false,
   })
 }

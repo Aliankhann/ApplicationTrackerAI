@@ -62,6 +62,59 @@ export interface ListParams {
   cursor?: string
 }
 
+export const FOLLOW_UP_STATES = ['pending', 'drafted', 'all'] as const
+export type FollowUpFilter = (typeof FOLLOW_UP_STATES)[number]
+
+export const FollowUpSchema = z.object({
+  id: z.uuid(),
+  application_id: z.uuid(),
+  company: z.string().nullable(),
+  role: z.string().nullable(),
+  step_index: z.number().int(),
+  due_at: timestamp,
+  state: z.string(),
+  cancel_reason: z.string().nullable(),
+  can_skip: z.boolean(),
+})
+export type FollowUp = z.infer<typeof FollowUpSchema>
+export const FollowUpsSchema = z.array(FollowUpSchema)
+
+export const TONES = ['short', 'warm', 'formal'] as const
+export type Tone = (typeof TONES)[number]
+
+export const StepSchema = z.object({
+  delay_days: z.number().int(),
+  template: z.string(),
+  max_attempts: z.number().int(),
+})
+export type Step = z.infer<typeof StepSchema>
+
+export const SequenceSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  steps: z.array(StepSchema),
+  tone: z.enum(TONES),
+  is_default: z.boolean(),
+})
+export type Sequence = z.infer<typeof SequenceSchema>
+export const SequencesSchema = z.array(SequenceSchema)
+
+export interface SequenceInput {
+  name: string
+  steps: Step[]
+  tone: Tone
+  make_default: boolean
+}
+export type SequencePatch = Partial<SequenceInput>
+
+export const PreviewSchema = z.object({ text: z.string() })
+export type Preview = z.infer<typeof PreviewSchema>
+
+export const FieldErrorsSchema = z.array(
+  z.object({ field: z.string(), code: z.string(), message: z.string() }),
+)
+export type FieldError = z.infer<typeof FieldErrorsSchema>[number]
+
 // Drift check: the Zod-inferred types must stay assignable to the generated API types.
 type Assert<T extends true> = T
 type Fits<A, B> = [A] extends [B] ? true : false
@@ -72,6 +125,12 @@ export type SchemaDriftChecks = [
   Assert<Fits<ApplicationPage, Schemas['ApplicationPage']>>,
   Assert<Fits<ApplicationPatch, Schemas['ApplicationPatch']>>,
   Assert<Fits<Schemas['ApplicationDetail'], ApplicationDetail>>,
+  Assert<Fits<FollowUp, Schemas['FollowUpOut']>>,
+  Assert<Fits<Schemas['FollowUpOut'], FollowUp>>,
+  Assert<Fits<Sequence, Schemas['SequenceOut']>>,
+  Assert<Fits<SequenceInput, Schemas['SequenceCreate']>>,
+  Assert<Fits<SequencePatch, Schemas['SequencePatch']>>,
+  Assert<Fits<Preview, Schemas['PreviewOut']>>,
 ]
 
 export const COMPANY_MAX = 80

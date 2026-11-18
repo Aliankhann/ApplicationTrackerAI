@@ -4,439 +4,877 @@
  */
 
 export interface paths {
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Health */
-        get: operations["health_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Me */
-        get: operations["me_me_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Logout */
-        post: operations["logout_auth_logout_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/applications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Applications */
-        get: operations["list_applications_applications_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/applications/{application_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Application */
-        get: operations["get_application_applications__application_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Patch Application */
-        patch: operations["patch_application_applications__application_id__patch"];
-        trace?: never;
-    };
-    "/applications/{application_id}/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Events */
-        get: operations["list_events_applications__application_id__events_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+  '/health': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Health */
+    get: operations['health_health_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/me': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Me */
+    get: operations['me_me_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/auth/logout': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Logout */
+    post: operations['logout_auth_logout_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/applications': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Applications */
+    get: operations['list_applications_applications_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/applications/{application_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Application */
+    get: operations['get_application_applications__application_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /** Patch Application */
+    patch: operations['patch_application_applications__application_id__patch']
+    trace?: never
+  }
+  '/applications/{application_id}/events': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Events */
+    get: operations['list_events_applications__application_id__events_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/follow-ups': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Follow Ups */
+    get: operations['list_follow_ups_follow_ups_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/follow-ups/{task_id}/skip': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Skip Follow Up */
+    post: operations['skip_follow_up_follow_ups__task_id__skip_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/follow-ups/{task_id}/delay': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Delay Follow Up */
+    post: operations['delay_follow_up_follow_ups__task_id__delay_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/sequences': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Sequences */
+    get: operations['list_sequences_sequences_get']
+    put?: never
+    /** Create Sequence */
+    post: operations['create_sequence_sequences_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/sequences/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Preview
+     * @description Render a template with sample data; writes nothing and uses no real recipient data.
+     */
+    post: operations['preview_sequences_preview_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/sequences/{sequence_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /** Patch Sequence */
+    patch: operations['patch_sequence_sequences__sequence_id__patch']
+    trace?: never
+  }
 }
-export type webhooks = Record<string, never>;
+export type webhooks = Record<string, never>
 export interface components {
-    schemas: {
-        /** ApplicationDetail */
-        ApplicationDetail: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Company */
-            company: string | null;
-            /** Role */
-            role: string | null;
-            status: components["schemas"]["ApplicationStatus"];
-            /** Display Status */
-            display_status: string;
-            /** Applied At */
-            applied_at: string | null;
-            /**
-             * Last Activity At
-             * Format: date-time
-             */
-            last_activity_at: string;
-            /** Status Locked */
-            status_locked: boolean;
-            /** Needs Review */
-            needs_review: boolean;
-            /** Followups Paused */
-            followups_paused: boolean;
-            /** Subject */
-            subject: string | null;
-            /** Snippet */
-            snippet: string | null;
-        };
-        /** ApplicationOut */
-        ApplicationOut: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Company */
-            company: string | null;
-            /** Role */
-            role: string | null;
-            status: components["schemas"]["ApplicationStatus"];
-            /** Display Status */
-            display_status: string;
-            /** Applied At */
-            applied_at: string | null;
-            /**
-             * Last Activity At
-             * Format: date-time
-             */
-            last_activity_at: string;
-            /** Status Locked */
-            status_locked: boolean;
-            /** Needs Review */
-            needs_review: boolean;
-            /** Followups Paused */
-            followups_paused: boolean;
-        };
-        /** ApplicationPage */
-        ApplicationPage: {
-            /** Items */
-            items: components["schemas"]["ApplicationOut"][];
-            /** Next Cursor */
-            next_cursor: string | null;
-        };
-        /** ApplicationPatch */
-        ApplicationPatch: {
-            status?: components["schemas"]["ApplicationStatus"] | null;
-            /** Company */
-            company?: string | null;
-            /** Role */
-            role?: string | null;
-            /** Followups Paused */
-            followups_paused?: boolean | null;
-        };
-        /**
-         * ApplicationStatus
-         * @enum {string}
-         */
-        ApplicationStatus: "applied" | "online_assessment" | "interview" | "offer" | "rejected";
-        /** EventOut */
-        EventOut: {
-            from_status: components["schemas"]["ApplicationStatus"] | null;
-            to_status: components["schemas"]["ApplicationStatus"];
-            /** Reason */
-            reason: string;
-            /**
-             * At
-             * Format: date-time
-             */
-            at: string;
-        };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /** HealthResponse */
-        HealthResponse: {
-            /** Status */
-            status: string;
-        };
-        /** MeResponse */
-        MeResponse: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Email */
-            email: string;
-            /** Timezone */
-            timezone: string | null;
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
-    };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+  schemas: {
+    /** ApplicationDetail */
+    ApplicationDetail: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Company */
+      company: string | null
+      /** Role */
+      role: string | null
+      status: components['schemas']['ApplicationStatus']
+      /** Display Status */
+      display_status: string
+      /** Applied At */
+      applied_at: string | null
+      /**
+       * Last Activity At
+       * Format: date-time
+       */
+      last_activity_at: string
+      /** Status Locked */
+      status_locked: boolean
+      /** Needs Review */
+      needs_review: boolean
+      /** Followups Paused */
+      followups_paused: boolean
+      /** Subject */
+      subject: string | null
+      /** Snippet */
+      snippet: string | null
+    }
+    /** ApplicationOut */
+    ApplicationOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Company */
+      company: string | null
+      /** Role */
+      role: string | null
+      status: components['schemas']['ApplicationStatus']
+      /** Display Status */
+      display_status: string
+      /** Applied At */
+      applied_at: string | null
+      /**
+       * Last Activity At
+       * Format: date-time
+       */
+      last_activity_at: string
+      /** Status Locked */
+      status_locked: boolean
+      /** Needs Review */
+      needs_review: boolean
+      /** Followups Paused */
+      followups_paused: boolean
+    }
+    /** ApplicationPage */
+    ApplicationPage: {
+      /** Items */
+      items: components['schemas']['ApplicationOut'][]
+      /** Next Cursor */
+      next_cursor: string | null
+    }
+    /** ApplicationPatch */
+    ApplicationPatch: {
+      status?: components['schemas']['ApplicationStatus'] | null
+      /** Company */
+      company?: string | null
+      /** Role */
+      role?: string | null
+      /** Followups Paused */
+      followups_paused?: boolean | null
+    }
+    /**
+     * ApplicationStatus
+     * @enum {string}
+     */
+    ApplicationStatus: 'applied' | 'online_assessment' | 'interview' | 'offer' | 'rejected'
+    /** DelayBody */
+    DelayBody: {
+      /** Days */
+      days: number
+    }
+    /** EventOut */
+    EventOut: {
+      from_status: components['schemas']['ApplicationStatus'] | null
+      to_status: components['schemas']['ApplicationStatus']
+      /** Reason */
+      reason: string
+      /**
+       * At
+       * Format: date-time
+       */
+      at: string
+    }
+    /** FollowUpOut */
+    FollowUpOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /**
+       * Application Id
+       * Format: uuid
+       */
+      application_id: string
+      /** Company */
+      company: string | null
+      /** Role */
+      role: string | null
+      /** Step Index */
+      step_index: number
+      /**
+       * Due At
+       * Format: date-time
+       */
+      due_at: string
+      /** State */
+      state: string
+      /** Cancel Reason */
+      cancel_reason: string | null
+      /** Can Skip */
+      can_skip: boolean
+    }
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components['schemas']['ValidationError'][]
+    }
+    /** HealthResponse */
+    HealthResponse: {
+      /** Status */
+      status: string
+    }
+    /** MeResponse */
+    MeResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Email */
+      email: string
+      /** Timezone */
+      timezone: string | null
+    }
+    /** PreviewBody */
+    PreviewBody: {
+      /** Template */
+      template: string
+      /**
+       * Tone
+       * @default short
+       */
+      tone: string
+    }
+    /** PreviewOut */
+    PreviewOut: {
+      /** Text */
+      text: string
+    }
+    /** SequenceCreate */
+    SequenceCreate: {
+      /** Name */
+      name: string
+      /** Steps */
+      steps: {
+        [key: string]: unknown
+      }[]
+      /**
+       * Tone
+       * @default short
+       */
+      tone: string
+      /**
+       * Make Default
+       * @default false
+       */
+      make_default: boolean
+    }
+    /** SequenceOut */
+    SequenceOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /** Steps */
+      steps: components['schemas']['Step'][]
+      /** Tone */
+      tone: string
+      /** Is Default */
+      is_default: boolean
+    }
+    /** SequencePatch */
+    SequencePatch: {
+      /** Name */
+      name?: string | null
+      /** Steps */
+      steps?:
+        | {
+            [key: string]: unknown
+          }[]
+        | null
+      /** Tone */
+      tone?: string | null
+      /** Make Default */
+      make_default?: boolean | null
+    }
+    /** Step */
+    Step: {
+      /** Delay Days */
+      delay_days: number
+      /** Template */
+      template: string
+      /**
+       * Max Attempts
+       * @default 1
+       */
+      max_attempts: number
+    }
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[]
+      /** Message */
+      msg: string
+      /** Error Type */
+      type: string
+      /** Input */
+      input?: unknown
+      /** Context */
+      ctx?: Record<string, never>
+    }
+  }
+  responses: never
+  parameters: never
+  requestBodies: never
+  headers: never
+  pathItems: never
 }
-export type $defs = Record<string, never>;
+export type $defs = Record<string, never>
 export interface operations {
-    health_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HealthResponse"];
-                };
-            };
-        };
-    };
-    me_me_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MeResponse"];
-                };
-            };
-        };
-    };
-    logout_auth_logout_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    list_applications_applications_get: {
-        parameters: {
-            query?: {
-                status?: ("applied" | "online_assessment" | "interview" | "offer" | "rejected" | "ghosted") | null;
-                sort?: "last_activity" | "applied_at";
-                order?: "desc" | "asc";
-                limit?: number;
-                cursor?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApplicationPage"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_application_applications__application_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                application_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApplicationDetail"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    patch_application_applications__application_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                application_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApplicationPatch"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApplicationDetail"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_events_applications__application_id__events_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                application_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventOut"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
+  health_health_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HealthResponse']
+        }
+      }
+    }
+  }
+  me_me_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['MeResponse']
+        }
+      }
+    }
+  }
+  logout_auth_logout_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  list_applications_applications_get: {
+    parameters: {
+      query?: {
+        status?:
+          | ('applied' | 'online_assessment' | 'interview' | 'offer' | 'rejected' | 'ghosted')
+          | null
+        sort?: 'last_activity' | 'applied_at'
+        order?: 'desc' | 'asc'
+        limit?: number
+        cursor?: string | null
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ApplicationPage']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_application_applications__application_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        application_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ApplicationDetail']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  patch_application_applications__application_id__patch: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        application_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ApplicationPatch']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ApplicationDetail']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_events_applications__application_id__events_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        application_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['EventOut'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_follow_ups_follow_ups_get: {
+    parameters: {
+      query?: {
+        state?: ('pending' | 'drafted' | 'all') | null
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FollowUpOut'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  skip_follow_up_follow_ups__task_id__skip_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FollowUpOut']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  delay_follow_up_follow_ups__task_id__delay_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DelayBody']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FollowUpOut']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_sequences_sequences_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SequenceOut'][]
+        }
+      }
+    }
+  }
+  create_sequence_sequences_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SequenceCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SequenceOut']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_sequences_preview_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PreviewBody']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['PreviewOut']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  patch_sequence_sequences__sequence_id__patch: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        sequence_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SequencePatch']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SequenceOut']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
 }

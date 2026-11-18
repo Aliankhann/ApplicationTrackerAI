@@ -1,13 +1,31 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { Outlet } from 'react-router'
+import { NavLink, Outlet } from 'react-router'
 import { apiDataSource } from '../data/apiDataSource'
 import { DataSourceProvider } from '../data/DataSourceProvider'
 import { createDemoDataSource } from '../data/demoDataSource'
 
+function Nav({ basePath }: { basePath: string }) {
+  const links = [
+    [basePath, 'Applications'],
+    [`${basePath}/follow-ups`, 'Follow-ups'],
+    [`${basePath}/settings/follow-ups`, 'Settings'],
+  ] as const
+  return (
+    <nav aria-label="Main" className="flex gap-4 border-b px-4 py-2">
+      {links.map(([to, label]) => (
+        <NavLink key={to} to={to} end className="link">
+          {label}
+        </NavLink>
+      ))}
+    </nav>
+  )
+}
+
 export function ApiShell() {
   return (
     <DataSourceProvider source={apiDataSource} basePath="/app">
+      <Nav basePath="/app" />
       <Outlet />
     </DataSourceProvider>
   )
@@ -30,6 +48,7 @@ export function DemoShell() {
       >
         Demo data: sample applications, nothing is saved or sent.
       </div>
+      <Nav basePath="/demo" />
       <Outlet />
     </DataSourceProvider>
   )

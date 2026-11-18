@@ -69,10 +69,15 @@ def build_world(env: Env, tag: str) -> World:  # noqa: F811
 PARAM_MAP: dict[str, dict[str, str]] = {
     "/applications/{application_id}": {"application_id": "application"},
     "/applications/{application_id}/events": {"application_id": "application"},
+    "/follow-ups/{task_id}/skip": {"task_id": "task"},
+    "/follow-ups/{task_id}/delay": {"task_id": "task"},
+    "/sequences/{sequence_id}": {"sequence_id": "sequence"},
 }
 # Bodies for state-changing routes (the route must reject on ownership, not on validation).
 BODIES: dict[tuple[str, str], dict[str, object]] = {
     ("PATCH", "/applications/{application_id}"): {"status": "rejected", "company": "Hacked"},
+    ("POST", "/follow-ups/{task_id}/delay"): {"days": 3},
+    ("PATCH", "/sequences/{sequence_id}"): {"name": "Hacked"},
 }
 
 
@@ -211,7 +216,7 @@ def test_ac5_owner_still_reaches_own_data_through_mapped_routes(
     """Guards against the suite passing only because every request 404s for everyone."""
     a, _, _ = two_users
     owner = login(env, a.user)
-    for template in PARAM_MAP:
+    for template in {p for m, p in PARAM_ROUTES if m == "GET"}:
         assert owner.get(attack_path(template, a, PARAM_MAP)).status_code == 200
     assert a.company in owner.get("/applications").text
 
