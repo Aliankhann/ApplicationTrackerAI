@@ -249,7 +249,7 @@ As a user, I want to disconnect Gmail and have my synced data removed.
 
 Goal: every synced thread gets a label, measured against targets.
 
-### [ ] US-40 Prefilter
+### [x] US-40 Prefilter
 As the system, I want obvious non-job mail dropped before anything is stored.
 - **AC:** A sender-domain and keyword prefilter returns keep or drop; ATS domains
   (greenhouse.io, lever.co, ashbyhq.com, myworkdayjobs.com, icims.com, smartrecruiters.com,

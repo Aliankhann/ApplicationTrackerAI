@@ -1,0 +1,810 @@
+[
+ {
+  "id": "ats_greenhouse_io",
+  "from_address": "no-reply@greenhouse.io",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_greenhouse-mail_io",
+  "from_address": "no-reply@greenhouse-mail.io",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_lever_co",
+  "from_address": "jobs@lever.co",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_hire_lever_co",
+  "from_address": "noreply@hire.lever.co",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_ashbyhq_com",
+  "from_address": "no-reply@ashbyhq.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_myworkdayjobs_com",
+  "from_address": "wd@myworkdayjobs.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_workday_com",
+  "from_address": "info@workday.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_icims_com",
+  "from_address": "noreply@icims.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_smartrecruiters_com",
+  "from_address": "hello@smartrecruiters.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_workable_com",
+  "from_address": "no-reply@workable.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_jobvite_com",
+  "from_address": "mail@jobvite.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_taleo_net",
+  "from_address": "do-not-reply@taleo.net",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_successfactors_com",
+  "from_address": "noreply@successfactors.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_bamboohr_com",
+  "from_address": "hr@bamboohr.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_recruitee_com",
+  "from_address": "mailer@recruitee.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_hackerrank_com",
+  "from_address": "support@hackerrank.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_hackerrankforwork_com",
+  "from_address": "tests@hackerrankforwork.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_codesignal_com",
+  "from_address": "hello@codesignal.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_codility_com",
+  "from_address": "noreply@codility.com",
+  "from_name": "Northwind Careers",
+  "subject": "Update from Northwind Labs",
+  "snippet": "Please see the message in your portal.",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_sub_greenhouse",
+  "from_address": "no-reply@us.greenhouse-mail.io",
+  "from_name": "Zephyr Corp",
+  "subject": "Update",
+  "snippet": "Hello there",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_sub_workday",
+  "from_address": "jobs@wd5.myworkdayjobs.com",
+  "from_name": "Quillon Inc",
+  "subject": "Hello",
+  "snippet": "Message waiting",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_sub_upper",
+  "from_address": "JOBS@Mail.LEVER.CO",
+  "from_name": "Orbit",
+  "subject": "Hi",
+  "snippet": "Hi",
+  "expected_keep": true
+ },
+ {
+  "id": "lookalike_notgreenhouse",
+  "from_address": "hello@notgreenhouse.io",
+  "from_name": "Deal Bot",
+  "subject": "Big sale today",
+  "snippet": "Save 20% on everything",
+  "expected_keep": false
+ },
+ {
+  "id": "lookalike_suffix",
+  "from_address": "hello@greenhouse.io.evil.com",
+  "from_name": "Deal Bot",
+  "subject": "Weekly digest",
+  "snippet": "Top stories this week",
+  "expected_keep": false
+ },
+ {
+  "id": "lookalike_lever",
+  "from_address": "x@fakelever.co",
+  "from_name": "Promo",
+  "subject": "Flash sale",
+  "snippet": "Ends tonight",
+  "expected_keep": false
+ },
+ {
+  "id": "display_name_ats",
+  "from_address": "\"Ravenwood Talent <jobs@lever.co>\"",
+  "from_name": "Ravenwood",
+  "subject": "Hi",
+  "snippet": "Thanks",
+  "expected_keep": true
+ },
+ {
+  "id": "display_name_angle",
+  "from_address": "Ravenwood <no-reply@ashbyhq.com>",
+  "from_name": "",
+  "subject": "Hi",
+  "snippet": "Thanks",
+  "expected_keep": true
+ },
+ {
+  "id": "display_name_job",
+  "from_address": "Brightline HR <hr@brightline.example>",
+  "from_name": "Brightline",
+  "subject": "Your application to Brightline",
+  "snippet": "We received your application",
+  "expected_keep": true
+ },
+ {
+  "id": "confirm_company",
+  "from_address": "careers@fabrikam.example",
+  "from_name": "Fabrikam",
+  "subject": "We received your application",
+  "snippet": "Thank you for applying to Fabrikam",
+  "expected_keep": true
+ },
+ {
+  "id": "confirm_applied",
+  "from_address": "jobs@tailspin.example",
+  "from_name": "Tailspin",
+  "subject": "You applied to Software Intern",
+  "snippet": "Your submission is in review",
+  "expected_keep": true
+ },
+ {
+  "id": "interview_invite",
+  "from_address": "recruiting@contoso.example",
+  "from_name": "Contoso",
+  "subject": "Interview invitation",
+  "snippet": "We would like to schedule an interview with you",
+  "expected_keep": true
+ },
+ {
+  "id": "oa_invite",
+  "from_address": "noreply@litware.example",
+  "from_name": "Litware",
+  "subject": "Online assessment for your internship",
+  "snippet": "Complete the coding challenge within 7 days",
+  "expected_keep": true
+ },
+ {
+  "id": "oa_assessment",
+  "from_address": "talent@adatum.example",
+  "from_name": "Adatum",
+  "subject": "Next steps",
+  "snippet": "Please complete the assessment",
+  "expected_keep": true
+ },
+ {
+  "id": "rejection",
+  "from_address": "careers@fabrikam.example",
+  "from_name": "Fabrikam",
+  "subject": "Update",
+  "snippet": "Unfortunately, we will not be moving forward with your application",
+  "expected_keep": true
+ },
+ {
+  "id": "rejection_candidacy",
+  "from_address": "hr@wingtip.example",
+  "from_name": "Wingtip",
+  "subject": "Regarding your candidacy",
+  "snippet": "Unfortunately we chose another path",
+  "expected_keep": true
+ },
+ {
+  "id": "offer",
+  "from_address": "hr@proseware.example",
+  "from_name": "Proseware",
+  "subject": "Your offer letter",
+  "snippet": "Congratulations, we are pleased to extend an offer letter",
+  "expected_keep": true
+ },
+ {
+  "id": "recruiter_outreach",
+  "from_address": "jane.doe@trey.example",
+  "from_name": "Jane Doe",
+  "subject": "Opportunity at Trey",
+  "snippet": "I am a recruiter and your profile stood out",
+  "expected_keep": true
+ },
+ {
+  "id": "recruiter_talent",
+  "from_address": "talent@lucerne.example",
+  "from_name": "Lucerne",
+  "subject": "Hello",
+  "snippet": "Our talent acquisition team found your profile",
+  "expected_keep": true
+ },
+ {
+  "id": "coop",
+  "from_address": "co-op@fourth.example",
+  "from_name": "Fourth",
+  "subject": "Summer co-op",
+  "snippet": "Details inside",
+  "expected_keep": true
+ },
+ {
+  "id": "role_alone",
+  "from_address": "hi@humongous.example",
+  "from_name": "Humongous",
+  "subject": "A new role",
+  "snippet": "Tell me more",
+  "expected_keep": true
+ },
+ {
+  "id": "position_alone",
+  "from_address": "hi@humongous.example",
+  "from_name": "Humongous",
+  "subject": "Open position",
+  "snippet": "Details",
+  "expected_keep": true
+ },
+ {
+  "id": "linkedin_job",
+  "from_address": "jobs-noreply@linkedin.com",
+  "from_name": "LinkedIn",
+  "subject": "Your application was sent",
+  "snippet": "Your application to Acme Labs was sent",
+  "expected_keep": true
+ },
+ {
+  "id": "newsletter",
+  "from_address": "newsletter@dailybrief.example",
+  "from_name": "Daily Brief",
+  "subject": "Your Monday briefing",
+  "snippet": "Top stories and weather",
+  "expected_keep": false
+ },
+ {
+  "id": "newsletter_role_models",
+  "from_address": "newsletter@parentingweekly.example",
+  "from_name": "Parenting Weekly",
+  "subject": "Raising kids",
+  "snippet": "Why role models matter for children",
+  "expected_keep": false
+ },
+ {
+  "id": "receipt",
+  "from_address": "receipts@shopmart.example",
+  "from_name": "ShopMart",
+  "subject": "Your receipt",
+  "snippet": "Order total $24.99, thanks for shopping",
+  "expected_keep": false
+ },
+ {
+  "id": "shipping",
+  "from_address": "ship@parcelco.example",
+  "from_name": "ParcelCo",
+  "subject": "Your package has shipped",
+  "snippet": "Tracking number ZZ123, arrives Friday",
+  "expected_keep": false
+ },
+ {
+  "id": "shipping_delivered",
+  "from_address": "ship@parcelco.example",
+  "from_name": "ParcelCo",
+  "subject": "Delivered",
+  "snippet": "Your package was left at the door",
+  "expected_keep": false
+ },
+ {
+  "id": "social",
+  "from_address": "notify@socialnet.example",
+  "from_name": "SocialNet",
+  "subject": "Pat liked your photo",
+  "snippet": "See who else liked it",
+  "expected_keep": false
+ },
+ {
+  "id": "social_follow",
+  "from_address": "notify@chirp.example",
+  "from_name": "Chirp",
+  "subject": "New follower",
+  "snippet": "Sam is now following you",
+  "expected_keep": false
+ },
+ {
+  "id": "bank_alert",
+  "from_address": "alerts@firstexample-bank.example",
+  "from_name": "First Example Bank",
+  "subject": "Account alert",
+  "snippet": "A purchase of $12.00 was made on your card",
+  "expected_keep": false
+ },
+ {
+  "id": "bank_statement",
+  "from_address": "statements@firstexample-bank.example",
+  "from_name": "First Example Bank",
+  "subject": "Your statement is ready",
+  "snippet": "View your monthly statement",
+  "expected_keep": false
+ },
+ {
+  "id": "promo",
+  "from_address": "promo@gadgetworld.example",
+  "from_name": "Gadget World",
+  "subject": "50% off today only",
+  "snippet": "Deals end at midnight",
+  "expected_keep": false
+ },
+ {
+  "id": "deals",
+  "from_address": "deals@travelnow.example",
+  "from_name": "Travel Now",
+  "subject": "Weekend getaways",
+  "snippet": "Book now and save",
+  "expected_keep": false
+ },
+ {
+  "id": "marketing",
+  "from_address": "marketing@streamly.example",
+  "from_name": "Streamly",
+  "subject": "New shows this month",
+  "snippet": "Check out what is new",
+  "expected_keep": false
+ },
+ {
+  "id": "empty_subject_snippet",
+  "from_address": "friend@mail.example",
+  "from_name": "Friend",
+  "subject": "",
+  "snippet": "",
+  "expected_keep": false
+ },
+ {
+  "id": "empty_all",
+  "from_address": "",
+  "from_name": "",
+  "subject": "",
+  "snippet": "",
+  "expected_keep": false
+ },
+ {
+  "id": "garbage_address",
+  "from_address": "not an email",
+  "from_name": "???",
+  "subject": "Hello",
+  "snippet": "Lunch tomorrow?",
+  "expected_keep": false
+ },
+ {
+  "id": "garbage_at",
+  "from_address": "@@@",
+  "from_name": "",
+  "subject": "Sale",
+  "snippet": "Everything must go",
+  "expected_keep": false
+ },
+ {
+  "id": "garbage_trailing_at",
+  "from_address": "foo@",
+  "from_name": "",
+  "subject": "Hi",
+  "snippet": "Weekend plans",
+  "expected_keep": false
+ },
+ {
+  "id": "garbage_address_job",
+  "from_address": "???",
+  "from_name": "Recruiter",
+  "subject": "Interview next week",
+  "snippet": "Please confirm a time",
+  "expected_keep": true
+ },
+ {
+  "id": "empty_address_ats_name",
+  "from_address": "",
+  "from_name": "greenhouse.io",
+  "subject": "Hello",
+  "snippet": "Nothing",
+  "expected_keep": false
+ },
+ {
+  "id": "plural_applications",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Your applications",
+  "snippet": "Summary of applications",
+  "expected_keep": true
+ },
+ {
+  "id": "plural_interviews",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Upcoming interviews",
+  "snippet": "Two interviews booked",
+  "expected_keep": true
+ },
+ {
+  "id": "interviewer",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Meet your interviewer",
+  "snippet": "Details",
+  "expected_keep": true
+ },
+ {
+  "id": "interviewing",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Hello",
+  "snippet": "Thanks for interviewing with us",
+  "expected_keep": true
+ },
+ {
+  "id": "applicants",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Applicants update",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "assessments",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Assessments due",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "internships",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Internships 2027",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "interns",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Welcome interns",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "candidates",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Hello",
+  "snippet": "Candidates will hear soon",
+  "expected_keep": true
+ },
+ {
+  "id": "offer_alone",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "An offer for you",
+  "snippet": "Details inside",
+  "expected_keep": true
+ },
+ {
+  "id": "offer_employment",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Hello",
+  "snippet": "Your offer of employment is attached",
+  "expected_keep": true
+ },
+ {
+  "id": "recruitment",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Recruitment drive",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "hired",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "You are hired",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "hirevue",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "HireVue invitation",
+  "snippet": "Record your answers",
+  "expected_keep": true
+ },
+ {
+  "id": "phone_screen",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Phone screen",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "superday",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Superday schedule",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "on_site",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "On-site visit",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "take_home",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Take-home task",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "next_round",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Next round",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "resume_accent",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Votre r\u00e9sum\u00e9",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "cv_job",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Hello",
+  "snippet": "Please send your CV for the job",
+  "expected_keep": true
+ },
+ {
+  "id": "background_check",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Background check",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "moving_forward",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Hello",
+  "snippet": "We are moving forward with other applicants",
+  "expected_keep": true
+ },
+ {
+  "id": "regret",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Hello",
+  "snippet": "We regret to inform you",
+  "expected_keep": true
+ },
+ {
+  "id": "welcome_team",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Welcome to the team",
+  "snippet": "Hello",
+  "expected_keep": true
+ },
+ {
+  "id": "french_candidature",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Candidature re\u00e7ue",
+  "snippet": "Merci",
+  "expected_keep": true
+ },
+ {
+  "id": "french_entretien",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Entretien demain",
+  "snippet": "Merci",
+  "expected_keep": true
+ },
+ {
+  "id": "french_stage",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Offre de stage",
+  "snippet": "Merci",
+  "expected_keep": true
+ },
+ {
+  "id": "french_offre",
+  "from_address": "x@mail.example",
+  "from_name": "Mailer",
+  "subject": "Hello",
+  "snippet": "Une offre d'emploi pour vous",
+  "expected_keep": true
+ },
+ {
+  "id": "from_name_only",
+  "from_address": "noreply@mail.example",
+  "from_name": "Acme Careers",
+  "subject": "Hello",
+  "snippet": "Thanks",
+  "expected_keep": true
+ },
+ {
+  "id": "local_part_only",
+  "from_address": "recruiting@mail.example",
+  "from_name": "Mailer",
+  "subject": "Hello",
+  "snippet": "Thanks",
+  "expected_keep": true
+ },
+ {
+  "id": "local_part_hr",
+  "from_address": "hr@mail.example",
+  "from_name": "Mailer",
+  "subject": "Hello",
+  "snippet": "Thanks",
+  "expected_keep": true
+ },
+ {
+  "id": "ats_trailing_dot",
+  "from_address": "a@mail.greenhouse.io.",
+  "from_name": "",
+  "subject": "Hello",
+  "snippet": "Thanks",
+  "expected_keep": true
+ },
+ {
+  "id": "special_offer_promo",
+  "from_address": "promo@shop.example",
+  "from_name": "Shop",
+  "subject": "Special offer",
+  "snippet": "Save big",
+  "expected_keep": true
+ },
+ {
+  "id": "drop_order_shipped",
+  "from_address": "ship@parcelco.example",
+  "from_name": "ParcelCo",
+  "subject": "Your order has shipped",
+  "snippet": "Arrives soon",
+  "expected_keep": false
+ },
+ {
+  "id": "drop_weekly_digest",
+  "from_address": "news@dailybrief.example",
+  "from_name": "Daily Brief",
+  "subject": "Weekly digest",
+  "snippet": "Top stories",
+  "expected_keep": false
+ },
+ {
+  "id": "drop_password",
+  "from_address": "security@appco.example",
+  "from_name": "AppCo",
+  "subject": "Reset your password",
+  "snippet": "Click the link",
+  "expected_keep": false
+ },
+ {
+  "id": "drop_statement",
+  "from_address": "statements@firstexample-bank.example",
+  "from_name": "First Example Bank",
+  "subject": "Your statement is ready",
+  "snippet": "View online",
+  "expected_keep": false
+ },
+ {
+  "id": "drop_off_deals",
+  "from_address": "deals@shop.example",
+  "from_name": "Shop",
+  "subject": "50% off deals",
+  "snippet": "Today only",
+  "expected_keep": false
+ },
+ {
+  "id": "drop_internet",
+  "from_address": "billing@isp.example",
+  "from_name": "ISP",
+  "subject": "Internet bill",
+  "snippet": "Internal notice",
+  "expected_keep": false
+ }
+]
