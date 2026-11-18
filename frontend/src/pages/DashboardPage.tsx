@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ApplicationTable } from '../components/ApplicationTable'
 import { Board } from '../components/Board'
+import { GmailPanel } from '../components/GmailPanel'
 import { EmptyState, ErrorState, LoadingSkeleton } from '../components/QueryStates'
 import { statusLabel } from '../components/format'
 import { ApiError } from '../data/dataSource'
@@ -97,6 +98,7 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold">Applications</h1>
         <ViewToggle view={view} onChange={changeView} />
       </div>
+      <GmailPanel />
       {view === 'table' && (
         <div className="mb-4 flex flex-wrap gap-4">
           <label className="text-sm">

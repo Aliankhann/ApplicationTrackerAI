@@ -48,10 +48,13 @@ class Settings(BaseSettings):
     google_authorization_endpoint: str = "https://accounts.google.com/o/oauth2/v2/auth"
     google_token_endpoint: str = "https://oauth2.googleapis.com/token"  # noqa: S105
     google_jwks_uri: str = "https://www.googleapis.com/oauth2/v3/certs"
+    google_revoke_endpoint: str = "https://oauth2.googleapis.com/revoke"
+    google_connect_redirect_uri: str = ""
     allowlist_emails: str = ""
     trusted_proxy_count: int = Field(default=0, ge=0)
     oauth_cookie_name: str = "tracker_oauth"
     invite_cookie_name: str = "tracker_invite"
+    connect_cookie_name: str = "tracker_connect"
 
     @property
     def google_configured(self) -> bool:
@@ -62,6 +65,15 @@ class Settings(BaseSettings):
         )
 
     @property
+    def connect_redirect_uri(self) -> str:
+        """The registered Gmail-connect redirect: explicit, else `/gmail/callback` on the same
+        origin as the sign-in redirect URI."""
+        if self.google_connect_redirect_uri:
+            return self.google_connect_redirect_uri
+        parts = urlparse(self.google_redirect_uri)
+        return parts._replace(path="/gmail/callback", query="", fragment="").geturl()
+
+    @property
     def allowlist(self) -> frozenset[str]:
         parts = (part.strip().lower() for part in self.allowlist_emails.split(","))
         return frozenset(part for part in parts if part)
@@ -69,6 +81,10 @@ class Settings(BaseSettings):
     @property
     def oauth_cookie(self) -> str:
         return f"{self._cookie_prefix}{self.oauth_cookie_name}"
+
+    @property
+    def connect_cookie(self) -> str:
+        return f"{self._cookie_prefix}{self.connect_cookie_name}"
 
     @property
     def invite_cookie(self) -> str:

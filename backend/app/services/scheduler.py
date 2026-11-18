@@ -29,8 +29,10 @@ from app.providers.gmail.errors import (
     GmailRateLimited,
 )
 from app.providers.gmail.types import DraftRequest, MessageMeta, ThreadMeta
+from app.providers.google.scopes import can_compose
 from app.repositories import applications as applications_repo
 from app.repositories import followups as repo
+from app.repositories import oauth_tokens as tokens_repo
 from app.repositories import sequences as sequences_repo
 from app.services import followup_policy as policy
 from app.services.followup_policy import Decision, StopReason
@@ -57,6 +59,7 @@ class RunResult:
     skipped_cap: int = 0
     waiting_earlier_step: int = 0
     already_running: bool = False  # another run_due holds this user's lease
+    no_compose: bool = False  # the live token lacks gmail.compose: follow-ups are not turned on
 
 
 def user_timezone(user: User) -> ZoneInfo:
@@ -402,6 +405,9 @@ def run_due(
     """
     user = _load_user(session, user_id)
     commit = commit or session.commit
+    token = tokens_repo.active_row(session, user_id)
+    if token is not None and not can_compose(token.scopes):
+        return RunResult(no_compose=True)  # never draft without the compose grant
     if not repo.claim_lease(session, user_id, now, _lease_ttl()):
         commit()
         return RunResult(already_running=True)

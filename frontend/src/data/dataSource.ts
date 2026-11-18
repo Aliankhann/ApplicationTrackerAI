@@ -1,7 +1,11 @@
 import type {
   Application,
   DeleteResult,
+  ConnectResult,
   DisconnectResult,
+  GmailStatus,
+  SyncStart,
+  SyncStatus,
   ApplicationDetail,
   ApplicationPage,
   ApplicationPatch,
@@ -33,6 +37,10 @@ export interface DataSource {
   previewTemplate(template: string, tone: Tone): Promise<Preview>
   getSettings(): Promise<Settings>
   updateSettings(patch: Settings): Promise<Settings>
+  getGmailStatus(): Promise<GmailStatus>
+  startGmailConnect(followups: boolean): Promise<ConnectResult>
+  startSync(): Promise<SyncStart>
+  getSyncStatus(): Promise<SyncStatus>
   disconnectGmail(): Promise<DisconnectResult>
   deleteAccount(): Promise<DeleteResult>
 }

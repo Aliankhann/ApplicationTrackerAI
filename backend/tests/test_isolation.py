@@ -180,10 +180,16 @@ def two_users(env: Env) -> tuple[World, World, TestClient]:  # noqa: F811
 
 
 PARAM_ROUTES = [(m, p) for m, p in all_routes() if PARAM.search(p)]
+# The Gmail OAuth callback is a browser redirect bound to the user's own flow cookie; it returns
+# no data, and tests/test_gmail_connect.py covers a flow cookie from another user's session.
+REDIRECT_ONLY = {("GET", "/gmail/callback")}
 LIST_ROUTES = [
     p
     for m, p in all_routes()
-    if m == "GET" and not PARAM.search(p) and (m, p) not in PUBLIC_ROUTES  # token-authorized
+    if m == "GET"
+    and not PARAM.search(p)
+    and (m, p) not in PUBLIC_ROUTES  # token-authorized
+    and (m, p) not in REDIRECT_ONLY
 ]
 
 

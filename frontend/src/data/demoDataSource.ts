@@ -157,7 +157,19 @@ export function createDemoDataSource(now: Date = new Date()): DataSource {
     async updateSettings() {
       throw new ApiError(501, NOT_IN_DEMO)
     },
+    async getGmailStatus() {
+      return { connected: false, followups_enabled: false }
+    },
     // The UI disables these controls in the demo; this guards against any other caller.
+    async startGmailConnect() {
+      throw new ApiError(501, NOT_IN_DEMO)
+    },
+    async startSync() {
+      throw new ApiError(501, NOT_IN_DEMO)
+    },
+    async getSyncStatus() {
+      throw new ApiError(501, NOT_IN_DEMO)
+    },
     async disconnectGmail() {
       throw new ApiError(501, NOT_IN_DEMO)
     },

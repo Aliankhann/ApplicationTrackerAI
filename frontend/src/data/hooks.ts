@@ -5,7 +5,8 @@ import {
   useQueryClient,
   type InfiniteData,
 } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { navigateTo } from '../pages/navigate'
 import { useDataSource } from './context'
 import type {
   Application,
@@ -16,6 +17,7 @@ import type {
   FollowUpFilter,
   SequencePatch,
   Settings,
+  SyncStatus,
   Tone,
   ListParams,
 } from './schemas'
@@ -226,4 +228,72 @@ export function usePreview(template: string, tone: Tone) {
     queryFn: () => source.previewTemplate(debounced.template, debounced.tone),
     retry: false,
   })
+}
+
+export function useGmailStatus() {
+  const source = useDataSource()
+  return useQuery({
+    queryKey: ['gmail', source.kind],
+    queryFn: () => source.getGmailStatus(),
+  })
+}
+
+export function useConnectGmail() {
+  const source = useDataSource()
+  return useMutation({
+    mutationFn: (followups: boolean) => source.startGmailConnect(followups),
+    onSuccess: (result) => navigateTo(result.authorize_url),
+  })
+}
+
+const SYNC_POLL_MS = 3000
+const SYNC_WATCH_MS = 30_000
+
+const snapshot = (s: SyncStatus | undefined) =>
+  s ? `${s.status}|${s.last_synced_at}|${s.last_error}` : ''
+
+// True from a start until the status shows any change (or the watch times out).
+const waiting = (baseline: string | null, s: SyncStatus | undefined) =>
+  baseline !== null && snapshot(s) === baseline
+
+// Sync status and the start action. The server starts the run in the background, so right
+// after a start the status may still read idle: keep polling until it changes (or 30 s pass).
+export function useSync(enabled: boolean) {
+  const source = useDataSource()
+  const client = useQueryClient()
+  const [baseline, setBaseline] = useState<string | null>(null)
+  const query = useQuery({
+    queryKey: ['sync', source.kind],
+    queryFn: () => source.getSyncStatus(),
+    enabled,
+    refetchInterval: (q) =>
+      q.state.data?.status === 'running' || waiting(baseline, q.state.data) ? SYNC_POLL_MS : false,
+  })
+  const running = query.data?.status === 'running' || waiting(baseline, query.data)
+  const wasRunning = useRef(false)
+  useEffect(() => {
+    if (baseline === null) return
+    const timer = setTimeout(() => setBaseline(null), SYNC_WATCH_MS)
+    return () => clearTimeout(timer)
+  }, [baseline])
+  useEffect(() => {
+    if (wasRunning.current && !running) {
+      void client.invalidateQueries({
+        queryKey: ['applications', source.kind],
+      })
+    }
+    wasRunning.current = running
+  }, [running, client, source.kind])
+  const start = useMutation({
+    mutationFn: () => source.startSync(),
+    onSuccess: async () => {
+      const before = await client.fetchQuery({
+        queryKey: ['sync', source.kind],
+        queryFn: () => source.getSyncStatus(),
+        staleTime: 0,
+      })
+      setBaseline(snapshot(before))
+    },
+  })
+  return { query, running, start }
 }

@@ -233,6 +233,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gmail/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status */
+        get: operations["status_gmail_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gmail/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect
+         * @description Start consent for gmail.readonly (plus gmail.compose when `followups`). The frontend then
+         *     navigates to `authorize_url`; the flow state rides in a signed cookie bound to this user.
+         */
+        post: operations["connect_gmail_connect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gmail/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Callback
+         * @description Google redirects here. Needs the session cookie and a connect-flow cookie bound to it.
+         */
+        get: operations["callback_gmail_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sequences": {
         parameters: {
             query?: never;
@@ -304,6 +362,27 @@ export interface paths {
         head?: never;
         /** Patch Settings */
         patch: operations["patch_settings_settings_patch"];
+        trace?: never;
+    };
+    "/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sync Status */
+        get: operations["sync_status_sync_get"];
+        put?: never;
+        /**
+         * Start Sync
+         * @description Start a sync in the background; the lease in sync_state keeps it to one at a time.
+         */
+        post: operations["start_sync_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -462,6 +541,26 @@ export interface components {
             /** Can Skip */
             can_skip: boolean;
         };
+        /** GmailConnectBody */
+        GmailConnectBody: {
+            /**
+             * Followups
+             * @default false
+             */
+            followups: boolean;
+        };
+        /** GmailConnectOut */
+        GmailConnectOut: {
+            /** Authorize Url */
+            authorize_url: string;
+        };
+        /** GmailStatusOut */
+        GmailStatusOut: {
+            /** Connected */
+            connected: boolean;
+            /** Followups Enabled */
+            followups_enabled: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -573,6 +672,28 @@ export interface components {
              * @default 1
              */
             max_attempts: number;
+        };
+        /** SyncStartOut */
+        SyncStartOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "started" | "already_running";
+        };
+        /** SyncStatusOut */
+        SyncStatusOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "idle" | "running" | "error" | "revoked";
+            /** Last Synced At */
+            last_synced_at: string | null;
+            /** Initial Sync Done */
+            initial_sync_done: boolean;
+            /** Last Error */
+            last_error: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1016,6 +1137,90 @@ export interface operations {
             };
         };
     };
+    status_gmail_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GmailStatusOut"];
+                };
+            };
+        };
+    };
+    connect_gmail_connect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["GmailConnectBody"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GmailConnectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    callback_gmail_callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_sequences_sequences_get: {
         parameters: {
             query?: never;
@@ -1186,6 +1391,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_status_sync_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncStatusOut"];
+                };
+            };
+        };
+    };
+    start_sync_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncStartOut"];
                 };
             };
         };

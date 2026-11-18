@@ -15,7 +15,7 @@ from sqlalchemy import CursorResult, delete
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.api.deps import Config, Db, Now, SignInRedirect
+from app.api.deps import Config, CurrentUser, Db, Now, SignInRedirect
 from app.config import Settings
 from app.models import RateLimit
 
@@ -96,6 +96,15 @@ def limit_by_ip(
         enforce(db, settings, now, f"{scope}:ip", client_ip(request, settings), per_ip, redirect)
         if globally is not None:
             enforce(db, settings, now, f"{scope}:global", "all", globally, redirect)
+
+    return Depends(dependency)
+
+
+def limit_by_user(scope: str, per_user: int) -> Any:
+    """FastAPI dependency factory: `per_user` requests/hour for the signed-in user."""
+
+    def dependency(user: CurrentUser, db: Db, settings: Config, now: Now) -> None:
+        enforce(db, settings, now, f"{scope}:user", str(user.id), per_user)
 
     return Depends(dependency)
 
