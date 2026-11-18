@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, health
+from app.api import applications, auth, health
 from app.api.deps import require_csrf
 from app.config import get_settings
 from app.log import configure_logging
@@ -34,6 +34,7 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware, environment=settings.environment)
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(applications.router)
     return app
 
 

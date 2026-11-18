@@ -347,17 +347,14 @@ As a user, I want each job thread turned into one application with a status.
   duplicates on the same thread don't create a second application.
 - **Depends on:** US-41, US-43 · **Estimate:** 1.5h
 
-### [~] US-51 Manual status fix
-_Service part done with US-50 (`set_status_manually` locks and records a manual event);
-the `PATCH /applications/{id}` route waits on sessions (US-13)._
-
+### [x] US-51 Manual status fix
 As a user, I want to correct a wrong status and have it stick.
 - **AC:** `PATCH /applications/{id}` sets status and `status_locked`; later syncs never overwrite
   a locked status; the change appears in the timeline.
 - **Tests:** Integration: lock, then sync a rejection email, status unchanged.
 - **Depends on:** US-50 · **Estimate:** 0.5h
 
-### [ ] US-52 Applications API
+### [x] US-52 Applications API
 As the frontend, I want to list applications and their timelines.
 - **AC:** `GET /applications` (filter by status, sort by last activity), `GET
   /applications/{id}/events`; ghosted is derived (no reply after N days), not stored.
@@ -388,7 +385,7 @@ As a user, I want one application's history and a way to fix its status.
 
 Goal: drafts appear in your Gmail, and stop-on-reply is proven by tests.
 
-### [ ] US-60 Route isolation suite
+### [x] US-60 Route isolation suite
 As the operator, I want proof that no user can touch another user's data.
 - **AC:** A test enumerates every route from the app's router and, for each one that takes an
   ID, calls it as user B with user A's IDs; every call returns 404 or 403. Adding a route without

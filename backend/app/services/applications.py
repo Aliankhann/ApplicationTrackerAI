@@ -196,3 +196,26 @@ def set_status_manually(
         _add_event(session, application, previous, REASON_MANUAL, now)
     session.flush()
     return application
+
+
+def edit_details(
+    session: Session,
+    user_id: uuid.UUID,
+    application_id: uuid.UUID,
+    *,
+    company: str | None = None,
+    role: str | None = None,
+    followups_paused: bool | None = None,
+) -> Application:
+    """User edits; None leaves a field alone. Extraction only fills nulls, so edits stick."""
+    application = applications_repo.get(session, user_id, application_id)
+    if application is None:
+        raise NotFound("application")
+    if company is not None:
+        application.company = _cap(company, MAX_COMPANY)
+    if role is not None:
+        application.role = _cap(role, MAX_ROLE)
+    if followups_paused is not None:
+        application.followups_paused = followups_paused
+    session.flush()
+    return application

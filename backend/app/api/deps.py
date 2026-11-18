@@ -22,9 +22,15 @@ def get_clock() -> Callable[[], datetime]:
     return lambda: datetime.now(UTC)
 
 
+def get_now(clock: Annotated[Callable[[], datetime], Depends(get_clock)]) -> datetime:
+    """The request's current time; tests override get_clock (or this) with a fake."""
+    return clock()
+
+
 Db = Annotated[Session, Depends(get_db)]
 Config = Annotated[Settings, Depends(get_settings)]
 Clock = Annotated[Callable[[], datetime], Depends(get_clock)]
+Now = Annotated[datetime, Depends(get_now)]
 
 
 def _unauthenticated() -> HTTPException:

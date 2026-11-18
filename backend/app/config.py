@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     sync_lease_minutes: int = Field(default=15, ge=1)
     followup_daily_draft_cap: int = Field(default=5, ge=1)
     followup_stale_days: int = Field(default=3, ge=0)
+    ghosted_after_days: int = Field(default=21, ge=1)
     scheduler_lease_minutes: int = Field(default=15, ge=1)
     default_timezone: str = "America/Toronto"
     session_cookie_name: str = "tracker_session"
