@@ -8,6 +8,6 @@ class HealthResponse(BaseModel):
     status: str
 
 
-@router.get("/health", response_model=HealthResponse)
+@router.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse(status="ok")

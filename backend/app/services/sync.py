@@ -22,6 +22,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.log import get_logger
 from app.models import EmailThread, SyncState, SyncStatus
 from app.providers.classifier.base import ClassifierProvider
 from app.providers.classifier.types import ClassificationInput, ClassificationResult
@@ -55,6 +56,7 @@ ERROR_RATE_LIMITED = "rate_limited"
 ERROR_GMAIL = "gmail_error"
 ERROR_INTERNAL = "internal_error"
 
+logger = get_logger("app.sync")
 Mode = Literal["initial", "incremental", "fallback_full"]
 T = TypeVar("T")
 
@@ -324,23 +326,47 @@ def _record_failure(ctx: _Context, status: SyncStatus, code: str) -> None:
     ctx.commit()
 
 
+def _log_failed(ctx: _Context, code: str) -> None:
+    logger.warning("sync.failed", extra={"user_id": ctx.user_id, "error_code": code})
+
+
+def _log_completed(ctx: _Context, result: SyncResult) -> None:
+    logger.info(
+        "sync.completed",
+        extra={
+            "user_id": ctx.user_id,
+            "mode": result.mode,
+            "threads_seen": result.threads_seen,
+            "threads_kept": result.threads_kept,
+            "threads_dropped": result.threads_dropped,
+            "applications_changed": result.applications_changed,
+        },
+    )
+
+
 def _run_claimed(ctx: _Context) -> SyncResult:
     try:
-        return _dispatch(ctx, ctx.state)
+        result = _dispatch(ctx, ctx.state)
+        _log_completed(ctx, result)
+        return result
     except GmailAuthRevoked:
         tokens_repo.mark_revoked(ctx.session, ctx.user_id)
         _record_failure(ctx, SyncStatus.REVOKED, ERROR_AUTH_REVOKED)
+        _log_failed(ctx, ERROR_AUTH_REVOKED)
         raise SyncRevoked from None
     except GmailRateLimited:
         _record_failure(ctx, SyncStatus.ERROR, ERROR_RATE_LIMITED)
+        _log_failed(ctx, ERROR_RATE_LIMITED)
         raise SyncFailed(ERROR_RATE_LIMITED) from None
     except GmailError:
         _record_failure(ctx, SyncStatus.ERROR, ERROR_GMAIL)
+        _log_failed(ctx, ERROR_GMAIL)
         raise SyncFailed(ERROR_GMAIL) from None
     except Exception:
         ctx.session.rollback()
         ctx.state = ctx.session.get(SyncState, ctx.user_id, populate_existing=True) or ctx.state
         _record_failure(ctx, SyncStatus.ERROR, ERROR_INTERNAL)
+        _log_failed(ctx, ERROR_INTERNAL)
         raise
 
 

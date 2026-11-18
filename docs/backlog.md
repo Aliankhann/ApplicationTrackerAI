@@ -510,13 +510,13 @@ As a reviewer, I want to see the security thinking written down.
 
 ## Epic 9: Hardening (week 5)
 
-### [ ] US-90 Structured logging without content
+### [x] US-90 Structured logging without content
 As the operator, I want logs I can debug with that never leak email content or tokens.
 - **AC:** JSON logs with an allowlist of fields; subjects, snippets, and tokens are never logged.
 - **Tests:** Unit: logging a record with a forbidden field drops it.
 - **Depends on:** US-01 · **Estimate:** 0.5h
 
-### [ ] US-91 Security headers and CSP
+### [x] US-91 Security headers and CSP
 As a user, I want the browser to block injected scripts.
 - **AC:** Strict CSP, `X-Content-Type-Options`, `Referrer-Policy`, HSTS outside local.
 - **Tests:** Integration: headers present on responses.
