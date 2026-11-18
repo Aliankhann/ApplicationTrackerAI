@@ -19,6 +19,7 @@ Scope and roadmap: `docs/build-plan.md`. Stories and acceptance criteria: `docs/
 - Frontend, from `frontend/`: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - After changing any API route: `pnpm gen:api` in `frontend/` (CI fails if the client is stale)
 - Local Postgres: `docker compose -f infra/docker-compose.yml up -d`, or `service postgresql start` in cloud sessions
+- Migration test creates a throwaway database; if it skips, run `su postgres -c "psql -c 'ALTER USER tracker CREATEDB'"` (CI user already can)
 
 ## Rules
 - Every query on user-owned data goes through `repositories/` and filters by `user_id`.
