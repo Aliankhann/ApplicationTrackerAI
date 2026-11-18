@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "typecheck": "tsc -b",
+    "check:deploy": "node scripts/check-deploy-headers.mjs",
     "test": "vitest run",
     "gen:api": "cd ../backend && uv run python -m scripts.export_openapi ../frontend/openapi.json && cd ../frontend && openapi-typescript openapi.json -o src/api/schema.d.ts"
   },
