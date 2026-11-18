@@ -62,11 +62,14 @@ def test_ac2_ten_thousand_codes_distinct_and_at_least_128_bits() -> None:
 
 
 def test_ac3_expiry_defaults_to_14_days_and_follows_days(db_session: Session) -> None:
+    before = {i.id for i in all_invites(db_session)}
     assert run_cli(db_session) == 0
     assert run_cli(db_session, "--days", "30") == 0
-    default, custom = all_invites(db_session)[-2:]
-    assert default.expires_at == NOW + timedelta(days=14)
-    assert custom.expires_at == NOW + timedelta(days=30)
+    created = [i for i in all_invites(db_session) if i.id not in before]
+    assert sorted(i.expires_at for i in created) == [
+        NOW + timedelta(days=14),
+        NOW + timedelta(days=30),
+    ]
 
 
 @pytest.mark.parametrize("days", ["0", "91", "-1", "abc"])

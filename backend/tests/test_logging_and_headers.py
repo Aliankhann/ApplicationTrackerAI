@@ -139,7 +139,9 @@ EXPECTED = {
     "Cross-Origin-Resource-Policy": "same-site",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
     "Cache-Control": "no-store",
-    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+    "Content-Security-Policy": (
+        "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
+    ),
 }
 
 

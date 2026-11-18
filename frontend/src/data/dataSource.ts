@@ -10,6 +10,7 @@ import type {
   FollowUpFilter,
   Preview,
   Sequence,
+  Settings,
   SequenceInput,
   SequencePatch,
   Tone,
@@ -30,6 +31,8 @@ export interface DataSource {
   createSequence(input: SequenceInput): Promise<Sequence>
   updateSequence(id: string, patch: SequencePatch): Promise<Sequence>
   previewTemplate(template: string, tone: Tone): Promise<Preview>
+  getSettings(): Promise<Settings>
+  updateSettings(patch: Settings): Promise<Settings>
   disconnectGmail(): Promise<DisconnectResult>
   deleteAccount(): Promise<DeleteResult>
 }

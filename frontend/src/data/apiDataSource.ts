@@ -11,6 +11,7 @@ import {
   PreviewSchema,
   SequenceSchema,
   SequencesSchema,
+  SettingsSchema,
   StatusEventsSchema,
   type ListParams,
 } from './schemas'
@@ -98,6 +99,12 @@ export const apiDataSource: DataSource = {
   async previewTemplate(template, tone) {
     const body = { template, tone }
     return PreviewSchema.parse(unwrap(await api.POST('/sequences/preview', { body })))
+  },
+  async getSettings() {
+    return SettingsSchema.parse(unwrap(await api.GET('/settings')))
+  },
+  async updateSettings(patch) {
+    return SettingsSchema.parse(unwrap(await api.PATCH('/settings', { body: patch })))
   },
   async disconnectGmail() {
     return DisconnectResultSchema.parse(unwrap(await api.POST('/gmail/disconnect')))

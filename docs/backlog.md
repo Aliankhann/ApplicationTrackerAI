@@ -463,7 +463,7 @@ As a user, I want to see and skip upcoming follow-ups.
 
 Goal: the digest arrives on staging.
 
-### [ ] US-70 Digest content
+### [x] US-70 Digest content
 As a user, I want a short morning summary of what changed.
 - **AC:** Includes drafts waiting, new replies, rejections, interview invites, and applications
   with no reply after 7 or more days; company names and statuses only, never snippets; nothing to
@@ -471,7 +471,11 @@ As a user, I want a short morning summary of what changed.
 - **Tests:** Unit: each section; an empty day returns none; no snippet text ever appears.
 - **Depends on:** US-52, US-64 · **Estimate:** 1h
 
-### [ ] US-71 Digest delivery
+### [~] US-71 Digest delivery
+_`run_digest` is done (claim-once per local day, retry once, never double-send, fails closed
+without a provider). Still to do: a real email provider with SPF/DKIM/DMARC (needs the domain,
+US-102) and scheduling the job every 10-15 minutes on the host (US-05)._
+
 As a user, I want the digest at 8:00 in my timezone, exactly once.
 - **AC:** Sent through the email provider; `digest_log` unique on user and date makes retries
   safe; failures are logged without content and retried once; local env prints to the console.
@@ -479,7 +483,7 @@ As a user, I want the digest at 8:00 in my timezone, exactly once.
   clock.
 - **Depends on:** US-70 · **Estimate:** 1.5h
 
-### [ ] US-72 Unsubscribe
+### [x] US-72 Unsubscribe
 As a user, I want to turn the digest off easily.
 - **AC:** Settings toggle; one-click signed unsubscribe link; `List-Unsubscribe` header.
 - **Tests:** Integration: link turns digest off without a session; a tampered link is rejected.

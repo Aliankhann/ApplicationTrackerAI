@@ -17,7 +17,7 @@ from app.api.deps import (
 )
 from app.log import get_logger
 from app.models import AuditAction
-from app.providers.email import EmailSender
+from app.providers.email import EmailSender, EmailSendError
 from app.providers.google.revoke import RevokerNotConfigured
 from app.repositories import audit as audit_repo
 from app.security import sessions
@@ -78,8 +78,9 @@ def delete_me(
 def _confirm_by_email(sender: EmailSender, address: str) -> None:
     try:
         sender.send_deletion_confirmation(address)
-    except Exception:
-        logger.warning("account.confirmation_failed", extra={"error_code": ERROR_EMAIL})
+    except Exception as exc:
+        code = exc.code if isinstance(exc, EmailSendError) else ERROR_EMAIL
+        logger.warning("account.confirmation_failed", extra={"error_code": code})
 
 
 @router.post("/auth/logout", status_code=204, tags=["auth"])

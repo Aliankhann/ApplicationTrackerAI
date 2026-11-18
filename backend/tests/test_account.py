@@ -18,6 +18,7 @@ from app.models import (
     Application,
     AuditAction,
     AuditLog,
+    DigestLog,
     EmailThread,
     FollowUpTask,
     InviteCode,
@@ -226,12 +227,13 @@ def test_us35_disconnect_by_user_b_leaves_user_a_untouched(env: Env) -> None:  #
 
 
 def seed_every_table(env: Env, world: World, w: Wired) -> uuid.UUID:  # noqa: F811
-    """Add the rows `connected` does not: scheduler lease, invite code, audit, a second session."""
+    """Add the rows `connected` does not: lease, invite code, audit, digest log, second session."""
     uid = world.user.id
     env.db.add(SchedulerState(user_id=uid, lease_expires_at=T0 + timedelta(minutes=5)))
     invite = InviteCode(code_hash=uuid.uuid4().hex, expires_at=T0, used_by_user_id=uid, used_at=T0)
     env.db.add(invite)
     audit_repo.record(env.db, uid, AuditAction.LOGIN, T0)
+    env.db.add(DigestLog(user_id=uid, digest_date=T0.date(), status="sent", claimed_at=T0))
     env.login(world.user)
     env.db.flush()
     return invite.id

@@ -15,6 +15,7 @@ import type {
   FollowUp,
   FollowUpFilter,
   SequencePatch,
+  Settings,
   Tone,
   ListParams,
 } from './schemas'
@@ -162,6 +163,31 @@ export function useUpdateSequence(id: string) {
   return useMutation({
     mutationFn: (patch: SequencePatch) => source.updateSequence(id, patch),
     onSuccess: () => client.invalidateQueries({ queryKey: ['sequences', source.kind] }),
+  })
+}
+
+export function useSettings() {
+  const source = useDataSource()
+  return useQuery({ queryKey: ['settings', source.kind], queryFn: () => source.getSettings() })
+}
+
+export function useUpdateSettings() {
+  const source = useDataSource()
+  const client = useQueryClient()
+  const key = ['settings', source.kind] as const
+  return useMutation({
+    scope: { id: 'settings' },
+    mutationFn: (patch: Settings) => source.updateSettings(patch),
+    onMutate: async (patch) => {
+      await client.cancelQueries({ queryKey: key })
+      const previous = client.getQueryData<Settings>(key)
+      client.setQueryData(key, patch)
+      return { previous }
+    },
+    onError: (_error, _patch, context) => {
+      if (context?.previous) client.setQueryData(key, context.previous)
+    },
+    onSettled: () => void client.invalidateQueries({ queryKey: key }),
   })
 }
 
