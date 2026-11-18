@@ -257,7 +257,7 @@ As the system, I want obvious non-job mail dropped before anything is stored.
 - **Tests:** Unit on synthetic fixtures: newsletters dropped, ATS mail kept.
 - **Depends on:** US-01 · **Estimate:** 0.5h
 
-### [ ] US-41 Rules engine
+### [x] US-41 Rules engine
 As the system, I want ordered regex rules to label most emails without an LLM.
 - **AC:** Labels: confirmation, online assessment, interview, offer, rejection, recruiter
   message, irrelevant; each rule has an ID and confidence; first strong match wins; conflicts
@@ -272,6 +272,13 @@ As a developer, I want accuracy measured on every PR so rule changes can't silen
   stored baseline; real labeled emails stay outside the repo.
 - **Tests:** The harness itself runs in CI; a deliberately broken rule fails the gate.
 - **Depends on:** US-41 · **Estimate:** 1.5h
+- **Known gap from US-41 QA:** rules are precise but miss rejection wording they weren't tuned
+  on (0 of 10 unseen rejections caught; all went to review, none mislabelled). Seed the eval set
+  with held-out phrasings such as "chosen to go with other candidates", "will not be offering you
+  a position", "unable to take your application further", "decided to close your application",
+  "won't be extending an offer", "decided not to pursue your candidacy", "regret that we cannot
+  offer you the position", "decided to pass on your application", "will not be continuing with
+  yours", "not selected for the next stage". Keep a held-out split that rules are never tuned on.
 
 ### [ ] US-43 Company and role extraction
 As a user, I want each application to show the right company and role.
@@ -280,7 +287,7 @@ As a user, I want each application to show the right company and role.
 - **Tests:** Unit fixtures per ATS; unknown cases return none.
 - **Depends on:** US-41 · **Estimate:** 2h
 
-### [ ] US-44 Classifier provider interface
+### [x] US-44 Classifier provider interface
 As a developer, I want classifiers swappable without touching callers.
 - **AC:** `ClassifierProvider.classify(email) -> Result`; `RulesProvider` implements it; results
   cached by a hash of subject plus snippet.
@@ -303,7 +310,7 @@ As the operator, I want LLM spend capped and switchable off.
 - **Tests:** Unit: cap reached falls back to rules; kill switch on means zero LLM calls.
 - **Depends on:** US-45 · **Estimate:** 1h
 
-### [ ] US-47 Needs review threshold
+### [x] US-47 Needs review threshold
 As a user, I want unsure results flagged instead of guessed.
 - **AC:** Confidence below the threshold shows as "needs review" and never changes a status.
 - **Tests:** Unit: low-confidence result leaves the status untouched.

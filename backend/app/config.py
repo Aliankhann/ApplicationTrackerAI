@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     max_users: int = 100
     token_encryption_keys: SecretStr = SecretStr("")
     token_encryption_current_version: str = ""
+    classifier_review_threshold: float = Field(default=0.7, ge=0, le=1)
 
 
 @lru_cache
