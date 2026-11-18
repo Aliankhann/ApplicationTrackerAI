@@ -117,3 +117,22 @@ test('US-61: apiDataSource turns a 422 body into field errors and sends the CSRF
   expect(error).toBeInstanceOf(ApiError)
   expect((error as ApiError).fieldErrors).toEqual(detail)
 })
+
+test('US-61: invisible and control characters are rejected client-side', async () => {
+  const demo = createDemoDataSource()
+  const update = vi.fn<DataSource['updateSequence']>(demo.updateSequence)
+  const user = userEvent.setup()
+  renderWithSource({ ...demo, updateSequence: update }, <FollowUpSettingsPage />)
+  fireEvent.change(await screen.findByLabelText('Template for step 1'), {
+    target: { value: 'Hi\u200b there' },
+  })
+  await user.click(screen.getByRole('button', { name: 'Save' }))
+  expect(
+    screen.getByText('Templates may not contain control or invisible characters.'),
+  ).toBeVisible()
+  expect(update).not.toHaveBeenCalled()
+  expect(screen.getByRole('region', { name: 'Step 1 preview' })).toHaveAttribute(
+    'aria-live',
+    'polite',
+  )
+})

@@ -116,9 +116,10 @@ def cancel_pending(
     reason: str,
     *,
     application_id: uuid.UUID | None = None,
+    sequence_id: uuid.UUID | None = None,
     from_step: int = 0,
 ) -> int:
-    """Cancel pending tasks of the user (optionally one application, from a step onward)."""
+    """Cancel pending tasks of the user (optionally one application or sequence, from a step)."""
     owned = select(Application.id).where(Application.user_id == user_id)
     stmt = (
         sql_update(FollowUpTask)
@@ -132,6 +133,8 @@ def cancel_pending(
     )
     if application_id is not None:
         stmt = stmt.where(FollowUpTask.application_id == application_id)
+    if sequence_id is not None:
+        stmt = stmt.where(FollowUpTask.sequence_id == sequence_id)
     result = cast(CursorResult[Any], session.execute(stmt))
     return result.rowcount
 
@@ -297,19 +300,45 @@ def skip_pending(session: Session, user_id: uuid.UUID, task_id: uuid.UUID) -> bo
 
 
 def delay_pending(session: Session, user_id: uuid.UUID, task_id: uuid.UUID, days: int) -> bool:
-    """Push a pending task's due_at later; False if it is no longer pending."""
-    owned = select(Application.id).where(Application.user_id == user_id)
-    stmt = (
+    """Push a pending task and its later pending steps `days` later (order is preserved)."""
+    task = get_owned(session, user_id, task_id)
+    if task is None:
+        return False
+    delta = timedelta(days=days)
+    own = (
         sql_update(FollowUpTask)
-        .where(
-            FollowUpTask.id == task_id,
-            FollowUpTask.application_id.in_(owned),
-            FollowUpTask.state == PENDING,
-        )
-        .values(due_at=FollowUpTask.due_at + timedelta(days=days))
+        .where(FollowUpTask.id == task_id, FollowUpTask.state == PENDING)
+        .values(due_at=FollowUpTask.due_at + delta)
         .execution_options(synchronize_session="fetch")
     )
-    return _rowcount(session, stmt) == 1
+    if _rowcount(session, own) != 1:
+        return False
+    later = (
+        sql_update(FollowUpTask)
+        .where(
+            FollowUpTask.application_id == task.application_id,
+            FollowUpTask.state == PENDING,
+            FollowUpTask.step_index > task.step_index,
+        )
+        .values(due_at=FollowUpTask.due_at + delta)
+        .execution_options(synchronize_session="fetch")
+    )
+    session.execute(later)
+    return True
+
+
+def has_earlier_open(
+    session: Session, user_id: uuid.UUID, application_id: uuid.UUID, step_index: int
+) -> bool:
+    """True while a lower step of this application is still pending or drafting."""
+    owned = select(Application.id).where(Application.user_id == user_id)
+    stmt = select(FollowUpTask.id).where(
+        FollowUpTask.application_id.in_(owned),
+        FollowUpTask.application_id == application_id,
+        FollowUpTask.step_index < step_index,
+        FollowUpTask.state.in_((PENDING, DRAFTING)),
+    )
+    return session.scalars(stmt.limit(1)).first() is not None
 
 
 def application_of(

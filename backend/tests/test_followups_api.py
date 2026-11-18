@@ -80,8 +80,8 @@ def test_skip_and_delay_conflict_for_drafted_and_already_skipped(env: Env) -> No
 
 def test_delay_moves_only_that_task_later(env: Env) -> None:  # noqa: F811
     user = env.user()
-    a = make_app(env, user, from_user=True)
-    first, second = add_task(env, user, a, 0, 3), add_task(env, user, a, 1, 10)
+    first = add_task(env, user, make_app(env, user, from_user=True), 0, 3)
+    second = add_task(env, user, make_app(env, user, from_user=True), 0, 10)
     before = second.due_at
     response = login(env, user).post(f"/follow-ups/{first.id}/delay", json={"days": 3})
     assert response.status_code == 200
@@ -107,3 +107,28 @@ def test_other_users_task_is_404_and_unchanged(env: Env) -> None:  # noqa: F811
     assert client.get("/follow-ups").json() == []
     env.db.expire_all()
     assert env.db.get(FollowUpTask, task.id).state == "pending"  # type: ignore[union-attr]
+
+
+def test_delay_shifts_later_pending_steps_and_keeps_order(env: Env) -> None:  # noqa: F811
+    user = env.user()
+    a = make_app(env, user, from_user=True)
+    first, second = add_task(env, user, a, 0, 3), add_task(env, user, a, 1, 10)
+    assert (
+        login(env, user).post(f"/follow-ups/{first.id}/delay", json={"days": 30}).status_code == 200
+    )
+    env.db.expire_all()
+    assert first.due_at == env.clock.now + timedelta(days=33)
+    assert second.due_at == env.clock.now + timedelta(days=40)
+
+
+def test_delay_does_not_shift_steps_when_task_is_not_pending(env: Env) -> None:  # noqa: F811
+    user = env.user()
+    a = make_app(env, user, from_user=True)
+    drafted, later = add_task(env, user, a, 0, 3, "drafted"), add_task(env, user, a, 1, 10)
+    before = later.due_at
+    assert (
+        login(env, user).post(f"/follow-ups/{drafted.id}/delay", json={"days": 5}).status_code
+        == 409
+    )
+    env.db.expire_all()
+    assert later.due_at == before

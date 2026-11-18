@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from app.api.deps import CurrentUser, Db
 from app.errors import InvalidOperation, NotFound
 from app.models import Sequence
+from app.repositories import followups as followups_repo
 from app.repositories import sequences as repo
 from app.services import sequences as service
 from app.services import templates
@@ -184,5 +185,9 @@ def patch_sequence(
         raise _unprocessable(
             [{"field": "make_default", "code": "invalid_operation", "message": str(exc)}]
         ) from None
+    if steps is not None:
+        followups_repo.cancel_pending(
+            db, user.id, "step_removed", sequence_id=sequence.id, from_step=len(steps)
+        )
     db.commit()
     return _out(sequence)

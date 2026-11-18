@@ -35,6 +35,8 @@ function Preview({ template, tone, label }: { template: string; tone: Tone; labe
   const preview = usePreview(template, tone)
   return (
     <div
+      role="region"
+      aria-live="polite"
       aria-label={`${label} preview`}
       className="mt-2 rounded bg-gray-100 p-2 text-sm dark:bg-gray-800"
     >

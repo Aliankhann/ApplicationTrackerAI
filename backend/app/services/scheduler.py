@@ -55,6 +55,7 @@ class RunResult:
     cancelled: int = 0
     skipped_window: int = 0
     skipped_cap: int = 0
+    waiting_earlier_step: int = 0
     already_running: bool = False  # another run_due holds this user's lease
 
 
@@ -281,6 +282,9 @@ def _draft_due(run: _Run, due: list[FollowUpTask]) -> None:
     already = repo.count_drafted_between(run.session, run.user_id, start, end)
     for task in due:
         if task.state != repo.PENDING:  # cancelled earlier in this run
+            continue
+        if repo.has_earlier_open(run.session, run.user_id, task.application_id, task.step_index):
+            run.result.waiting_earlier_step += 1  # keep step order: wait for the earlier step
             continue
         if policy.decide(run.now, run.tz, already + run.result.drafted, cap) is Decision.SKIP_CAP:
             run.result.skipped_cap = sum(1 for t in due if t.state == repo.PENDING)
