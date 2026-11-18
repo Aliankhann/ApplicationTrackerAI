@@ -200,7 +200,10 @@ def test_us34_sync_job_isolates_per_user_failures_and_respects_leases(env: Env) 
     env.db.add(
         SyncState(user_id=leased.id, status="running", lease_expires_at=T0 + timedelta(minutes=5))
     )
-    env.db.flush()
+    # Commit the setup (to the test's savepoint; the outer transaction still rolls back) so the
+    # job's per-user rollback after the failing user can't undo it. Users are processed in id
+    # order, so without this the test failed whenever the failing user happened to sort first.
+    env.db.commit()
 
     def factory(session: Session, user_id: uuid.UUID) -> Any:
         if user_id == boom.id:
@@ -287,6 +290,7 @@ def test_us65_scheduler_job_visits_only_compose_users_and_isolates_failures(
     with_compose, readonly_only, broken = (sched.setup(db_session) for _ in range(3))
     for (user, *_), scopes in ((with_compose, BOTH), (readonly_only, READONLY), (broken, BOTH)):
         oauth_tokens.save_refresh_token(db_session, user.id, REFRESH_TOKEN, scopes, get_keyring())
+    db_session.commit()  # to the test savepoint, so the job's per-user rollback can't undo setup
     clients = {with_compose[0].id: with_compose[1], readonly_only[0].id: readonly_only[1]}
     asked: list[uuid.UUID] = []
 
