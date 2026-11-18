@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     token_encryption_current_version: str = ""
     classifier_review_threshold: float = Field(default=0.7, ge=0, le=1)
     sync_lease_minutes: int = Field(default=15, ge=1)
+    followup_daily_draft_cap: int = Field(default=5, ge=1)
+    followup_stale_days: int = Field(default=3, ge=0)
+    scheduler_lease_minutes: int = Field(default=15, ge=1)
+    default_timezone: str = "America/Toronto"
 
 
 @lru_cache
