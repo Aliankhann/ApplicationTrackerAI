@@ -20,7 +20,9 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base, TimestampMixin
@@ -214,4 +216,65 @@ class SyncState(TimestampMixin, Base):
     last_error: Mapped[str | None] = mapped_column(String(64))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = _updated_at()
+
+
+class Sequence(TimestampMixin, Base):
+    """A user's follow-up plan. `steps` holds validated step dicts; one default per user."""
+
+    __tablename__ = "sequences"
+    __table_args__ = (
+        Index(
+            "uq_sequences_user_id_default",
+            "user_id",
+            unique=True,
+            postgresql_where=text("is_default"),
+        ),
+        CheckConstraint("tone in ('short', 'warm', 'formal')", name="tone_valid"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    steps: Mapped[list[dict[str, object]]] = mapped_column(JSONB, nullable=False)
+    is_default: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    tone: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="short", server_default="short"
+    )
+    updated_at: Mapped[datetime] = _updated_at()
+
+
+class FollowUpTask(TimestampMixin, Base):
+    """One scheduled step per application. Never stores rendered bodies or recipients."""
+
+    __tablename__ = "follow_up_tasks"
+    __table_args__ = (
+        UniqueConstraint(
+            "application_id", "step_index", name="uq_follow_up_tasks_application_id_step_index"
+        ),
+        Index("ix_follow_up_tasks_state_due_at", "state", "due_at"),
+        CheckConstraint(
+            "state in ('pending', 'drafted', 'sent', 'cancelled', 'skipped')",
+            name="state_valid",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    application_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("applications.id", ondelete="CASCADE"), nullable=False
+    )
+    sequence_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("sequences.id", ondelete="SET NULL")
+    )
+    step_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    state: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="pending", server_default="pending"
+    )
+    gmail_draft_id: Mapped[str | None] = mapped_column(String(128))
+    cancel_reason: Mapped[str | None] = mapped_column(String(32))
     updated_at: Mapped[datetime] = _updated_at()
