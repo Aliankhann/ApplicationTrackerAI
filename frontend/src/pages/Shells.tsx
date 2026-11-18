@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet } from 'react-router'
 import { apiDataSource } from '../data/apiDataSource'
 import { DataSourceProvider } from '../data/DataSourceProvider'
 import { createDemoDataSource } from '../data/demoDataSource'
@@ -46,7 +46,10 @@ export function DemoShell() {
         aria-label="Demo notice"
         className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-950"
       >
-        Demo data: sample applications, nothing is saved or sent.
+        Demo data: sample applications, nothing is saved or sent.{' '}
+        <Link to="/" className="font-semibold underline">
+          Exit demo
+        </Link>
       </div>
       <Nav basePath="/demo" />
       <Outlet />

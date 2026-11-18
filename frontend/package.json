@@ -11,6 +11,7 @@
     "typecheck": "tsc -b",
     "check:deploy": "node scripts/check-deploy-headers.mjs",
     "test": "vitest run",
+    "e2e": "playwright test --config e2e/playwright.config.ts --trace off",
     "gen:api": "cd ../backend && uv run python -m scripts.export_openapi ../frontend/openapi.json && cd ../frontend && openapi-typescript openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
@@ -22,6 +23,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "^4.3.5",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

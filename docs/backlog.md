@@ -215,10 +215,7 @@ As a signed-in user, I want to connect Gmail as a separate step so I understand 
   are exactly as expected, CSRF is required.
 - **Depends on:** US-13, US-20 · **Estimate:** 1.5h
 
-### [~] US-32 Initial 90-day sync
-_Sync service done against the Gmail protocol and fake (lease-based single-run lock,
-per-batch commits, history fallback, revocation handling). The real Google client lands with US-31._
-
+### [x] US-32 Initial 90-day sync
 As a newly connected user, I want my last 90 days of job email pulled in.
 - **AC:** Lists threads with `newer_than:90d`; fetches metadata plus snippet; the snippet is
   capped at 200 characters; non-job threads are discarded and never written; `history_id` and
@@ -227,10 +224,7 @@ As a newly connected user, I want my last 90 days of job email pulled in.
   running twice creates no duplicates.
 - **Depends on:** US-30, US-31, US-40 (prefilter) · **Estimate:** 2h
 
-### [~] US-33 Incremental sync
-_Sync service done against the Gmail protocol and fake (lease-based single-run lock,
-per-batch commits, history fallback, revocation handling). The real Google client lands with US-31._
-
+### [x] US-33 Incremental sync
 As a user, I want new email picked up every hour without a full resync.
 - **AC:** Uses `history.list` from the stored `history_id`; a not-found response triggers a fresh
   90-day sync; `invalid_grant` marks the token revoked and stops syncing for that user.
@@ -553,16 +547,17 @@ As the operator, I want abuse limited on sensitive endpoints.
 
 Goal: prod is live behind the approval step; 10 friends are invited.
 
-### [~] US-100 Demo mode
-_`/demo` runs the dashboard and detail pages on a static synthetic dataset with no network calls.
-Still to add: follow-up queue in the demo (after US-66) and the Playwright demo flow (US-101)._
-
+### [x] US-100 Demo mode
 As a recruiter on GitHub, I want to see the product without signing in.
 - **AC:** `/demo` uses the same components against a static seeded dataset; no backend calls.
 - **Tests:** Vitest: demo pages render with fetch stubbed to fail; Playwright demo flow.
 - **Depends on:** US-53, US-54, US-66 · **Estimate:** 2h
 
-### [ ] US-101 End-to-end tests
+### [~] US-101 End-to-end tests
+_Done: `frontend/e2e/` (demo, accessibility with axe, mocked sign-in/CSRF, mobile) runs in the CI
+`e2e` job. The staging variant (real sign-in with a test account, connect, draft appears, run after
+each staging deploy, blocks promotion) waits on US-05 and US-04._
+
 As the developer, I want the main flows checked after every staging deploy.
 - **AC:** Playwright covers demo, sign-in, connect, dashboard, and draft appears; runs after
   each staging deploy and blocks promotion on failure.

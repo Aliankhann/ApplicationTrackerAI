@@ -192,6 +192,11 @@ test('AC7: demo routes never call fetch and show the demo banner', async () => {
   expect(throwingFetch).not.toHaveBeenCalled()
 })
 
+test('US-100: the demo banner links back to the landing page', async () => {
+  renderRoute('/demo')
+  expect(await screen.findByRole('link', { name: 'Exit demo' })).toHaveAttribute('href', '/')
+})
+
 test('AC1: a card with an unknown display_status is shown under its status, or Other', async () => {
   const demo = createDemoDataSource()
   const page = await demo.listApplications({})
