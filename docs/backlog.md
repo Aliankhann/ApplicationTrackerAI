@@ -509,14 +509,14 @@ As a user, I want one button that removes everything about me.
   real sender, then make it send. TODO: replace `BACKUP_RETENTION_DAYS` in `frontend/src/constants.ts`
   with the host's real window.
 
-### [ ] US-81 Privacy page and SECURITY.md
+### [x] US-81 Privacy page and SECURITY.md
 As a friend deciding whether to connect Gmail, I want to know exactly what happens to my data.
 - **AC:** Plain-language page: what is read, what is stored, what goes to the LLM, who can see
   it, how to delete, backup retention, contact; `gmail.compose` honesty note.
 - **Tests:** Manual review against the plan's privacy checklist; Vitest smoke render.
 - **Depends on:** US-45 decision · **Estimate:** 1h
 
-### [ ] US-82 Threat model and decision records
+### [x] US-82 Threat model and decision records
 As a reviewer, I want to see the security thinking written down.
 - **AC:** `threat-model.md` filled in; the six decision records written.
 - **Tests:** Manual.

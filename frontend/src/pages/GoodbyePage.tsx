@@ -18,7 +18,11 @@ export default function GoodbyePage() {
           We could not revoke our access at Google. <RemoveAccessLink /> to be sure.
         </p>
       )}
-      <p className="mt-3">Backups expire within {BACKUP_RETENTION_DAYS} days.</p>
+      <p className="mt-3">
+        {BACKUP_RETENTION_DAYS === null
+          ? "Database backups expire on the host's schedule. [TODO: state the retention window once hosting is chosen.]"
+          : `Backups expire within ${BACKUP_RETENTION_DAYS} days.`}
+      </p>
       <Link to="/" className="mt-4 inline-block underline">
         Back home
       </Link>
