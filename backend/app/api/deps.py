@@ -1,6 +1,7 @@
 """Auth dependencies: session lookup, current user, CSRF enforcement."""
 
 import hmac
+import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -11,12 +12,14 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.db import get_db
+from app.jobs.sync import sync_user_in_new_session
 from app.models import User, UserSession
 from app.providers.email import EmailSender, sender_for
 from app.providers.google.oidc import GoogleOidc
-from app.providers.google.revoke import TokenRevoker, UnconfiguredTokenRevoker
+from app.providers.google.revoke import GoogleTokenRevoker, TokenRevoker, UnconfiguredTokenRevoker
 from app.repositories import users
 from app.security import sessions
+from app.services.gmail_access import shared_http
 
 CSRF_HEADER = "X-CSRF-Token"
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
@@ -32,8 +35,16 @@ def get_now(clock: Annotated[Callable[[], datetime], Depends(get_clock)]) -> dat
 
 
 def get_token_revoker() -> TokenRevoker:
-    """Production wiring; tests override with FakeTokenRevoker. US-31 adds the real one."""
+    """Production wiring: the real Google call once configured; tests override with a fake."""
+    settings = get_settings()
+    if settings.google_configured:
+        return GoogleTokenRevoker(shared_http(), settings.google_revoke_endpoint)
     return UnconfiguredTokenRevoker()
+
+
+def get_sync_launcher() -> Callable[[uuid.UUID], None]:
+    """The background task that syncs one user; tests override with a fake-client runner."""
+    return sync_user_in_new_session
 
 
 def get_email_sender() -> EmailSender:
@@ -105,6 +116,18 @@ def current_user(row: CurrentSession, db: Db) -> User:
 
 
 CurrentUser = Annotated[User, Depends(current_user)]
+
+
+def maybe_user(request: Request, db: Db, settings: Config, clock: Clock) -> User | None:
+    """The signed-in user, or None; for browser-navigated routes that redirect instead of 401."""
+    try:
+        return current_user(current_session(request, db, settings, clock), db)
+    except HTTPException:
+        return None
+
+
+MaybeUser = Annotated[User | None, Depends(maybe_user)]
+SyncLauncher = Annotated[Callable[[uuid.UUID], None], Depends(get_sync_launcher)]
 
 
 # (method, route path) pairs that skip session and CSRF checks. Add deliberately, e.g. an OAuth

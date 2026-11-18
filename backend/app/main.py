@@ -6,6 +6,7 @@ from fastapi.responses import RedirectResponse
 
 from app.api import applications, auth, followups, gmail, health, sequences, unsubscribe
 from app.api import settings as settings_api
+from app.api import sync as sync_api
 from app.api.deps import SignInRedirect, require_csrf
 from app.config import get_settings
 from app.log import configure_logging
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(gmail.router)
     app.include_router(sequences.router)
     app.include_router(settings_api.router)
+    app.include_router(sync_api.router)
     app.include_router(unsubscribe.router)
     return app
 

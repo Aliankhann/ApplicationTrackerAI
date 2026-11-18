@@ -206,7 +206,7 @@ As a developer, I want Gmail behind an interface so tests never call Google.
 - **Tests:** Unit tests for the fake; mypy checks both implement the protocol.
 - **Depends on:** US-01 · **Estimate:** 0.5h
 
-### [ ] US-31 Connect Gmail with incremental consent
+### [x] US-31 Connect Gmail with incremental consent
 As a signed-in user, I want to connect Gmail as a separate step so I understand what I'm granting.
 - **AC:** `POST /gmail/connect` starts a consent flow for `gmail.readonly` only, with offline
   access; the refresh token is stored encrypted (US-20); a plain-language explainer page comes
@@ -238,7 +238,7 @@ As a user, I want new email picked up every hour without a full resync.
   revoked token stops sync and flags the user.
 - **Depends on:** US-32 · **Estimate:** 1.5h
 
-### [ ] US-34 Manual sync and status
+### [x] US-34 Manual sync and status
 As a user, I want to trigger a sync and see whether it is running.
 - **AC:** `POST /sync` starts a sync (one at a time per user) and returns a job status; the
   frontend shows progress and the last synced time.

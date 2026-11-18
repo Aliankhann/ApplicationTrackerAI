@@ -7,7 +7,7 @@ from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import OAuthToken, TokenStatus
+from app.models import OAuthToken, TokenStatus, User
 from app.security.crypto import DecryptionError, EncryptedToken, Keyring, decrypt, encrypt
 
 
@@ -88,3 +88,19 @@ def get_row(session: Session, user_id: uuid.UUID) -> OAuthToken | None:
 def delete_token(session: Session, user_id: uuid.UUID) -> None:
     """Remove the encrypted token for good (disconnect)."""
     session.execute(sa_delete(OAuthToken).where(OAuthToken.user_id == user_id))
+
+
+def active_scopes(session: Session) -> list[tuple[uuid.UUID, str]]:
+    """(user id, granted scopes) for every live token of an enabled user, in a stable order."""
+    stmt = (
+        select(OAuthToken.user_id, OAuthToken.scopes)
+        .join(User, User.id == OAuthToken.user_id)
+        .where(OAuthToken.status == TokenStatus.ACTIVE, User.disabled_at.is_(None))
+        .order_by(OAuthToken.user_id)
+    )
+    return [(row[0], row[1]) for row in session.execute(stmt)]
+
+
+def active_row(session: Session, user_id: uuid.UUID) -> OAuthToken | None:
+    row = session.get(OAuthToken, user_id)
+    return row if row is not None and row.status == TokenStatus.ACTIVE else None

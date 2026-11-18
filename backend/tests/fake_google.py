@@ -21,6 +21,7 @@ from app.providers.google.oidc import GoogleOidc, JwksCache, OidcConfig
 CLIENT_ID = "fake-client-id.apps.example.test"
 CLIENT_SECRET = "fake-client-secret-value"  # noqa: S105
 REDIRECT_URI = "https://api.example.test/auth/google/callback"
+CONNECT_REDIRECT_URI = "https://api.example.test/gmail/callback"
 ISSUER = "https://accounts.google.com"
 KID = "test-key-1"
 NOW = 1_767_268_800.0  # 2026-01-01T12:00:00Z, the route tests' fake clock
@@ -93,8 +94,30 @@ class FakeGoogle:
         code = f"code-{len(self.pending) + len(self.used_codes)}-{sub}"
         self.pending[code] = {
             "challenge": query["code_challenge"][0],
+            "redirect_uri": query["redirect_uri"][0],
             "id_token": self.sign(self.claims(sub, email, query["nonce"][0], **overrides)),
+            "extra": {},
         }
+        return code
+
+    def issue_connect_code(
+        self,
+        authorization_url: str,
+        sub: str,
+        email: str,
+        *,
+        refresh_token: str | None = "1//synthetic-refresh-token",  # noqa: S107
+        scope: str | None = None,
+        **overrides: Any,
+    ) -> str:
+        """Consent at the connect step: the response carries a refresh token and granted scopes
+        (by default exactly what the authorization URL asked for)."""
+        code = self.issue_code(authorization_url, sub, email, **overrides)
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(authorization_url).query)
+        extra: dict[str, Any] = {"scope": scope if scope is not None else query["scope"][0]}
+        if refresh_token is not None:
+            extra["refresh_token"] = refresh_token
+        self.pending[code]["extra"] = extra
         return code
 
     def handler(self, request: httpx.Request) -> httpx.Response:
@@ -118,7 +141,7 @@ class FakeGoogle:
             entry is not None
             and form.get("client_id") == CLIENT_ID
             and form.get("client_secret") == CLIENT_SECRET
-            and form.get("redirect_uri") == REDIRECT_URI
+            and form.get("redirect_uri") == entry["redirect_uri"]
             and form.get("grant_type") == "authorization_code"
             and b64(digest) == entry["challenge"]
         )
@@ -126,7 +149,8 @@ class FakeGoogle:
             return httpx.Response(400, json={"error": "invalid_grant"})
         del self.pending[form["code"]]  # single use, like the real endpoint
         self.used_codes.add(form["code"])
-        return httpx.Response(200, json={"id_token": entry["id_token"], "access_token": "x"})
+        body = {"id_token": entry["id_token"], "access_token": "x", **entry["extra"]}
+        return httpx.Response(200, json=body)
 
     def oidc(self, clock: Callable[[], float] = lambda: NOW) -> tuple[GoogleOidc, JwksCache]:
         http = httpx.Client(transport=httpx.MockTransport(self.handler))

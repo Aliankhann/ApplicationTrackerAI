@@ -12,7 +12,7 @@ import hmac
 import secrets
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urlencode
 
 import httpx
@@ -68,6 +68,8 @@ class OidcConfig:
 @dataclass(frozen=True)
 class TokenResponse:
     id_token: str
+    refresh_token: str | None = field(default=None, repr=False)  # only with access_type=offline
+    scope: str = ""
 
 
 @dataclass(frozen=True)
@@ -181,14 +183,44 @@ class GoogleOidc:
             params["login_hint"] = login_hint
         return f"{self._config.authorization_endpoint}?{urlencode(params)}"
 
-    def exchange_code(self, code: str, code_verifier: str) -> TokenResponse:
+    def build_connect_url(
+        self,
+        state: str,
+        code_challenge: str,
+        nonce: str,
+        scopes: tuple[str, ...],
+        redirect_uri: str,
+        login_hint: str | None = None,
+    ) -> str:
+        """Gmail connect: offline access plus a forced consent screen (Google only issues a
+        refresh token with `prompt=consent`); earlier grants are kept (incremental consent)."""
+        params = {
+            "client_id": self._config.client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": " ".join(scopes),
+            "state": state,
+            "nonce": nonce,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+            "access_type": "offline",
+            "prompt": "consent",
+            "include_granted_scopes": "true",
+        }
+        if login_hint:
+            params["login_hint"] = login_hint
+        return f"{self._config.authorization_endpoint}?{urlencode(params)}"
+
+    def exchange_code(
+        self, code: str, code_verifier: str, redirect_uri: str | None = None
+    ) -> TokenResponse:
         form = {
             "grant_type": "authorization_code",
             "code": code,
             "code_verifier": code_verifier,
             "client_id": self._config.client_id,
             "client_secret": self._config.client_secret,
-            "redirect_uri": self._config.redirect_uri,
+            "redirect_uri": redirect_uri or self._config.redirect_uri,
         }
         try:
             response = self._http.post(self._config.token_endpoint, data=form, timeout=HTTP_TIMEOUT)
@@ -198,7 +230,13 @@ class GoogleOidc:
             raise OidcError("token_exchange_failed") from exc
         if response.status_code != 200 or not isinstance(id_token, str) or not id_token:
             raise OidcError("token_exchange_failed")
-        return TokenResponse(id_token=id_token)
+        refresh = body.get("refresh_token")
+        scope = body.get("scope")
+        return TokenResponse(
+            id_token=id_token,
+            refresh_token=refresh if isinstance(refresh, str) and refresh else None,
+            scope=scope if isinstance(scope, str) else "",
+        )
 
     def verify_id_token(self, id_token: str, nonce: str) -> Identity:
         key = self._signing_key(id_token)

@@ -1,10 +1,16 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { GOOGLE_PERMISSIONS_URL } from '../constants'
 import { useDataSource } from '../data/context'
 import { ApiError } from '../data/dataSource'
-import { useDeleteAccount, useDisconnectGmail } from '../data/hooks'
+import {
+  useConnectGmail,
+  useDeleteAccount,
+  useDisconnectGmail,
+  useGmailStatus,
+} from '../data/hooks'
 import { Dialog } from './Dialog'
+import { connectErrorMessage } from './gmailText'
 
 const CONFIRM_WORD = 'DELETE'
 
@@ -120,6 +126,48 @@ function DeleteDialog({ onClose }: { onClose: () => void }) {
 
 type Open = 'disconnect' | 'delete' | null
 
+function GmailConnection({ demo }: { demo: boolean }) {
+  const status = useGmailStatus()
+  const connect = useConnectGmail()
+  const [params] = useSearchParams()
+  const errorCode = params.get('gmail_error')
+  const connected = status.data?.connected ?? false
+  const followups = status.data?.followups_enabled ?? false
+  return (
+    <div className="mt-3">
+      <p className="text-sm">
+        {connected ? 'Gmail is connected.' : 'Gmail is not connected.'}{' '}
+        {connected && (followups ? 'Follow-up drafts are on.' : 'Follow-up drafts are off.')}
+      </p>
+      {errorCode && (
+        <p role="alert" className="mt-1 text-sm text-red-800 dark:text-red-300">
+          {connectErrorMessage(errorCode)}
+        </p>
+      )}
+      {connect.isError && (
+        <p role="alert" className="mt-1 text-sm text-red-800 dark:text-red-300">
+          Could not start the connection. Please try again.
+        </p>
+      )}
+      {connected && !followups && (
+        <>
+          <p className="mt-1 text-sm">
+            Drafts are saved in your Gmail drafts folder for you to review. We never send them.
+          </p>
+          <button
+            type="button"
+            className="btn mt-2"
+            disabled={demo || connect.isPending}
+            onClick={() => connect.mutate(true)}
+          >
+            Turn on follow-up drafts
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function DataControls() {
   const demo = useDataSource().kind === 'demo'
   const [open, setOpen] = useState<Open>(null)
@@ -131,6 +179,7 @@ export function DataControls() {
         Your data
       </h2>
       {demo && <p className="mt-1 text-sm">Not available in the demo.</p>}
+      <GmailConnection demo={demo} />
       <div className="mt-3 flex flex-wrap gap-3">
         <button type="button" className="btn" disabled={demo} onClick={() => setOpen('disconnect')}>
           Disconnect Gmail

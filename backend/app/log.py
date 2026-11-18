@@ -143,6 +143,7 @@ def configure_logging(settings: Settings) -> None:
     access.propagate = False
     access.disabled = True
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # its INFO lines carry request URLs
 
 
 def get_logger(name: str) -> logging.Logger:

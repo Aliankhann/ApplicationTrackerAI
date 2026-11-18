@@ -155,7 +155,10 @@ test('load more fetches the next page using next_cursor', async () => {
   renderWithSource(paged, <DashboardPage />)
   await user.click(await screen.findByRole('button', { name: 'Load more' }))
   await waitFor(() => expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull())
-  expect(screen.getAllByRole('link')).toHaveLength(18)
+  const applicationLinks = screen
+    .getAllByRole('link')
+    .filter((a) => a.getAttribute('href') !== '/privacy')
+  expect(applicationLinks).toHaveLength(18)
 })
 
 test('AC4: subject, snippet and company with markup render as literal text', async () => {

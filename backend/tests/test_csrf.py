@@ -27,6 +27,8 @@ def test_public_routes_exist_and_are_only_unsubscribe_invite_and_the_two_oauth_g
 def test_state_changing_routes_are_enumerated() -> None:
     routes = state_changing_routes()
     assert ("POST", "/auth/logout") in routes
+    assert {("POST", "/gmail/connect"), ("POST", "/sync")} <= set(routes)
+    assert ("GET", "/gmail/callback") not in routes  # GET is safe; bound to session + flow cookie
     assert any(m == "PATCH" and p.startswith("/applications/") for m, p in routes)
 
 

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { components } from '../api/schema'
+import { isGoogleAuthorizeUrl } from '../pages/navigate'
 
 type Schemas = components['schemas']
 
@@ -133,6 +134,12 @@ export type SchemaDriftChecks = [
   Assert<Fits<Preview, Schemas['PreviewOut']>>,
   Assert<Fits<Settings, Schemas['SettingsOut']>>,
   Assert<Fits<Schemas['SettingsOut'], Settings>>,
+  Assert<Fits<GmailStatus, Schemas['GmailStatusOut']>>,
+  Assert<Fits<Schemas['GmailStatusOut'], GmailStatus>>,
+  Assert<Fits<ConnectResult, Schemas['GmailConnectOut']>>,
+  Assert<Fits<SyncStart, Schemas['SyncStartOut']>>,
+  Assert<Fits<SyncStatus, Schemas['SyncStatusOut']>>,
+  Assert<Fits<Schemas['SyncStatusOut'], SyncStatus>>,
 ]
 
 export const COMPANY_MAX = 80
@@ -157,3 +164,29 @@ export const DeleteResultSchema = z.object({
   revoked_at_google: z.boolean().nullable(),
 })
 export type DeleteResult = z.infer<typeof DeleteResultSchema>
+
+export const GmailStatusSchema = z.object({
+  connected: z.boolean(),
+  followups_enabled: z.boolean(),
+})
+export type GmailStatus = z.infer<typeof GmailStatusSchema>
+
+export const ConnectResultSchema = z.object({
+  authorize_url: z
+    .url({ protocol: /^https$/, hostname: /^accounts\.google\.com$/ })
+    .refine(isGoogleAuthorizeUrl),
+})
+export type ConnectResult = z.infer<typeof ConnectResultSchema>
+
+export const SyncStartSchema = z.object({
+  status: z.enum(['started', 'already_running']),
+})
+export type SyncStart = z.infer<typeof SyncStartSchema>
+
+export const SyncStatusSchema = z.object({
+  status: z.enum(['idle', 'running', 'error', 'revoked']),
+  last_synced_at: timestamp.nullable(),
+  initial_sync_done: z.boolean(),
+  last_error: z.string().nullable(),
+})
+export type SyncStatus = z.infer<typeof SyncStatusSchema>

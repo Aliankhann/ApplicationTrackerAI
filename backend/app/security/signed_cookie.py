@@ -18,6 +18,7 @@ from app.config import Settings
 
 FLOW_KIND = "oauth-flow"
 INVITE_KIND = "invite-claim"
+CONNECT_KIND = "connect-flow"
 FLOW_MAX_AGE = 600
 INVITE_MAX_AGE = 1800
 

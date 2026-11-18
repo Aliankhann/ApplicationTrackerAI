@@ -3,16 +3,20 @@ import { ApiError, type DataSource } from './dataSource'
 import {
   ApplicationDetailSchema,
   ApplicationPageSchema,
+  ConnectResultSchema,
   DeleteResultSchema,
   DisconnectResultSchema,
   FieldErrorsSchema,
   FollowUpSchema,
   FollowUpsSchema,
+  GmailStatusSchema,
   PreviewSchema,
   SequenceSchema,
   SequencesSchema,
   SettingsSchema,
   StatusEventsSchema,
+  SyncStartSchema,
+  SyncStatusSchema,
   type ListParams,
 } from './schemas'
 
@@ -105,6 +109,20 @@ export const apiDataSource: DataSource = {
   },
   async updateSettings(patch) {
     return SettingsSchema.parse(unwrap(await api.PATCH('/settings', { body: patch })))
+  },
+  async getGmailStatus() {
+    return GmailStatusSchema.parse(unwrap(await api.GET('/gmail/status')))
+  },
+  async startGmailConnect(followups) {
+    return ConnectResultSchema.parse(
+      unwrap(await api.POST('/gmail/connect', { body: { followups } })),
+    )
+  },
+  async startSync() {
+    return SyncStartSchema.parse(unwrap(await api.POST('/sync')))
+  },
+  async getSyncStatus() {
+    return SyncStatusSchema.parse(unwrap(await api.GET('/sync')))
   },
   async disconnectGmail() {
     return DisconnectResultSchema.parse(unwrap(await api.POST('/gmail/disconnect')))
