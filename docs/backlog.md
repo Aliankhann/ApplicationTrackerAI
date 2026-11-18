@@ -414,7 +414,7 @@ As a user, I want follow-ups written with the right names and dates.
 - **Tests:** Unit: every variable, every preset, missing values.
 - **Depends on:** US-61 · **Estimate:** 0.5h
 
-### [ ] US-63 Fake clock and scheduler tests first
+### [x] US-63 Fake clock and scheduler tests first
 As a developer, I want the scheduler's rules written as tests before the scheduler exists.
 - **AC:** Property tests with a fake clock: never drafts outside weekdays 9 to 11 am local time;
   never drafts after an inbound reply; never exceeds the daily cap; correct across a
@@ -422,7 +422,7 @@ As a developer, I want the scheduler's rules written as tests before the schedul
 - **Tests:** These tests, failing until US-64 lands.
 - **Depends on:** US-61 · **Estimate:** 1h
 
-### [ ] US-64 Scheduler
+### [x] US-64 Scheduler
 As a user, I want due follow-ups turned into drafts automatically.
 - **AC:** Runs every 15 minutes; selects Applied or Online assessment applications whose last
   message is from the user and whose step is due; re-fetches the thread right before acting and
@@ -432,7 +432,11 @@ As a user, I want due follow-ups turned into drafts automatically.
 - **Tests:** US-63 passes; integration tests for each stop condition.
 - **Depends on:** US-63, US-33 · **Estimate:** 2h
 
-### [ ] US-65 Draft creation in the thread
+### [~] US-65 Draft creation in the thread
+_Drafting through the Gmail protocol is done in the scheduler (reply headers, recipient fetched at
+draft time, no-reply/self guards). Requesting `gmail.compose` and the nightly contract test wait on
+US-31 and the Google projects (US-04)._
+
 As a user, I want the draft to show up as a reply in the original Gmail thread.
 - **AC:** Requests `gmail.compose` only when follow-ups are turned on; draft has `threadId`,
   `In-Reply-To`, `References`, and a "Re:" subject; the To address is fetched at that moment and

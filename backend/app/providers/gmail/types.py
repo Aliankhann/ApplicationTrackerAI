@@ -79,6 +79,7 @@ class DraftRequest:
     references: str
     subject: str
     body_text: str
+    to: str = ""  # fetched at draft time; never stored or logged
 
 
 @dataclass(frozen=True)

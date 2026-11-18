@@ -161,6 +161,9 @@ class Application(TimestampMixin, Base):
     applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_activity_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     status_locked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    followups_paused: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     updated_at: Mapped[datetime] = _updated_at()
 
 
@@ -258,7 +261,7 @@ class FollowUpTask(TimestampMixin, Base):
         ),
         Index("ix_follow_up_tasks_state_due_at", "state", "due_at"),
         CheckConstraint(
-            "state in ('pending', 'drafted', 'sent', 'cancelled', 'skipped')",
+            "state in ('pending', 'drafting', 'drafted', 'sent', 'cancelled', 'skipped')",
             name="state_valid",
         ),
     )
@@ -277,4 +280,22 @@ class FollowUpTask(TimestampMixin, Base):
     )
     gmail_draft_id: Mapped[str | None] = mapped_column(String(128))
     cancel_reason: Mapped[str | None] = mapped_column(String(32))
+    drafted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    attempt_failures: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     updated_at: Mapped[datetime] = _updated_at()
+
+
+class SchedulerState(TimestampMixin, Base):
+    """One row per user: the lease that keeps two run_due workers off the same user."""
+
+    __tablename__ = "scheduler_state"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
