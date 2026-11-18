@@ -6,6 +6,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   test: {
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
   },

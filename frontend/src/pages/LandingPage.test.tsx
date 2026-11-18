@@ -36,3 +36,19 @@ test('US-81: footer links to the privacy page', () => {
   )
   expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy')
 })
+
+test('US-100: the landing page says what the demo shows', () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json({ status: 'ok' })),
+  )
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+  expect(screen.getByText(/The demo shows the board/)).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Try the demo' })).toHaveAttribute('href', '/demo')
+})
