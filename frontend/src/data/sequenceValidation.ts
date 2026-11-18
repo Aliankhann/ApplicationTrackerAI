@@ -23,6 +23,8 @@ const err = (field: string, code: string, message: string): FieldError => ({
 export function validateTemplate(template: string): string | null {
   if (template.trim().length < 1) return 'Template must not be empty.'
   if (template.length > TEMPLATE_MAX) return `Template must be at most ${TEMPLATE_MAX} characters.`
+  if (/[\p{Cc}\p{Cf}\p{Cs}\p{Co}\p{Zl}\p{Zp}]/u.test(template.replace(/[\n\t]/g, '')))
+    return 'Templates may not contain control or invisible characters.'
   if (/<[A-Za-z/!]/.test(template)) return 'Templates are plain text; HTML tags are not allowed.'
   const leftover = template.replace(/\{[a-z_]+\}/g, '')
   if (leftover.includes('{') || leftover.includes('}')) return 'Unbalanced or malformed braces.'

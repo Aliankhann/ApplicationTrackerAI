@@ -412,3 +412,14 @@ def test_first_name_only_for_clearly_personal_sender_names(
     )
     run(db_session, user, client, DAY7)
     assert client.drafts[0].body_text.startswith(expected)
+
+
+def test_delayed_step_zero_keeps_step_one_from_drafting_first(db_session: Session) -> None:
+    user, client, app, _ = setup(db_session)
+    first, second = tasks(db_session, user, app)
+    first.due_at = DAY14 + timedelta(days=30)  # delayed past step 1's due date
+    db_session.flush()
+    result = run(db_session, user, client, DAY14)
+    assert (result.drafted, result.waiting_earlier_step) == (0, 1)
+    assert [t.state for t in tasks(db_session, user, app)] == ["pending", "pending"]
+    assert second.state == "pending"

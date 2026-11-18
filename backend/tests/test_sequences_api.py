@@ -96,3 +96,53 @@ def test_preview_renders_sample_data_and_writes_nothing(env: Env) -> None:  # no
     assert env.db.scalar(select(func.count()).select_from(Sequence)) == before
     bad = client.post("/sequences/preview", json={"template": "{nope}"})
     assert bad.status_code == 422 and fields(bad) == {"template": "invalid_template"}
+
+
+def test_removing_steps_cancels_out_of_range_pending_tasks(env: Env) -> None:  # noqa: F811
+    from datetime import timedelta
+
+    from app.models import FollowUpTask
+    from app.repositories import followups as followups_repo
+    from tests.test_applications_api import make_app
+
+    user = env.user()
+    client = login(env, user)
+    seq = client.get("/sequences").json()[0]
+    application = make_app(env, user, from_user=True)
+    due = env.clock.now + timedelta(days=5)
+    for step in (0, 1):
+        followups_repo.insert_if_absent(env.db, application.id, seq["id"], step, due, env.clock.now)
+    assert client.patch(f"/sequences/{seq['id']}", json={"steps": STEPS}).status_code == 200
+    states = {
+        t.step_index: (t.state, t.cancel_reason)
+        for t in env.db.scalars(
+            select(FollowUpTask).where(FollowUpTask.application_id == application.id)
+        )
+    }
+    assert states == {0: ("pending", None), 1: ("cancelled", "step_removed")}
+
+
+def test_removing_steps_leaves_other_sequences_tasks_alone(env: Env) -> None:  # noqa: F811
+    from datetime import timedelta
+
+    from app.models import FollowUpTask
+    from app.repositories import followups as followups_repo
+    from tests.test_applications_api import make_app
+
+    user = env.user()
+    client = login(env, user)
+    default = client.get("/sequences").json()[0]
+    other = client.post(
+        "/sequences", json={"name": "Other", "steps": default["steps"], "tone": "short"}
+    )
+    assert other.status_code in (200, 201), other.text
+    application = make_app(env, user, from_user=True)
+    due = env.clock.now + timedelta(days=5)
+    followups_repo.insert_if_absent(
+        env.db, application.id, other.json()["id"], 1, due, env.clock.now
+    )
+    assert client.patch(f"/sequences/{default['id']}", json={"steps": STEPS}).status_code == 200
+    task = env.db.scalars(
+        select(FollowUpTask).where(FollowUpTask.application_id == application.id)
+    ).one()
+    assert (task.state, task.cancel_reason) == ("pending", None)
