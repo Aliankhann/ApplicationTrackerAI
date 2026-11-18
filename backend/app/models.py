@@ -1,4 +1,4 @@
-"""Tables: users, tokens, invites, threads, applications. See docs/build-plan.md#data-model."""
+"""Tables: users, tokens, invites, threads, applications, sync state (docs/build-plan.md)."""
 
 import uuid
 from datetime import datetime
@@ -111,6 +111,9 @@ class EmailThread(TimestampMixin, Base):
     last_message_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_sender_is_user: Mapped[bool] = mapped_column(Boolean, nullable=False)
     message_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    pipeline_version: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="0", server_default="0"
+    )
     updated_at: Mapped[datetime] = _updated_at()
 
 
@@ -177,3 +180,38 @@ class StatusEvent(Base):
     )
     reason: Mapped[str] = mapped_column(String(64), nullable=False)
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SyncStatus(StrEnum):
+    IDLE = "idle"
+    RUNNING = "running"
+    ERROR = "error"
+    REVOKED = "revoked"
+
+
+class SyncState(TimestampMixin, Base):
+    """One row per user. `last_error` is a stable code, never exception text.
+
+    A running sync holds a lease (`lease_expires_at`); an expired lease means it crashed.
+    """
+
+    __tablename__ = "sync_state"
+    __table_args__ = (
+        CheckConstraint("status in ('idle', 'running', 'error', 'revoked')", name="status_valid"),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    history_id: Mapped[str | None] = mapped_column(String(32))
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    initial_sync_done: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=SyncStatus.IDLE.value, server_default="idle"
+    )
+    last_error: Mapped[str | None] = mapped_column(String(64))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = _updated_at()

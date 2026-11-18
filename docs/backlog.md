@@ -208,7 +208,10 @@ As a signed-in user, I want to connect Gmail as a separate step so I understand 
   are exactly as expected, CSRF is required.
 - **Depends on:** US-13, US-20 · **Estimate:** 1.5h
 
-### [ ] US-32 Initial 90-day sync
+### [~] US-32 Initial 90-day sync
+_Sync service done against the Gmail protocol and fake (lease-based single-run lock,
+per-batch commits, history fallback, revocation handling). The real Google client lands with US-31._
+
 As a newly connected user, I want my last 90 days of job email pulled in.
 - **AC:** Lists threads with `newer_than:90d`; fetches metadata plus snippet; the snippet is
   capped at 200 characters; non-job threads are discarded and never written; `history_id` and
@@ -217,7 +220,10 @@ As a newly connected user, I want my last 90 days of job email pulled in.
   running twice creates no duplicates.
 - **Depends on:** US-30, US-31, US-40 (prefilter) · **Estimate:** 2h
 
-### [ ] US-33 Incremental sync
+### [~] US-33 Incremental sync
+_Sync service done against the Gmail protocol and fake (lease-based single-run lock,
+per-batch commits, history fallback, revocation handling). The real Google client lands with US-31._
+
 As a user, I want new email picked up every hour without a full resync.
 - **AC:** Uses `history.list` from the stored `history_id`; a not-found response triggers a fresh
   90-day sync; `invalid_grant` marks the token revoked and stops syncing for that user.

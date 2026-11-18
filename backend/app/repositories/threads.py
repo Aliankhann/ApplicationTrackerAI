@@ -2,7 +2,7 @@
 
 import uuid
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -22,6 +22,25 @@ def _counted_messages(meta: ThreadMeta) -> tuple[MessageMeta, ...]:
     return sent or meta.messages
 
 
+def get_by_gmail_id(
+    session: Session, user_id: uuid.UUID, gmail_thread_id: str
+) -> EmailThread | None:
+    stmt = select(EmailThread).where(
+        EmailThread.user_id == user_id, EmailThread.gmail_thread_id == gmail_thread_id
+    )
+    return session.scalars(stmt).one_or_none()
+
+
+def is_unchanged(thread: EmailThread, meta: ThreadMeta, pipeline_version: str) -> bool:
+    """True when the row reflects the current messages and was built by this pipeline version."""
+    messages = _counted_messages(meta)
+    return (
+        thread.message_count == len(messages)
+        and thread.last_message_at == messages[-1].sent_at
+        and thread.pipeline_version == pipeline_version
+    )
+
+
 def upsert_thread(
     session: Session,
     user_id: uuid.UUID,
@@ -29,6 +48,7 @@ def upsert_thread(
     subject: str,
     from_domain: str,
     snippet: str,
+    pipeline_version: str = "0",
 ) -> EmailThread:
     """Idempotent on (user_id, gmail_thread_id). Drafts never count as the last message."""
     messages = _counted_messages(meta)
@@ -40,6 +60,7 @@ def upsert_thread(
         "last_message_at": messages[-1].sent_at,
         "last_sender_is_user": messages[-1].from_user,
         "message_count": len(messages),
+        "pipeline_version": pipeline_version,
     }
     stmt = (
         insert(EmailThread)
@@ -54,11 +75,31 @@ def upsert_thread(
     return session.execute(stmt).scalar_one()
 
 
+def _same_result(row: Classification, result: ClassificationResult) -> bool:
+    return (
+        row.label == result.label
+        and row.confidence == result.confidence
+        and row.method == result.method
+        and row.rule_id == result.rule_id
+        and row.model_version == result.model_version
+        and row.needs_review == result.needs_review
+    )
+
+
 def add_classification(
     session: Session, user_id: uuid.UUID, thread: EmailThread, result: ClassificationResult
 ) -> Classification:
+    """Append a row unless the latest one already holds the identical result."""
     if thread.user_id != user_id:
         raise NotFound("thread")
+    latest = session.scalars(
+        select(Classification)
+        .where(Classification.thread_id == thread.id)
+        .order_by(Classification.created_at.desc())
+        .limit(1)
+    ).one_or_none()
+    if latest is not None and _same_result(latest, result):
+        return latest
     row = Classification(
         thread_id=thread.id,
         label=result.label,

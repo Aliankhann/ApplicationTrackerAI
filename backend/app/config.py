@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     token_encryption_keys: SecretStr = SecretStr("")
     token_encryption_current_version: str = ""
     classifier_review_threshold: float = Field(default=0.7, ge=0, le=1)
+    sync_lease_minutes: int = Field(default=15, ge=1)
 
 
 @lru_cache
