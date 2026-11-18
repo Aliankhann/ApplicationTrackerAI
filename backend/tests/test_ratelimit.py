@@ -70,7 +70,8 @@ def test_ac_sign_in_start_and_callback_are_limited_to_30_per_hour_per_ip(
         assert flow.client.get("/auth/google/callback", follow_redirects=False).status_code == 302
     for path in ("/auth/google/start", "/auth/google/callback"):
         blocked = flow.client.get(path, follow_redirects=False)
-        assert blocked.status_code == 429 and "retry-after" in blocked.headers
+        assert blocked.status_code == 302
+        assert blocked.headers["location"] == "http://localhost:5173/sign-in?error=rate_limited"
 
 
 def test_ac_counters_use_hashed_keys_never_raw_ips(env: Env) -> None:  # noqa: F811

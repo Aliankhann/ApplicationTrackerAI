@@ -44,7 +44,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
 
 export function messageForError(code: string | null): string | null {
   if (!code) return null
-  return ERROR_MESSAGES[code] ?? GENERIC
+  return Object.hasOwn(ERROR_MESSAGES, code) ? ERROR_MESSAGES[code] : GENERIC
 }
 
 // A stable error code for each way the invite check can fail.

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, func, or_, select, update
+from sqlalchemy import CursorResult, func, or_, select, text, update
 from sqlalchemy.orm import Session
 
 from app.models import InviteCode, User
@@ -53,6 +53,14 @@ def mark_used(session: Session, invite_id: uuid.UUID, user_id: uuid.UUID, now: d
     )
     result = cast(CursorResult[Any], session.execute(stmt))
     return result.rowcount == 1
+
+
+USER_CAP_LOCK_KEY = 0x5452_4B52_4341_5001  # fixed 64-bit key: "user cap"
+
+
+def lock_user_cap(session: Session) -> None:
+    """Serialize everything that counts or adds slots; released on commit or rollback."""
+    session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": USER_CAP_LOCK_KEY})
 
 
 def slots_in_use(session: Session, now: datetime) -> int:

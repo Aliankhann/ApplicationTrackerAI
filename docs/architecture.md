@@ -153,9 +153,21 @@ Not stored: email bodies, recipient addresses, or rendered draft text.
 | Drafts only | `providers/gmail/client.py` (no send operation), `services/scheduler.py` |
 | Delete my data and disconnect | `services/account.py`, `api/auth.py`, `api/gmail.py` |
 | Secret and dependency scanning | `.pre-commit-config.yaml`, `.github/workflows/security.yml`, `.github/dependabot.yml` |
-| Rate limiting | planned (US-92) |
+| Rate limiting | DB-backed fixed windows (US-92); see note below |
 
 ## Frontend security headers
 
 - The API sets its own headers (strict CSP, nosniff, no-referrer, HSTS outside local) in `backend/app/middleware.py`.
 - The SPA's headers come from the host via `frontend/public/_headers` (Cloudflare Pages format). The deploy step must replace the `__API_ORIGIN__` placeholder in the CSP `connect-src` with the real API origin (for example `https://api.<domain>`). The deploy workflow (US-05) must substitute it in `dist/_headers` and then run `DEPLOY=1 pnpm check:deploy` (from `frontend/`), which fails while the placeholder remains.
+
+### Rate limiting notes
+
+- `TRUSTED_PROXY_COUNT` must equal the real number of reverse proxies in front of the API. Too
+  high lets clients spoof `X-Forwarded-For` and dodge limits; 0 behind a proxy puts every user in
+  one bucket (the proxy's address).
+- `/auth/invite` has a global limit (50/hour) on top of the per-IP one (10/hour). It stops a
+  distributed brute force, but an attacker using many IPs can also exhaust it and briefly block
+  legitimate invite checks. Accepted for an invite-only app; per-IP limits keep one client from
+  burning it alone.
+- Old windows, expired sessions and old audit rows are purged by `python -m app.jobs.maintenance`
+  (scheduling is US-05).

@@ -166,7 +166,7 @@ def _parse_uuid(value: object) -> uuid.UUID | None:
     "/auth/google/start",
     status_code=302,
     response_class=RedirectResponse,
-    dependencies=[limit_by_ip("signin", SIGN_IN_LIMIT_PER_IP)],
+    dependencies=[limit_by_ip("signin", SIGN_IN_LIMIT_PER_IP, redirect=True)],
 )
 def google_start(request: Request, settings: Config, now: Now, oidc: OidcDep) -> RedirectResponse:
     state, nonce, pkce = random_token(), random_token(), new_pkce()
@@ -207,7 +207,7 @@ def _fail(db: Db, settings: Config, reason: str, public: str = SIGN_IN_FAILED) -
     "/auth/google/callback",
     status_code=302,
     response_class=RedirectResponse,
-    dependencies=[limit_by_ip("signin", SIGN_IN_LIMIT_PER_IP)],
+    dependencies=[limit_by_ip("signin", SIGN_IN_LIMIT_PER_IP, redirect=True)],
 )
 def google_callback(
     request: Request,

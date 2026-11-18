@@ -231,3 +231,13 @@ def test_ac_jwks_outage_fails_closed(google: FakeGoogle) -> None:
     broken = GoogleOidc(oidc._config, http, JwksCache(http, "https://x.example/jwks"))
     token = google.sign(google.claims("s", "a@x.t", NONCE))
     assert code_of(lambda: broken.verify_id_token(token, NONCE)) == "jwks_unavailable"
+
+
+def test_ac_multi_audience_token_requires_azp_to_be_our_client(google: FakeGoogle) -> None:
+    two = [CLIENT_ID, "other-client"]
+    bad = google.sign(google.claims("s", "a@x.t", NONCE, aud=two, azp="other-client"))
+    assert code_of(lambda: verify(google, bad)) == "id_token_azp"
+    missing = google.sign(google.claims("s", "a@x.t", NONCE, aud=two))
+    assert code_of(lambda: verify(google, missing)) == "id_token_azp"
+    good = google.sign(google.claims("s", "a@x.t", NONCE, aud=two, azp=CLIENT_ID))
+    assert verify(google, good).sub == "s"

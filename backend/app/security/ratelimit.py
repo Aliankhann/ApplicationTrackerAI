@@ -15,7 +15,7 @@ from sqlalchemy import CursorResult, delete
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.api.deps import Config, Db, Now
+from app.api.deps import Config, Db, Now, SignInRedirect
 from app.config import Settings
 from app.models import RateLimit
 
@@ -49,12 +49,23 @@ def retry_after(now: datetime) -> int:
 
 
 def enforce(
-    session: Session, settings: Settings, now: datetime, scope: str, identifier: str, limit: int
+    session: Session,
+    settings: Settings,
+    now: datetime,
+    scope: str,
+    identifier: str,
+    limit: int,
+    redirect: bool = False,
 ) -> None:
-    """Count a request; raise 429 with Retry-After once `limit` per window is exceeded."""
+    """Count a request; raise 429 with Retry-After once `limit` per window is exceeded.
+
+    With `redirect` (browser-navigated routes) the failure is a redirect to the sign-in page.
+    """
     count = hit(session, key_hash(scope, identifier, settings), now)
     session.commit()
     if count > limit:
+        if redirect:
+            raise SignInRedirect(ERROR_CODE)
         raise HTTPException(
             status_code=429,
             detail=ERROR_CODE,
@@ -73,16 +84,18 @@ def client_ip(request: Request, settings: Settings) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def limit_by_ip(scope: str, per_ip: int, globally: int | None = None) -> Any:
+def limit_by_ip(
+    scope: str, per_ip: int, globally: int | None = None, redirect: bool = False
+) -> Any:
     """FastAPI dependency factory:
     `per_ip` requests/hour per client IP; `globally` caps all clients together. The global
     counter only moves for requests the per-IP limit let through, so one client cannot burn it.
     """
 
     def dependency(request: Request, db: Db, settings: Config, now: Now) -> None:
-        enforce(db, settings, now, f"{scope}:ip", client_ip(request, settings), per_ip)
+        enforce(db, settings, now, f"{scope}:ip", client_ip(request, settings), per_ip, redirect)
         if globally is not None:
-            enforce(db, settings, now, f"{scope}:global", "all", globally)
+            enforce(db, settings, now, f"{scope}:global", "all", globally, redirect)
 
     return Depends(dependency)
 

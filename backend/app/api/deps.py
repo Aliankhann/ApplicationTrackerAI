@@ -41,6 +41,21 @@ def get_email_sender() -> EmailSender:
     return sender_for(get_settings().environment)
 
 
+class SignInRedirect(Exception):
+    """Browser-navigated sign-in routes answer failures by redirecting to /sign-in?error=code."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
+
+
+def require_google_config_for_redirect(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> None:
+    if not settings.google_configured:
+        raise SignInRedirect("sign_in_unavailable")
+
+
 def require_google_config(settings: Annotated[Settings, Depends(get_settings)]) -> None:
     """Fail closed: without Google client settings every sign-in route answers 503."""
     if not settings.google_configured:
@@ -52,7 +67,7 @@ def _shared_oidc() -> GoogleOidc:
     return GoogleOidc.from_settings(get_settings())
 
 
-def get_oidc(_: Annotated[None, Depends(require_google_config)]) -> GoogleOidc:
+def get_oidc(_: Annotated[None, Depends(require_google_config_for_redirect)]) -> GoogleOidc:
     """Production wiring (one client and JWKS cache per process); tests override with a fake."""
     return _shared_oidc()
 

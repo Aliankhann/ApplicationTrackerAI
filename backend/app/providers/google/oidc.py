@@ -245,6 +245,10 @@ class GoogleOidc:
             raise OidcError("id_token_expired")
         if iat > now + LEEWAY_SECONDS:
             raise OidcError("id_token_issued_in_future")
+        audience = claims["aud"]
+        multi = isinstance(audience, list) and len(audience) > 1
+        if multi and claims.get("azp") != self._config.client_id:
+            raise OidcError("id_token_azp")
         if claims["iss"] not in self._config.accepted_issuers:
             raise OidcError("id_token_issuer")
         token_nonce = claims.get("nonce")
