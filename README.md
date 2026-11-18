@@ -2,7 +2,7 @@
 
 Gmail-connected internship application tracker with follow-up drafts and a daily digest.
 
-> Early development. See the [full build plan](docs/build-plan.md) for scope and roadmap.
+> Early development. See the [build plan](docs/build-plan.md) for scope and the [backlog](docs/backlog.md) for user stories and how work gets merged.
 
 ## Tech stack
 
