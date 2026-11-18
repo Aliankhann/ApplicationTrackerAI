@@ -145,6 +145,7 @@ EXPECTED = {
 
 def app_for(environment: str, monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setenv("ENVIRONMENT", environment)
+    monkeypatch.setenv("SESSION_SECRET", "t" * 40)
     from app.config import get_settings
 
     get_settings.cache_clear()

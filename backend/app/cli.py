@@ -1,4 +1,5 @@
-"""Operator CLI: `python -m app.cli invite create [--email E] [--days N]`, `tokens rotate`."""
+"""Operator CLI: `python -m app.cli invite create [--email E] [--days N]`, `tokens rotate`,
+`session create --email E` (local environment only)."""
 
 import argparse
 import re
@@ -10,7 +11,9 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.repositories import invite_codes, oauth_tokens
+from app.models import User
+from app.repositories import invite_codes, oauth_tokens, users
+from app.security import sessions
 from app.security.crypto import Keyring, KeyringError, get_keyring
 from app.security.invite_codes import generate_code, hash_code
 
@@ -49,6 +52,9 @@ def _parser() -> argparse.ArgumentParser:
     create.add_argument("--days", type=_days, default=DEFAULT_DAYS)
     tokens = commands.add_parser("tokens").add_subparsers(dest="action", required=True)
     tokens.add_parser("rotate", help="re-encrypt refresh tokens under the current key")
+    session = commands.add_parser("session").add_subparsers(dest="action", required=True)
+    session_create = session.add_parser("create", help="local only: print a session cookie")
+    session_create.add_argument("--email", type=_email, required=True)
     return parser
 
 
@@ -72,6 +78,8 @@ def main(
         args = _parser().parse_args(argv)
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else 2
+    if args.command == "session":
+        return _create_dev_session(args.email, session_factory, clock)
     if args.command == "tokens":
         return _rotate_tokens(session_factory, keyring_factory)
     now = clock()
@@ -85,6 +93,24 @@ def main(
         session.commit()
     print(f"Invite code: {code}")
     print(f"Expires: {expires_at.isoformat()}")
+    return 0
+
+
+def _create_dev_session(email: str, session_factory: SessionFactory, clock: Clock) -> int:
+    settings = get_settings()
+    if settings.environment != "local":
+        print("error: session create only runs when ENVIRONMENT=local", file=sys.stderr)
+        return 1
+    with session_factory() as session:
+        user = users.get_by_email(session, email)
+        if user is None:
+            user = User(google_sub=f"local:{email}", email=email)
+            session.add(user)
+            session.flush()
+        raw, csrf, _ = sessions.create_session(session, user.id, clock(), settings)
+        session.commit()
+    print(f"{settings.session_cookie}={raw}")
+    print(f"{settings.csrf_cookie}={csrf}")
     return 0
 
 
