@@ -167,7 +167,7 @@ As the operator, I want a record of sensitive actions without storing any email 
 
 Goal: refresh tokens are useless to anyone who steals the database.
 
-### [ ] US-20 Token encryption module
+### [x] US-20 Token encryption module
 As the operator, I want refresh tokens encrypted at rest with a key the database never sees.
 - **AC:** AES-GCM with a fresh random nonce per encryption; key loaded from settings; ciphertext,
   nonce, and `key_version` stored; plaintext never logged.
@@ -175,7 +175,7 @@ As the operator, I want refresh tokens encrypted at rest with a key the database
   same token differ; Hypothesis property test over random tokens.
 - **Depends on:** US-01 · **Estimate:** 1h
 
-### [ ] US-21 Key rotation
+### [x] US-21 Key rotation
 As the operator, I want to rotate the encryption key without logging everyone out.
 - **AC:** Settings can hold the current key plus older keys by version; decrypt picks the key by
   `key_version`; a rotate command re-encrypts all tokens with the current key.

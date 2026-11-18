@@ -3,6 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +15,8 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
     log_level: str = "INFO"
     max_users: int = 100
+    token_encryption_keys: SecretStr = SecretStr("")
+    token_encryption_current_version: str = ""
 
 
 @lru_cache
