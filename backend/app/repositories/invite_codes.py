@@ -1,0 +1,62 @@
+"""Invite code persistence. Codes are only ever stored as hashes."""
+
+import uuid
+from datetime import datetime
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, func, select, update
+from sqlalchemy.orm import Session
+
+from app.models import InviteCode, User
+from app.security.invite_codes import hash_code, is_well_formed, require_aware
+
+
+def create(
+    session: Session, code_hash: str, expires_at: datetime, created_for_email: str | None = None
+) -> InviteCode:
+    invite = InviteCode(
+        code_hash=code_hash, expires_at=expires_at, created_for_email=created_for_email
+    )
+    session.add(invite)
+    session.flush()
+    return invite
+
+
+def find_redeemable(session: Session, code: str, now: datetime) -> InviteCode | None:
+    """Return the invite for `code` if unused and unexpired. Malformed input never matches."""
+    require_aware(now)
+    if not is_well_formed(code):
+        return None
+    stmt = select(InviteCode).where(
+        InviteCode.code_hash == hash_code(code),
+        InviteCode.used_at.is_(None),
+        InviteCode.expires_at > now,
+    )
+    return session.scalars(stmt).one_or_none()
+
+
+def mark_used(session: Session, invite_id: uuid.UUID, user_id: uuid.UUID, now: datetime) -> bool:
+    """Atomically claim an invite. True only for the caller that wins the race."""
+    stmt = (
+        update(InviteCode)
+        .where(InviteCode.id == invite_id, InviteCode.used_at.is_(None))
+        .values(used_at=require_aware(now), used_by_user_id=user_id)
+    )
+    result = cast(CursorResult[Any], session.execute(stmt))
+    return result.rowcount == 1
+
+
+def slots_in_use(session: Session, now: datetime) -> int:
+    """Count slots toward the user cap.
+
+    Used codes (even if the user was later deleted, as Google counts every account that ever
+    signed in) + unused unexpired codes + users not referenced by any code (allowlisted users).
+    A deleted allowlisted user is not counted (accepted edge case).
+    """
+    require_aware(now)
+    used = InviteCode.used_at.is_not(None)
+    pending = InviteCode.used_at.is_(None) & (InviteCode.expires_at > now)
+    codes = session.scalar(select(func.count()).select_from(InviteCode).where(used | pending))
+    referenced = select(InviteCode.used_by_user_id).where(InviteCode.used_by_user_id.is_not(None))
+    users = session.scalar(select(func.count()).select_from(User).where(User.id.not_in(referenced)))
+    return (codes or 0) + (users or 0)
