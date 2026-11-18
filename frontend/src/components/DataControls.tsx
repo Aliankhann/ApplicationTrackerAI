@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { GOOGLE_PERMISSIONS_URL } from '../constants'
 import { useDataSource } from '../data/context'
 import { ApiError } from '../data/dataSource'
@@ -149,6 +149,11 @@ export function DataControls() {
           )}
         </div>
       )}
+      <p className="mt-3 text-sm">
+        <Link to="/privacy" className="link">
+          How we handle your data
+        </Link>
+      </p>
       {open === 'disconnect' && <DisconnectDialog onClose={close} onDone={setDisconnected} />}
       {open === 'delete' && <DeleteDialog onClose={close} />}
     </section>

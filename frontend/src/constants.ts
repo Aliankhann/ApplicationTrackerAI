@@ -1,4 +1,9 @@
-// TODO: replace with the host's real backup window once hosting is chosen (privacy page, US-81).
-export const BACKUP_RETENTION_DAYS = 35
+// TODO: set once the database host and its backup schedule are chosen (US-05).
+export const BACKUP_RETENTION_DAYS: number | null = null
 
 export const GOOGLE_PERMISSIONS_URL = 'https://myaccount.google.com/permissions'
+
+// TODO: replace with a real contact address before launch (US-81, US-103). Not a working mailbox.
+export const CONTACT_MAILTO = 'mailto:contact-todo@example.invalid'
+
+export const PRIVACY_LAST_UPDATED = '2026-11-18'

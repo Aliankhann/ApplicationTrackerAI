@@ -17,6 +17,11 @@ export default function LandingPage() {
       <div className="mt-8">
         <ApiStatus />
       </div>
+      <footer className="mt-12 border-t pt-4 text-sm">
+        <Link to="/privacy" className="link">
+          Privacy
+        </Link>
+      </footer>
     </main>
   )
 }

@@ -21,3 +21,18 @@ test('renders the pitch and reports API health', async () => {
   expect(screen.getByRole('heading', { name: 'Application Tracker' })).toBeInTheDocument()
   expect(await screen.findByText('API status: ok')).toBeInTheDocument()
 })
+
+test('US-81: footer links to the privacy page', () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json({ status: 'ok' })),
+  )
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+  expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy')
+})

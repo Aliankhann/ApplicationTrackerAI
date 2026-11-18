@@ -1,10 +1,20 @@
 # Decision records
 
-One short file per decision: context, decision, consequences. Planned records:
+One short file per decision: context, decision, consequences, and status. Status says what is built
+today, because some decisions are made but not implemented yet.
 
-1. Python and FastAPI
-2. Metadata-only storage
-3. Drafts before auto-send
-4. Two Google Cloud projects
-5. Classifier provider interface
-6. Invite-only access
+| # | Decision | Status |
+| --- | --- | --- |
+| [0001](0001-python-fastapi.md) | Python and FastAPI for the backend | Accepted, implemented |
+| [0002](0002-metadata-only-storage.md) | Metadata-only storage | Accepted, implemented |
+| [0003](0003-drafts-before-auto-send.md) | Drafts before auto-send | Accepted; drafts built, Gmail wiring pending |
+| [0004](0004-two-google-cloud-projects.md) | Two Google Cloud projects | Accepted, not set up yet |
+| [0005](0005-classifier-provider-interface.md) | Classifier provider interface | Accepted; rules built, LLM not built |
+| [0006](0006-invite-only-access.md) | Invite-only access | Accepted; code generation built, gate not built |
+| [0007](0007-drafts-guardrails-lease-and-claim.md) | Draft guardrails: lease plus claim | Accepted, implemented |
+| [0008](0008-classifier-precision-over-recall.md) | Classifier favours precision over recall | Accepted; rules and gate built |
+
+Add new records with the next number. Do not rewrite an accepted record; supersede it with a new
+one and update its status.
+
+Related: [architecture](../architecture.md), [threat model](../threat-model.md).

@@ -159,7 +159,7 @@ test('US-80: confirmed deletion routes to the goodbye page with the backup note'
       name: 'Your account and data were deleted',
     }),
   ).toBeVisible()
-  expect(screen.getByText(/Backups expire within \d+ days/)).toBeVisible()
+  expect(screen.getByText(/backups expire/i)).toBeVisible()
   expect(
     screen.queryByRole('link', {
       name: 'Remove access in your Google Account',
