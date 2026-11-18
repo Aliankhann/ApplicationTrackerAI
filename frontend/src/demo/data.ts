@@ -1,4 +1,4 @@
-import type { ApplicationDetail, Status, StatusEvent } from '../data/schemas'
+import type { ApplicationDetail, FollowUp, Sequence, Status, StatusEvent } from '../data/schemas'
 
 // Synthetic data only: invented companies, no real email. Dates are offsets (days before "now").
 interface Seed {
@@ -246,5 +246,54 @@ export function buildDemoRecords(now: Date = new Date()): DemoRecord[] {
       snippet: seed.snippet,
     },
     events: buildEvents(seed, now),
+  }))
+}
+
+export const DEMO_SEQUENCE_ID = '00000000-0000-4000-9000-000000000001'
+
+export function buildDemoSequences(): Sequence[] {
+  return [
+    {
+      id: DEMO_SEQUENCE_ID,
+      name: 'Default follow-up',
+      tone: 'short',
+      is_default: true,
+      steps: [
+        {
+          delay_days: 7,
+          template:
+            'I applied for the {role} position at {company} on {applied_date} and wanted to follow up. I am still very interested.',
+          max_attempts: 1,
+        },
+        {
+          delay_days: 14,
+          template:
+            'I am checking in once more about the {role} role at {company}. Thank you for your time.',
+          max_attempts: 1,
+        },
+      ],
+    },
+  ]
+}
+
+const inDays = (now: Date, days: number) => new Date(now.getTime() + days * DAY_MS).toISOString()
+
+// Tied to demo applications by index: 0 Northwind Labs, 1 Brightpine Analytics.
+export function buildDemoFollowUps(now: Date, records: DemoRecord[]): FollowUp[] {
+  const plan: [number, number, number, string][] = [
+    [0, 0, 5, 'pending'],
+    [1, 0, -1, 'drafted'],
+    [1, 1, 10, 'pending'],
+  ]
+  return plan.map(([app, step, days, state], i) => ({
+    id: `00000000-0000-4000-a000-${String(i + 1).padStart(12, '0')}`,
+    application_id: records[app]!.detail.id,
+    company: records[app]!.detail.company,
+    role: records[app]!.detail.role,
+    step_index: step,
+    due_at: inDays(now, days),
+    state,
+    cancel_reason: null,
+    can_skip: state === 'pending',
   }))
 }

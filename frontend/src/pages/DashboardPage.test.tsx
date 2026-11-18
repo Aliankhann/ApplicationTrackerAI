@@ -109,7 +109,7 @@ test('AC2: remembered choice is restored, and localStorage throwing is tolerated
 })
 
 const fakeSource = (list: DataSource['listApplications']): DataSource => ({
-  kind: 'demo',
+  ...createDemoDataSource(),
   listApplications: list,
   getApplication: vi.fn(),
   listEvents: vi.fn(),

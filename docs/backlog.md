@@ -394,8 +394,7 @@ As the operator, I want proof that no user can touch another user's data.
 - **Depends on:** US-52 · **Estimate:** 1.5h (moved earlier than the plan so every later route is
   covered from day one)
 
-### [~] US-61 Sequences
-_Service and repository done (validation, one default per user, race-safe). The
+### [x] US-61 Sequences
 `/sequences` routes wait on sessions (US-13). Normalize pasted `\r\n` to `\n` in the route layer._
 
 As a user, I want a default follow-up plan I can adjust.
@@ -441,7 +440,7 @@ As a user, I want the draft to show up as a reply in the original Gmail thread.
 - **Tests:** Unit with the fake client checks headers; contract test against the real API nightly.
 - **Depends on:** US-64 · **Estimate:** 2h
 
-### [ ] US-66 Follow-up queue page
+### [x] US-66 Follow-up queue page
 As a user, I want to see and skip upcoming follow-ups.
 - **AC:** `GET /follow-ups`, `POST /follow-ups/{id}/skip`; per-application pause and custom delay;
   a page lists drafts and pending steps.

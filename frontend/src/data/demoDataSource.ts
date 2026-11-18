@@ -1,6 +1,13 @@
-import { buildDemoRecords, type DemoRecord } from '../demo/data'
+import {
+  buildDemoFollowUps,
+  buildDemoRecords,
+  buildDemoSequences,
+  type DemoRecord,
+} from '../demo/data'
+import { renderPreview } from '../demo/preview'
 import { ApiError, type DataSource } from './dataSource'
-import type { ApplicationDetail, ListParams } from './schemas'
+import type { ApplicationDetail, FollowUp, ListParams, Sequence } from './schemas'
+import { validateSteps, validateTemplate } from './sequenceValidation'
 
 const DEFAULT_LIMIT = 50
 
@@ -13,6 +20,33 @@ function sortKey(record: DemoRecord, sort: ListParams['sort']): number {
 // In-memory only: never touches the network. Each instance starts from the seeded dataset.
 export function createDemoDataSource(now: Date = new Date()): DataSource {
   const records = buildDemoRecords(now)
+  let followUps = buildDemoFollowUps(now, records)
+  let sequences = buildDemoSequences()
+
+  const findFollowUp = (id: string): FollowUp => {
+    const task = followUps.find((t) => t.id === id)
+    if (!task) throw new ApiError(404, 'Not found')
+    return task
+  }
+  const requirePending = (id: string): FollowUp => {
+    const task = findFollowUp(id)
+    if (task.state !== 'pending') throw new ApiError(409, 'Not pending')
+    return task
+  }
+  const replaceFollowUp = (next: FollowUp): FollowUp => {
+    followUps = followUps.map((t) => (t.id === next.id ? next : t))
+    return { ...next }
+  }
+  const checkSequence = (steps: Sequence['steps'] | undefined) => {
+    const errors = steps ? validateSteps(steps) : []
+    if (errors.length) throw new ApiError(422, 'Invalid sequence', errors)
+  }
+  const replaceSequence = (next: Sequence): Sequence => {
+    sequences = sequences.map((s) =>
+      s.id === next.id ? next : next.is_default ? { ...s, is_default: false } : s,
+    )
+    return { ...next }
+  }
 
   const find = (id: string): DemoRecord => {
     const record = records.find((r) => r.detail.id === id)
@@ -61,6 +95,60 @@ export function createDemoDataSource(now: Date = new Date()): DataSource {
       }
       record.detail = next
       return { ...next }
+    },
+    async listFollowUps(state = 'all') {
+      const wanted = state === 'all' ? ['pending', 'drafted'] : [state]
+      return followUps
+        .filter((t) => wanted.includes(t.state))
+        .sort((a, b) => Date.parse(a.due_at) - Date.parse(b.due_at))
+        .map((t) => ({ ...t }))
+    },
+    async skipFollowUp(id) {
+      const task = requirePending(id)
+      return replaceFollowUp({
+        ...task,
+        state: 'skipped',
+        cancel_reason: 'user_skipped',
+        can_skip: false,
+      })
+    },
+    async delayFollowUp(id, days) {
+      const task = requirePending(id)
+      const due_at = new Date(Date.parse(task.due_at) + days * 86_400_000).toISOString()
+      return replaceFollowUp({ ...task, due_at })
+    },
+    async listSequences() {
+      return sequences.map((s) => ({ ...s }))
+    },
+    async createSequence(input) {
+      checkSequence(input.steps)
+      const created: Sequence = {
+        ...input,
+        id: crypto.randomUUID(),
+        is_default: input.make_default,
+      }
+      sequences = [...sequences, created]
+      return replaceSequence(created)
+    },
+    async updateSequence(id, patch) {
+      const current = sequences.find((s) => s.id === id)
+      if (!current) throw new ApiError(404, 'Not found')
+      checkSequence(patch.steps)
+      const { make_default, ...rest } = patch
+      return replaceSequence({
+        ...current,
+        ...rest,
+        is_default: make_default || current.is_default,
+      })
+    },
+    async previewTemplate(template, tone) {
+      const message = validateTemplate(template)
+      if (message) {
+        throw new ApiError(422, 'Invalid template', [
+          { field: 'template', code: 'invalid_template', message },
+        ])
+      }
+      return { text: renderPreview(template, tone) }
     },
   }
 }

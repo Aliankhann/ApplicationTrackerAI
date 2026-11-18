@@ -257,3 +257,65 @@ def stale_drafting(session: Session, user_id: uuid.UUID, before: datetime) -> li
         .order_by(FollowUpTask.due_at, FollowUpTask.id)
     )
     return list(session.scalars(stmt).all())
+
+
+def get_owned(session: Session, user_id: uuid.UUID, task_id: uuid.UUID) -> FollowUpTask | None:
+    stmt = (
+        select(FollowUpTask)
+        .join(Application, FollowUpTask.application_id == Application.id)
+        .where(Application.user_id == user_id, FollowUpTask.id == task_id)
+    )
+    return session.scalars(stmt).one_or_none()
+
+
+def list_queue(
+    session: Session, user_id: uuid.UUID, states: tuple[str, ...]
+) -> list[tuple[FollowUpTask, Application]]:
+    stmt = (
+        select(FollowUpTask, Application)
+        .join(Application, FollowUpTask.application_id == Application.id)
+        .where(Application.user_id == user_id, FollowUpTask.state.in_(states))
+        .order_by(FollowUpTask.due_at, FollowUpTask.id)
+    )
+    return [(t, a) for t, a in session.execute(stmt).all()]
+
+
+def skip_pending(session: Session, user_id: uuid.UUID, task_id: uuid.UUID) -> bool:
+    """pending -> skipped, atomically against the scheduler's claim; False if not pending."""
+    owned = select(Application.id).where(Application.user_id == user_id)
+    stmt = (
+        sql_update(FollowUpTask)
+        .where(
+            FollowUpTask.id == task_id,
+            FollowUpTask.application_id.in_(owned),
+            FollowUpTask.state == PENDING,
+        )
+        .values(state=SKIPPED, cancel_reason="user_skipped")
+        .execution_options(synchronize_session="fetch")
+    )
+    return _rowcount(session, stmt) == 1
+
+
+def delay_pending(session: Session, user_id: uuid.UUID, task_id: uuid.UUID, days: int) -> bool:
+    """Push a pending task's due_at later; False if it is no longer pending."""
+    owned = select(Application.id).where(Application.user_id == user_id)
+    stmt = (
+        sql_update(FollowUpTask)
+        .where(
+            FollowUpTask.id == task_id,
+            FollowUpTask.application_id.in_(owned),
+            FollowUpTask.state == PENDING,
+        )
+        .values(due_at=FollowUpTask.due_at + timedelta(days=days))
+        .execution_options(synchronize_session="fetch")
+    )
+    return _rowcount(session, stmt) == 1
+
+
+def application_of(
+    session: Session, user_id: uuid.UUID, application_id: uuid.UUID
+) -> Application | None:
+    stmt = select(Application).where(
+        Application.user_id == user_id, Application.id == application_id
+    )
+    return session.scalars(stmt).one_or_none()
