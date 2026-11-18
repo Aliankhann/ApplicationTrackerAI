@@ -32,3 +32,5 @@ class ClassificationResult:
     rule_id: str | None
     needs_review: bool
     model_version: str | None = None
+    company: str | None = None  # LLM suggestion, already cleaned; rules extraction wins
+    role: str | None = None

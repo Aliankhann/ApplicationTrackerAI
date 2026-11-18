@@ -37,6 +37,8 @@ ALLOWED_FIELDS = frozenset(
         "failed",
         "skipped",
         "exc_type",
+        "model",
+        "llm_calls",
     }
 )
 MAX_STRING = 200
@@ -60,9 +62,10 @@ _NUMBER_FIELDS = frozenset(
         "threads_kept",
         "threads_dropped",
         "applications_changed",
+        "llm_calls",
     }
 )
-_CODE_FIELDS = frozenset({"error_code", "job", "mode", "method", "exc_type"})
+_CODE_FIELDS = frozenset({"error_code", "job", "mode", "method", "exc_type", "model"})
 _REJECT = object()
 
 

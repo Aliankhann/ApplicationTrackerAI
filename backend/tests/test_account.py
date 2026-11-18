@@ -22,6 +22,7 @@ from app.models import (
     EmailThread,
     FollowUpTask,
     InviteCode,
+    LlmUsage,
     OAuthToken,
     SchedulerState,
     SyncState,
@@ -234,6 +235,7 @@ def seed_every_table(env: Env, world: World, w: Wired) -> uuid.UUID:  # noqa: F8
     env.db.add(invite)
     audit_repo.record(env.db, uid, AuditAction.LOGIN, T0)
     env.db.add(DigestLog(user_id=uid, digest_date=T0.date(), status="sent", claimed_at=T0))
+    env.db.add(LlmUsage(user_id=uid, day=T0.date(), calls=1, input_tokens=1, output_tokens=1))
     env.login(world.user)
     env.db.flush()
     return invite.id

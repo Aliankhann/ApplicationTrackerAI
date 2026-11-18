@@ -1,18 +1,28 @@
 """Classifier eval harness: `uv run python -m eval.run [--split tune|holdout|all] [--data PATH]`.
 
 Output never contains subjects or snippets; `--show-errors` prints case ids only.
+
+`--provider llm` runs the rules-then-Claude router against the REAL Anthropic API. It only runs
+when explicitly invoked with ANTHROPIC_API_KEY set, costs money (at most one small call per case
+the rules leave undecided, roughly 20% of 180 cases), and is never run in CI. `--provider
+fake-llm` uses an offline fake model for tests. Both report the LLM share of calls (target <= 25%).
 """
 
 import argparse
 import json
+import os
 import sys
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
+from app.config import get_settings
 from app.providers.classifier.base import ClassifierProvider
+from app.providers.classifier.claude import ClaudeProvider, MessagesClient
+from app.providers.classifier.router import RoutedClassifier
 from app.providers.classifier.rules import RulesProvider
 from app.providers.classifier.types import ClassificationInput, Label
 
@@ -23,6 +33,7 @@ REVIEW = "needs_review"
 MIN_CASES = {"tune": 120, "holdout": 60}
 ACCURACY_TARGET = 0.90
 REJECTION_PRECISION_TARGET = 0.95
+LLM_SHARE_TARGET = 0.25
 
 
 @dataclass(frozen=True)
@@ -206,10 +217,66 @@ def run_gate(provider: ClassifierProvider, data_dir: Path = FIXTURES) -> list[st
     return failures
 
 
+class _FakeMessages:
+    """Offline stand-in for the model: a fixed, unconfident answer (never a real API call)."""
+
+    def create(self, **_: Any) -> Any:
+        text = json.dumps({"label": "irrelevant", "company": None, "role": None, "confidence": 0.9})
+        usage = SimpleNamespace(input_tokens=0, output_tokens=0)
+        block = SimpleNamespace(type="text", text=text)
+        return SimpleNamespace(content=[block], stop_reason="end_turn", usage=usage)
+
+
+class _FakeClient:
+    messages = _FakeMessages()
+
+
+def build_provider(name: str) -> ClassifierProvider:
+    """`rules`, `llm` (real API, needs ANTHROPIC_API_KEY) or `fake-llm` (offline)."""
+    settings = get_settings()
+    rules = RulesProvider()
+    if name == "rules":
+        return rules
+    client: MessagesClient
+    if name == "fake-llm":
+        client = _FakeClient()
+    else:
+        key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not key:
+            raise SystemExit("error: --provider llm needs ANTHROPIC_API_KEY (real, paid API)")
+        import anthropic
+
+        client = anthropic.Anthropic(api_key=key, timeout=settings.llm_timeout_seconds)
+    llm = ClaudeProvider(
+        client,
+        settings.llm_model,
+        settings.classifier_review_threshold,
+        rejection_threshold=settings.llm_rejection_threshold,
+        offer_interview_threshold=settings.llm_offer_interview_threshold,
+    )
+    return RoutedClassifier(rules, llm, controls=None)
+
+
+def format_llm_share(provider: ClassifierProvider) -> str | None:
+    if not isinstance(provider, RoutedClassifier):
+        return None
+    stats = provider.stats
+    return (
+        f"llm calls {stats.llm_calls}/{stats.total} = {stats.llm_share:.3f} of emails "
+        f"(target <= {LLM_SHARE_TARGET})"
+    )
+
+
 def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="eval.run", description="Evaluate the rules classifier.")
     p.add_argument("--split", choices=[*SPLITS, "all"], default="all")
     p.add_argument("--data", type=Path, default=FIXTURES, help="directory with tune/holdout jsonl")
+    p.add_argument(
+        "--provider",
+        choices=["rules", "llm", "fake-llm"],
+        default="rules",
+        help="llm calls the real, paid Anthropic API (needs ANTHROPIC_API_KEY); not run in CI",
+    )
     p.add_argument("--json", action="store_true", help="print metrics as JSON")
     p.add_argument("--show-errors", action="store_true", help="print ids of wrong cases only")
     p.add_argument("--write-baseline", action="store_true", help="store current metrics")
@@ -219,10 +286,13 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv)
     names = SPLITS if args.split == "all" else (args.split,)
+    if args.write_baseline and args.provider != "rules":
+        print("error: the baseline is only written from the rules provider", file=sys.stderr)
+        return 2
+    provider = build_provider(args.provider)
     try:
         reports = {
-            name: evaluate(RulesProvider(), load_cases(args.data / f"{name}.jsonl"))
-            for name in names
+            name: evaluate(provider, load_cases(args.data / f"{name}.jsonl")) for name in names
         }
     except CaseFormatError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -237,12 +307,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     if args.json:
         payload: dict[str, Any] = {n: asdict(r) for n, r in reports.items()}
+        share = format_llm_share(provider)
+        if share:
+            payload["llm_share"] = share
         print(json.dumps(payload, indent=2))
         return 0
     for name, report in reports.items():
         print(format_table(report, name))
         if args.show_errors:
             print("errors: " + (" ".join(report.error_ids) or "none"))
+    share = format_llm_share(provider)
+    if share:
+        print(share)
     return 0
 
 

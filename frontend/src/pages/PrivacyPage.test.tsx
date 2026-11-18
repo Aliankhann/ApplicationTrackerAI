@@ -48,7 +48,7 @@ test('US-81: marks undecided values as visible TODOs and shows the last updated 
   const text = container.textContent ?? ''
   expect(text).toMatch(/TODO: backup retention window/)
   expect(text).toMatch(/TODO: contact email/)
-  expect(text).toMatch(/TODO: AI vendor/)
+  expect(text).toMatch(/TODO: link Anthropic's data terms/)
   expect(text).toMatch(/Last updated: \d{4}-\d{2}-\d{2}/)
 })
 

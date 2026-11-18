@@ -11,7 +11,7 @@ detail is in [threat-model.md](threat-model.md); decisions are in [decisions/](d
 | Static React app | `frontend/` (React, TypeScript, Vite, TanStack Query) | Built: dashboard, detail, follow-ups, settings, privacy page, demo mode. Talks only to the API. Sign-in and invite pages are planned (US-15) |
 | API | `backend/app/api`, `main.py` (FastAPI) | Built: `/me`, `/auth/logout`, applications, follow-ups, sequences, settings, `/gmail/disconnect`, `/unsubscribe`, health. Sign-in (US-11), connect (US-31), and manual sync (US-34) are planned |
 | Services | `backend/app/services` | Built: sync, prefilter, classification, extraction, applications, sequences, templates, follow-up policy, scheduler, digest, account |
-| Providers | `backend/app/providers` | Interfaces and fakes for Gmail, the token revoker, the classifier, and the email sender. Real Gmail client and revoker: planned (US-31). LLM classifier: planned (US-45). Real email provider: planned (US-71) |
+| Providers | `backend/app/providers` | Interfaces and fakes for Gmail, the token revoker, the classifier, and the email sender. Real Gmail client and revoker: planned (US-31). LLM classifier (Claude fallback behind a router, off by default): built (US-45, US-46). Real email provider: planned (US-71) |
 | Repositories | `backend/app/repositories` | Built: all user-scoped queries |
 | Jobs | `backend/app/jobs` | Digest job with a `main()` is built. The sync and scheduler services have no scheduled entry point yet (US-05) |
 | Security helpers | `backend/app/security` | Built: token encryption, sessions, invite codes, unsubscribe tokens |
@@ -68,7 +68,7 @@ flowchart TD
     Cut --> Pre{"Prefilter keeps it?"}
     Pre -->|"no"| Drop["Discard, nothing written"]
     Pre -->|"yes"| Up["Upsert email_threads (idempotent)"]
-    Up --> Cls["Classify: rules, cached"]
+    Up --> Cls["Classify: rules, then LLM only if undecided and enabled (capped, cached)"]
     Cls --> Ext["Extract company and role"]
     Ext --> App["Create or advance application (forward-only, not if locked or needs review)"]
     App --> Commit["Commit batch, extend lease"]
@@ -128,6 +128,7 @@ Every user-owned row carries `user_id` (directly or through its parent), with ca
 | `sync_state` | `history_id`, last sync, initial sync done, status, lease |
 | `email_threads` | Subject, sender domain, snippet (at most 200), times, counts, pipeline version |
 | `classifications` | Append-only label, confidence, method, rule ID, needs-review flag |
+| `llm_usage` | Per user per day: LLM call and token counts for the daily cap and monthly budget |
 | `applications`, `status_events` | Company, role, status, lock flag, pause flag, and the status timeline |
 | `sequences`, `follow_up_tasks` | Follow-up plans and per-step tasks with state and cancel reason |
 | `scheduler_state` | Per-user scheduler lease |

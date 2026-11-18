@@ -5,6 +5,7 @@ description = "API and worker for the Application Tracker"
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.1",
+    "anthropic>=2.10.0",
     "cryptography>=50.0.2",
     "fastapi>=0.163.2",
     "httpx>=0.28.1",

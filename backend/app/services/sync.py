@@ -12,7 +12,7 @@ commits end transactions, the per-user lock is a session-level advisory lock rel
 import time
 import uuid
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from typing import Literal, TypeVar
@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.log import get_logger
 from app.models import EmailThread, SyncState, SyncStatus
-from app.providers.classifier.base import ClassifierProvider
+from app.providers.classifier.base import ClassifierProvider, UserBoundClassifier
 from app.providers.classifier.types import ClassificationInput, ClassificationResult
 from app.providers.gmail import (
     GmailAuthRevoked,
@@ -41,7 +41,7 @@ from app.repositories import applications as applications_repo
 from app.repositories import oauth_tokens as tokens_repo
 from app.repositories import threads as threads_repo
 from app.services.applications import record_classification
-from app.services.extraction import Extracted, extract
+from app.services.extraction import SOURCE_LLM, Extracted, extract
 from app.services.prefilter import EmailMeta, prefilter, sender_domain
 
 INITIAL_QUERY = "newer_than:90d"
@@ -226,9 +226,24 @@ def _process_thread(ctx: _Context, meta: ThreadMeta, counts: _Counts) -> None:
         ctx.session, ctx.user_id, meta, message.subject, domain, snippet, PIPELINE_VERSION
     )
     result = ctx.classifier.classify(ClassificationInput(domain, message.subject, snippet))
-    extracted = extract(message.from_address, message.from_name, message.subject, snippet)
+    extracted = _with_llm_fields(
+        extract(message.from_address, message.from_name, message.subject, snippet), result
+    )
     if _record(ctx, thread, result, extracted):
         counts.changed += 1
+
+
+def _with_llm_fields(extracted: Extracted, result: ClassificationResult) -> Extracted:
+    """Rules extraction wins; the (already cleaned) LLM suggestion only fills gaps."""
+    if result.method != "llm":
+        return extracted
+    return replace(
+        extracted,
+        company=extracted.company or result.company,
+        role=extracted.role or result.role,
+        company_source=extracted.company_source or (SOURCE_LLM if result.company else None),
+        role_source=extracted.role_source or (SOURCE_LLM if result.role else None),
+    )
 
 
 def _record(
@@ -412,6 +427,8 @@ def run_sync(
     """
     if now.tzinfo is None:
         raise ValueError("now must be timezone-aware")
+    if isinstance(classifier, UserBoundClassifier):
+        classifier = classifier.for_user(session, user_id)
     ctx = _Context(
         session,
         user_id,

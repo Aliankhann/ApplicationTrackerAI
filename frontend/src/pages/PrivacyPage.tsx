@@ -100,10 +100,10 @@ export default function PrivacyPage() {
           email data is sent to any AI vendor.
         </p>
         <p>
-          An AI fallback for emails the rules cannot decide is planned and not built. If it is
-          turned on, only the sender domain, subject, and snippet would be sent, and this page will
-          be updated first. Vendor data terms: <Todo>AI vendor and its data terms not yet chosen</Todo>
-          .
+          An AI fallback for emails the rules cannot decide is built and off by default. If it is
+          turned on, only the sender domain, subject, and a 200-character snippet of emails the
+          rules can't classify are sent to Anthropic's Claude API, and this page will be updated
+          first. <Todo>link Anthropic's data terms</Todo>
         </p>
       </Section>
 

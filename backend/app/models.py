@@ -93,6 +93,22 @@ class RateLimit(Base):
     count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
 
+class LlmUsage(Base):
+    """Per-user, per-day LLM call and token counts (cap enforcement and cost visibility)."""
+
+    __tablename__ = "llm_usage"
+    __table_args__ = (UniqueConstraint("user_id", "day", name="uq_llm_usage_user_id_day"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    day: Mapped[date] = mapped_column(Date, nullable=False)
+    calls: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
 def _values(enum_cls: type[StrEnum]) -> list[str]:
     return [m.value for m in enum_cls]
 
