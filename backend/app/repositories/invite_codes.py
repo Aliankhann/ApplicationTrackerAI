@@ -35,6 +35,15 @@ def find_redeemable(session: Session, code: str, now: datetime) -> InviteCode | 
     return session.scalars(stmt).one_or_none()
 
 
+def get_redeemable(session: Session, invite_id: uuid.UUID, now: datetime) -> InviteCode | None:
+    """Return the invite by id if still unused and unexpired (re-check at sign-in time)."""
+    require_aware(now)
+    stmt = select(InviteCode).where(
+        InviteCode.id == invite_id, InviteCode.used_at.is_(None), InviteCode.expires_at > now
+    )
+    return session.scalars(stmt).one_or_none()
+
+
 def mark_used(session: Session, invite_id: uuid.UUID, user_id: uuid.UUID, now: datetime) -> bool:
     """Atomically claim an invite. True only for the caller that wins the race."""
     stmt = (

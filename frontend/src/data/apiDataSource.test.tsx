@@ -22,9 +22,10 @@ test('AC8: the page shows the error state for a malformed response', async () =>
   expect(await screen.findByRole('alert')).toHaveTextContent('Could not load applications.')
 })
 
-test('AC9: /app with a 401 shows the sign-in placeholder linking to /demo', async () => {
+test('AC9: /app with a 401 shows the sign-in placeholder linking to /sign-in and /demo', async () => {
   stub({ detail: 'unauthenticated' }, 401)
   renderRoute('/app')
   expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeVisible()
+  expect(screen.getByRole('link', { name: 'Go to sign in' })).toHaveAttribute('href', '/sign-in')
   expect(screen.getByRole('link', { name: 'Try the demo' })).toHaveAttribute('href', '/demo')
 })

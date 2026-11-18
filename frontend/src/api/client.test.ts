@@ -33,3 +33,9 @@ test('reads the __Host- prefixed CSRF cookie when present', async () => {
   expect(seen[0].headers.get('X-CSRF-Token')).toBe('hosted')
   vi.restoreAllMocks()
 })
+
+test('does not send a CSRF header when no CSRF cookie exists (public sign-in routes)', async () => {
+  document.cookie = 'tracker_csrf=; Max-Age=0'
+  await api.POST('/auth/invite', { body: { code: 'X' } })
+  expect(seen[0].headers.get('X-CSRF-Token')).toBeNull()
+})

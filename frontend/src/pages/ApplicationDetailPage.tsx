@@ -13,7 +13,7 @@ import {
   type ApplicationDetail,
   type Status,
 } from '../data/schemas'
-import SignInPage from './SignInPage'
+import SignInRequired from './SignInRequired'
 
 type Update = ReturnType<typeof useUpdateApplication>
 
@@ -218,7 +218,7 @@ export default function ApplicationDetailPage() {
   const query = useApplication(id)
 
   let content
-  if (query.error instanceof ApiError && query.error.status === 401) return <SignInPage />
+  if (query.error instanceof ApiError && query.error.status === 401) return <SignInRequired />
   if (query.isPending) content = <LoadingSkeleton label="Loading application" />
   else if (query.error instanceof ApiError && query.error.status === 404) {
     content = (
