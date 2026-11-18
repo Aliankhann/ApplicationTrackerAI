@@ -265,7 +265,7 @@ As the system, I want ordered regex rules to label most emails without an LLM.
 - **Tests:** Unit per rule with positive and negative fixtures.
 - **Depends on:** US-40 · **Estimate:** 2h
 
-### [ ] US-42 Eval harness and regression gate
+### [x] US-42 Eval harness and regression gate
 As a developer, I want accuracy measured on every PR so rule changes can't silently get worse.
 - **AC:** Synthetic labeled fixtures (at least 100) in the repo; a harness reports overall
   accuracy, rejection precision, and per-label numbers; CI fails if numbers drop below the

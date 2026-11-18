@@ -14,7 +14,7 @@ Scope and roadmap: `docs/build-plan.md`. Stories and acceptance criteria: `docs/
 - `frontend/src/`: `pages`, `components`, `api` (generated `schema.d.ts`, do not edit), `demo`
 
 ## Commands
-- Backend, from `backend/`: `uv run ruff check . && uv run ruff format --check . && uv run mypy app tests && uv run pytest`
+- Backend, from `backend/`: `uv run ruff check . && uv run ruff format --check . && uv run mypy app tests eval && uv run pytest`
 - Migrations: `uv run alembic revision --autogenerate -m "..."`, then `uv run alembic upgrade head` and `downgrade base` to check both directions
 - Frontend, from `frontend/`: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - After changing any API route: `pnpm gen:api` in `frontend/` (CI fails if the client is stale)
