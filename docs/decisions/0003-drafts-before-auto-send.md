@@ -13,7 +13,7 @@ alone gives no protection.
 
 Version 1 only creates drafts in the original Gmail thread. The user reviews and sends them. The
 `GmailClient` interface has no send operation, so the application code cannot send even by mistake.
-The scheduler "never sends". Guardrails apply anyway: a weekday 9 to 11 am local window, a daily
+The scheduler "never sends". Guardrails apply anyway: weekdays only (in `window` mode also a 9 to 11 am local window; see ADR 0009 for the daily default), a daily
 draft cap, stop on any inbound reply, and a maximum number of attempts.
 
 Auto-send is deferred to v1.1 (US-110), opt in per sequence, with a smaller cap, a 24-hour notice in

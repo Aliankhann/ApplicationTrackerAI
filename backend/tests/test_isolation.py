@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import ColumnElement, Table, bindparam, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import PUBLIC_ROUTES, CurrentUser, Db
+from app.api.deps import CRON_ROUTES, PUBLIC_ROUTES, CurrentUser, Db
 from app.db import Base
 from app.models import (
     Application,
@@ -96,7 +96,7 @@ def attack_path(template: str, world: World, mapping: dict[str, dict[str, str]])
 
 
 # Tables with no per-user rows: nothing to snapshot or leak.
-GLOBAL_TABLES = frozenset({"invite_codes", "alembic_version", "rate_limits"})
+GLOBAL_TABLES = frozenset({"invite_codes", "alembic_version", "rate_limits", "job_runs"})
 
 
 def user_scope(table: Table) -> ColumnElement[bool] | None:
@@ -189,6 +189,7 @@ LIST_ROUTES = [
     if m == "GET"
     and not PARAM.search(p)
     and (m, p) not in PUBLIC_ROUTES  # token-authorized
+    and (m, p) not in CRON_ROUTES  # bearer-secret authorized, no user data; tests/test_cron.py
     and (m, p) not in REDIRECT_ONLY
 ]
 

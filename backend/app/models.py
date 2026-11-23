@@ -18,6 +18,7 @@ from sqlalchemy import (
     Integer,
     LargeBinary,
     String,
+    Text,
     UniqueConstraint,
     Uuid,
     func,
@@ -250,6 +251,10 @@ class SyncState(TimestampMixin, Base):
     last_error: Mapped[str | None] = mapped_column(String(64))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Resumable initial sync: the history id taken when it started, and the Gmail list page
+    # token of the page being processed. Both are cleared when the initial sync completes.
+    pending_history_id: Mapped[str | None] = mapped_column(String(32))
+    list_page_token: Mapped[str | None] = mapped_column(Text)
     updated_at: Mapped[datetime] = _updated_at()
 
 
@@ -416,3 +421,12 @@ class DigestLog(Base):
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     claimed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class JobRun(Base):
+    """When a once-a-day job last ran (for example the maintenance purge)."""
+
+    __tablename__ = "job_runs"
+
+    job: Mapped[str] = mapped_column(String(32), primary_key=True)
+    last_run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

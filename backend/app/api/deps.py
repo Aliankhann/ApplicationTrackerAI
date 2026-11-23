@@ -1,7 +1,6 @@
 """Auth dependencies: session lookup, current user, CSRF enforcement."""
 
 import hmac
-import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -12,14 +11,15 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.db import get_db
-from app.jobs.sync import sync_user_in_new_session
+from app.jobs.sync import production_classifier
 from app.models import User, UserSession
+from app.providers.classifier.base import ClassifierProvider
 from app.providers.email import EmailSender, sender_for
 from app.providers.google.oidc import GoogleOidc
 from app.providers.google.revoke import GoogleTokenRevoker, TokenRevoker, UnconfiguredTokenRevoker
 from app.repositories import users
 from app.security import sessions
-from app.services.gmail_access import shared_http
+from app.services.gmail_access import ClientFactory, gmail_client_for, shared_http
 
 CSRF_HEADER = "X-CSRF-Token"
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
@@ -42,9 +42,14 @@ def get_token_revoker() -> TokenRevoker:
     return UnconfiguredTokenRevoker()
 
 
-def get_sync_launcher() -> Callable[[uuid.UUID], None]:
-    """The background task that syncs one user; tests override with a fake-client runner."""
-    return sync_user_in_new_session
+def get_client_factory() -> ClientFactory:
+    """Production wiring: the real Gmail client; tests override with fakes."""
+    return gmail_client_for
+
+
+def get_classifier() -> ClassifierProvider:
+    """Production wiring: rules, plus the LLM only when enabled; tests override."""
+    return production_classifier()
 
 
 def get_email_sender() -> EmailSender:
@@ -127,7 +132,8 @@ def maybe_user(request: Request, db: Db, settings: Config, clock: Clock) -> User
 
 
 MaybeUser = Annotated[User | None, Depends(maybe_user)]
-SyncLauncher = Annotated[Callable[[uuid.UUID], None], Depends(get_sync_launcher)]
+ClientFactoryDep = Annotated[ClientFactory, Depends(get_client_factory)]
+ClassifierDep = Annotated[ClassifierProvider, Depends(get_classifier)]
 
 
 # (method, route path) pairs that skip session and CSRF checks. Add deliberately, e.g. an OAuth
@@ -143,6 +149,20 @@ PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("GET", "/auth/google/callback"),
     }
 )
+
+
+# Routes authorized by the CRON_SECRET bearer token instead of a session. They must be GET (no
+# CSRF) and hidden from the OpenAPI schema; `require_cron_secret` is their only guard.
+CRON_ROUTES: frozenset[tuple[str, str]] = frozenset({("GET", "/internal/cron/tick")})
+
+
+def require_cron_secret(request: Request, settings: Config) -> None:
+    """`Authorization: Bearer <CRON_SECRET>`, compared in constant time. Fails closed when no
+    secret is configured. Rejects before touching the database."""
+    secret = settings.cron_secret.get_secret_value()
+    given = request.headers.get("Authorization", "")
+    if not secret or not _equal(given, f"Bearer {secret}"):
+        raise HTTPException(status_code=401, detail="unauthorized")
 
 
 def require_csrf(request: Request, db: Db, settings: Config, clock: Clock) -> None:

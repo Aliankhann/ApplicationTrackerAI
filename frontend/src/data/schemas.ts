@@ -137,7 +137,7 @@ export type SchemaDriftChecks = [
   Assert<Fits<GmailStatus, Schemas['GmailStatusOut']>>,
   Assert<Fits<Schemas['GmailStatusOut'], GmailStatus>>,
   Assert<Fits<ConnectResult, Schemas['GmailConnectOut']>>,
-  Assert<Fits<SyncStart, Schemas['SyncStartOut']>>,
+  Assert<Fits<SyncStart, Schemas['SyncRunOut']>>,
   Assert<Fits<SyncStatus, Schemas['SyncStatusOut']>>,
   Assert<Fits<Schemas['SyncStatusOut'], SyncStatus>>,
 ]
@@ -179,7 +179,7 @@ export const ConnectResultSchema = z.object({
 export type ConnectResult = z.infer<typeof ConnectResultSchema>
 
 export const SyncStartSchema = z.object({
-  status: z.enum(['started', 'already_running']),
+  status: z.enum(['completed', 'in_progress', 'already_running', 'revoked', 'failed']),
 })
 export type SyncStart = z.infer<typeof SyncStartSchema>
 

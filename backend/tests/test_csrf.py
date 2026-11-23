@@ -1,7 +1,7 @@
 import pytest
 from fastapi import APIRouter, FastAPI
 
-from app.api.deps import PUBLIC_ROUTES
+from app.api.deps import CRON_ROUTES, PUBLIC_ROUTES
 from app.cli import main as cli_main
 from tests.routes import state_changing_routes
 from tests.test_sessions import Env, cookies, env  # noqa: F401
@@ -22,6 +22,18 @@ def test_public_routes_exist_and_are_only_unsubscribe_invite_and_the_two_oauth_g
     assert set(PUBLIC_ROUTES) == EXPECTED_PUBLIC
     assert ("POST", "/unsubscribe") not in state_changing_routes()
     assert ("POST", "/auth/invite") not in state_changing_routes()
+
+
+def test_cron_routes_are_explicit_get_only_and_authorized_by_their_own_secret() -> None:
+    """The cron tick skips session and CSRF on purpose (GET, bearer CRON_SECRET); its auth is
+    covered in tests/test_cron.py. Nothing else may take that shortcut."""
+    from tests.routes import all_routes
+
+    assert {("GET", "/internal/cron/tick")} == CRON_ROUTES
+    assert set(CRON_ROUTES) <= set(all_routes())
+    assert not CRON_ROUTES & PUBLIC_ROUTES
+    assert not CRON_ROUTES & set(state_changing_routes())
+    assert {p for _, p in all_routes() if p.startswith("/internal")} == {p for _, p in CRON_ROUTES}
 
 
 def test_state_changing_routes_are_enumerated() -> None:

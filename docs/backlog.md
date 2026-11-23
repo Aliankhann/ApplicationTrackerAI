@@ -82,12 +82,22 @@ prod's 100-user cap.
 - **Tests:** Manual checklist; confirmed by US-11's sign-in test.
 - **Depends on:** none · **Estimate:** 1.5h
 
-### [ ] US-05 Staging deploy
+### [~] US-05 Staging deploy
+_Done in the repo (see [ADR 0009](decisions/0009-hosting-on-vercel.md), [deploy.md](deploy.md)):
+Vercel Hobby chosen; `.github/workflows/deploy.yml` (push to `main` deploys `staging`: migrate,
+deploy API and frontend with the pinned Vercel CLI, smoke test; skips cleanly until configured);
+`backend/vercel.json` and `backend/api/index.py`; `frontend/vercel.json` with the SPA rewrite and
+CSP; the daily cron tick. Needs the operator: Neon/Supabase database, four Vercel projects,
+domains, env vars, GitHub `staging` environment secrets, then the first deploy and the "verify on
+first deploy" checklist._
+
 As the developer, I want every merge to `main` to deploy to staging.
-- **AC:** Host chosen (Render or Fly.io) and recorded as a decision; `deploy-staging.yml` builds
-  the backend image, runs migrations, and deploys; the frontend deploys to Cloudflare Pages; the
-  staging `/health` returns 200; the staging landing page shows "API status: ok".
-- **Tests:** A post-deploy smoke step in the workflow calls `/health` and fails the job on non-200.
+- **AC:** Host chosen (Vercel Hobby) and recorded as a decision; `deploy.yml` runs migrations
+  against the staging database, then deploys the API and the frontend to their Vercel projects;
+  the staging `/health` returns 200; the staging landing page shows "API status: ok".
+- **Tests:** A post-deploy smoke step in the workflow calls `/health`, fetches the landing page and
+  checks its CSP header, and fails the job on any failure. Repo tests cover the cron endpoint, the
+  time budgets, `vercel.json`, and `requirements.txt` freshness.
 - **Depends on:** US-01 · **Estimate:** 2h
 
 ### Integration check, week 1
@@ -225,7 +235,7 @@ As a newly connected user, I want my last 90 days of job email pulled in.
 - **Depends on:** US-30, US-31, US-40 (prefilter) · **Estimate:** 2h
 
 ### [x] US-33 Incremental sync
-As a user, I want new email picked up every hour without a full resync.
+As a user, I want new email picked up regularly without a full resync (once a day on Vercel Hobby, plus "Sync now"; see ADR 0009).
 - **AC:** Uses `history.list` from the stored `history_id`; a not-found response triggers a fresh
   90-day sync; `invalid_grant` marks the token revoked and stops syncing for that user.
 - **Tests:** Integration with the fake: new thread appears, expired history falls back,
@@ -422,7 +432,7 @@ As a user, I want follow-ups written with the right names and dates.
 
 ### [x] US-63 Fake clock and scheduler tests first
 As a developer, I want the scheduler's rules written as tests before the scheduler exists.
-- **AC:** Property tests with a fake clock: never drafts outside weekdays 9 to 11 am local time;
+- **AC:** Property tests with a fake clock: never drafts outside weekdays 9 to 11 am local time (`window` mode) or on a local weekend (`daily` mode, the default since ADR 0009);
   never drafts after an inbound reply; never exceeds the daily cap; correct across a
   daylight-saving change.
 - **Tests:** These tests, failing until US-64 lands.
@@ -430,7 +440,7 @@ As a developer, I want the scheduler's rules written as tests before the schedul
 
 ### [x] US-64 Scheduler
 As a user, I want due follow-ups turned into drafts automatically.
-- **AC:** Runs every 15 minutes; selects Applied or Online assessment applications whose last
+- **AC:** Runs from the daily cron tick (every 15 minutes in the original plan); selects Applied or Online assessment applications whose last
   message is from the user and whose step is due; re-fetches the thread right before acting and
   cancels if anything new arrived; checks the window and cap; stops on every stop condition in
   the plan. Messages labelled DRAFT are ignored when deciding who sent last (the fake
@@ -478,7 +488,8 @@ As a user, I want a short morning summary of what changed.
 ### [~] US-71 Digest delivery
 _`run_digest` is done (claim-once per local day, retry once, never double-send, fails closed
 without a provider). Still to do: a real email provider with SPF/DKIM/DMARC (needs the domain,
-US-102) and scheduling the job every 10-15 minutes on the host (US-05)._
+US-102) and the first deploy (US-05). Scheduling is done: the digest runs in the daily cron tick (about
+7-8 am Toronto time) once per local date; set `DIGEST_SEND_AFTER_LOCAL_HOUR` for the old "after 8:00" rule._
 
 As a user, I want the digest at 8:00 in my timezone, exactly once.
 - **AC:** Sent through the email provider; `digest_log` unique on user and date makes retries
@@ -563,7 +574,7 @@ As a recruiter on GitHub, I want to see the product without signing in.
 ### [~] US-101 End-to-end tests
 _Done: `frontend/e2e/` (demo, accessibility with axe, mocked sign-in/CSRF, mobile) runs in the CI
 `e2e` job. The staging variant (real sign-in with a test account, connect, draft appears, run after
-each staging deploy, blocks promotion) waits on US-05 and US-04._
+each staging deploy, blocks promotion) waits on the first Vercel deploy (US-05) and US-04._
 
 As the developer, I want the main flows checked after every staging deploy.
 - **AC:** Playwright covers demo, sign-in, connect, dashboard, and draft appears; runs after
@@ -571,10 +582,17 @@ As the developer, I want the main flows checked after every staging deploy.
 - **Tests:** The suite.
 - **Depends on:** US-05, US-100 · **Estimate:** 1.5h
 
-### [ ] US-102 Production environment
+### [~] US-102 Production environment
+_Done in the repo: `deploy.yml` deploys `production` on tag `v*` through the GitHub Environment
+`production` (required reviewers), migrating first and smoke testing after. Needs the operator:
+the environment, its reviewers and secrets, production Vercel projects and domains, DNS, SPF, DKIM,
+and DMARC for the email provider. Vercel has no database backups of its own: take a Neon/Supabase
+backup or branch before a release (manual until automated)._
+
 As the operator, I want prod deployed only from a tag with my approval.
-- **AC:** `deploy-prod.yml` on tag `v*`, requires GitHub environment approval, takes a backup,
-  migrates, deploys, runs a smoke test; prod domain, DNS, SPF, DKIM, and DMARC set.
+- **AC:** `deploy.yml` on tag `v*`, requires GitHub environment approval, migrates, deploys API and
+  frontend to the production Vercel projects, runs a smoke test; a backup or database branch is
+  taken first (manual); prod domain, DNS, SPF, DKIM, and DMARC set.
 - **Tests:** Manual first release; smoke step in the workflow.
 - **Depends on:** US-101 · **Estimate:** 1.5h
 

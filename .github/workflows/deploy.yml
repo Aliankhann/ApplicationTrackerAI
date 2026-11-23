@@ -1,0 +1,105 @@
+name: Deploy
+
+# Push to main deploys the `staging` GitHub Environment; a v* tag deploys `production`, which
+# waits for the required reviewers configured on that environment. Until the environment's
+# secrets and variables exist, the job skips cleanly so main stays green. See docs/deploy.md.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref_type == 'tag' && 'production' || 'staging' }}
+  cancel-in-progress: false
+
+env:
+  # Pinned. Verify on first run that this exact version exists: `npm view vercel versions`.
+  VERCEL_CLI_VERSION: "50.0.0"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_type == 'tag' && 'production' || 'staging' }}
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID_FRONTEND: ${{ secrets.VERCEL_PROJECT_ID_FRONTEND }}
+      VERCEL_PROJECT_ID_BACKEND: ${{ secrets.VERCEL_PROJECT_ID_BACKEND }}
+      API_URL: ${{ vars.API_URL }}
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - name: Check this environment is configured
+        id: cfg
+        run: |
+          missing=""
+          for name in DATABASE_URL VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID_FRONTEND \
+            VERCEL_PROJECT_ID_BACKEND API_URL APP_URL; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy skipped, not configured yet. Missing:$missing (docs/deploy.md)"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.configured == 'true'
+      - uses: astral-sh/setup-uv@v6
+        if: steps.cfg.outputs.configured == 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.cfg.outputs.configured == 'true'
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.configured == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      # Migrations first: the new code must never run against an old schema.
+      - name: Migrate the database
+        if: steps.cfg.outputs.configured == 'true'
+        working-directory: backend
+        run: |
+          uv sync --locked --no-dev
+          uv run alembic upgrade head
+
+      # `--prod` is this environment's own pair of Vercel projects (Vercel runs crons only on
+      # production deployments), not the shared production site.
+      - name: Deploy the API
+        if: steps.cfg.outputs.configured == 'true'
+        working-directory: backend
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BACKEND }}
+        run: npx --yes "vercel@${VERCEL_CLI_VERSION}" deploy --prod --yes --token "$VERCEL_TOKEN"
+
+      - name: Deploy the frontend
+        if: steps.cfg.outputs.configured == 'true'
+        working-directory: frontend
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_FRONTEND }}
+          API_ORIGIN: ${{ vars.API_URL }}
+        run: |
+          pnpm install --frozen-lockfile
+          node scripts/apply-api-origin.mjs
+          DEPLOY=1 pnpm check:deploy
+          npx --yes "vercel@${VERCEL_CLI_VERSION}" deploy --prod --yes --token "$VERCEL_TOKEN" \
+            --build-env "VITE_API_BASE_URL=${API_URL}"
+
+      - name: Smoke test
+        if: steps.cfg.outputs.configured == 'true'
+        run: |
+          curl --fail --silent --show-error --retry 6 --retry-delay 10 --retry-all-errors \
+            "${API_URL%/}/health" | grep -q '"ok"'
+          page="$(curl --fail --silent --show-error --retry 6 --retry-delay 10 \
+            --retry-all-errors "${APP_URL%/}/")"
+          echo "$page" | grep -q 'id="root"'
+          headers="$(curl --silent --head "${APP_URL%/}/")"
+          echo "$headers" | grep -qi '^content-security-policy:'
+          if echo "$headers" | grep -q '__API_ORIGIN__'; then exit 1; fi

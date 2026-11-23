@@ -4,11 +4,12 @@ from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlparse
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEV_SESSION_SECRET = "dev-only-session-secret-not-for-deployment"  # noqa: S105
 MIN_SESSION_SECRET_BYTES = 32
+MIN_CRON_SECRET_BYTES = 32
 
 
 class ConfigError(Exception):
@@ -40,8 +41,20 @@ class Settings(BaseSettings):
     followup_stale_days: int = Field(default=3, ge=0)
     ghosted_after_days: int = Field(default=21, ge=1)
     scheduler_lease_minutes: int = Field(default=15, ge=1)
+    # "daily": drafts on any local weekday at run time (one job run a day). "window": only
+    # weekdays 09:00-11:00 local (needs several runs a day).
+    followup_window_mode: Literal["window", "daily"] = "daily"
+    cron_secret: SecretStr = SecretStr("")
+    cron_time_budget_seconds: float = Field(default=240.0, gt=30)
+    # A user synced (e.g. by "Sync now") within this many hours is skipped by the daily job.
+    sync_min_gap_hours: float = Field(default=12.0, ge=0)
+    manual_sync_budget_seconds: float = Field(default=25.0, gt=0)
+    # "serverless": no pooling in the app, no prepared statements (transaction-mode pooler).
+    db_pool_mode: Literal["pooled", "serverless"] = "pooled"
     default_timezone: str = "America/Toronto"
-    digest_hour: int = Field(default=8, ge=0, le=23)
+    # None: the digest goes out whenever the daily job runs. A number restores "only after that
+    # local hour" for deployments that run the job more than once a day.
+    digest_send_after_local_hour: int | None = Field(default=None, ge=0, le=23)
     digest_unsubscribe_days: int = Field(default=60, ge=1)
     session_cookie_name: str = "tracker_session"
     csrf_cookie_name: str = "tracker_csrf"
@@ -63,6 +76,15 @@ class Settings(BaseSettings):
     oauth_cookie_name: str = "tracker_oauth"
     invite_cookie_name: str = "tracker_invite"
     connect_cookie_name: str = "tracker_connect"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg_driver(cls, url: str) -> str:
+        """Hosted Postgres gives `postgres://` or `postgresql://`; SQLAlchemy needs the driver."""
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url[len(prefix) :]
+        return url
 
     @property
     def llm_active(self) -> bool:
@@ -125,6 +147,16 @@ class Settings(BaseSettings):
             raise ConfigError(
                 f"SESSION_SECRET must be set and at least {MIN_SESSION_SECRET_BYTES} bytes"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _check_cron_secret(self) -> "Settings":
+        """The cron endpoint is public: outside local it needs a real secret."""
+        if (
+            self.environment != "local"
+            and len(self.cron_secret.get_secret_value().encode()) < MIN_CRON_SECRET_BYTES
+        ):
+            raise ConfigError(f"CRON_SECRET must be set and at least {MIN_CRON_SECRET_BYTES} bytes")
         return self
 
     @model_validator(mode="after")

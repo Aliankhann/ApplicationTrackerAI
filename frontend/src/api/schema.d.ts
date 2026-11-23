@@ -375,10 +375,11 @@ export interface paths {
         get: operations["sync_status_sync_get"];
         put?: never;
         /**
-         * Start Sync
-         * @description Start a sync in the background; the lease in sync_state keeps it to one at a time.
+         * Run Sync Now
+         * @description Sync inline within a short time budget (no background tasks on serverless). The lease in
+         *     sync_state keeps it to one sync per user at a time.
          */
-        post: operations["start_sync_sync_post"];
+        post: operations["run_sync_now_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -673,13 +674,17 @@ export interface components {
              */
             max_attempts: number;
         };
-        /** SyncStartOut */
-        SyncStartOut: {
+        /**
+         * SyncRunOut
+         * @description `in_progress`: stopped at the short inline budget; the daily job and the next "Sync now"
+         *     continue where this left off.
+         */
+        SyncRunOut: {
             /**
              * Status
              * @enum {string}
              */
-            status: "started" | "already_running";
+            status: "completed" | "in_progress" | "already_running" | "revoked" | "failed";
         };
         /** SyncStatusOut */
         SyncStatusOut: {
@@ -1415,7 +1420,7 @@ export interface operations {
             };
         };
     };
-    start_sync_sync_post: {
+    run_sync_now_sync_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1425,12 +1430,12 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            202: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SyncStartOut"];
+                    "application/json": components["schemas"]["SyncRunOut"];
                 };
             };
         };

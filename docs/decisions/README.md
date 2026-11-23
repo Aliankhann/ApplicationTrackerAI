@@ -13,6 +13,7 @@ today, because some decisions are made but not implemented yet.
 | [0006](0006-invite-only-access.md) | Invite-only access | Accepted; code generation built, gate not built |
 | [0007](0007-drafts-guardrails-lease-and-claim.md) | Draft guardrails: lease plus claim | Accepted, implemented |
 | [0008](0008-classifier-precision-over-recall.md) | Classifier favours precision over recall | Accepted; rules and gate built |
+| [0009](0009-hosting-on-vercel.md) | Hosting everything on Vercel Hobby, one daily cron | Accepted; code and workflow built, first deploy needs the operator |
 
 Add new records with the next number. Do not rewrite an accepted record; supersede it with a new
 one and update its status.

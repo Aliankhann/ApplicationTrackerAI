@@ -3,11 +3,13 @@
 import re
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from app.providers.gmail.types import MessageMeta, ThreadMeta
 from app.services.classification import ApplicationStatus
 
+WindowMode = Literal["window", "daily"]
 DAILY_DRAFT_CAP = 5
 WINDOW_START = time(9, 0)
 WINDOW_END = time(11, 0)
@@ -46,9 +48,13 @@ def local_to_utc(day: date, at: time, tz: ZoneInfo) -> datetime:
     return datetime.combine(day, at, tzinfo=tz).astimezone(UTC)
 
 
-def in_send_window(now_utc: datetime, tz: ZoneInfo) -> bool:
+def in_send_window(now_utc: datetime, tz: ZoneInfo, mode: WindowMode = "window") -> bool:
+    """ "window": weekdays 09:00-11:00 local. "daily": any local weekday (the job runs once a day,
+    so no time-of-day window can be met)."""
     local = now_utc.astimezone(tz)
-    return local.weekday() < 5 and WINDOW_START <= local.time() < WINDOW_END
+    if local.weekday() >= 5:
+        return False
+    return mode == "daily" or WINDOW_START <= local.time() < WINDOW_END
 
 
 def next_window_start(now_utc: datetime, tz: ZoneInfo) -> datetime:
@@ -66,10 +72,13 @@ def next_window_start(now_utc: datetime, tz: ZoneInfo) -> datetime:
     raise AssertionError("unreachable: a weekday always occurs within 8 days")
 
 
-def due_at_for(applied_at_utc: datetime, delay_days: int, tz: ZoneInfo) -> datetime:
-    """09:00 local on the local calendar date `delay_days` after the applied date (UTC)."""
+def due_at_for(
+    applied_at_utc: datetime, delay_days: int, tz: ZoneInfo, mode: WindowMode = "window"
+) -> datetime:
+    """09:00 local (start of the local day in "daily" mode, so that day's run picks it up) on the
+    local calendar date `delay_days` after the applied date (UTC)."""
     day = applied_at_utc.astimezone(tz).date() + timedelta(days=delay_days)
-    return local_to_utc(day, WINDOW_START, tz)
+    return local_to_utc(day, WINDOW_START if mode == "window" else time(0), tz)
 
 
 def local_day_bounds(now_utc: datetime, tz: ZoneInfo) -> tuple[datetime, datetime]:
@@ -78,8 +87,10 @@ def local_day_bounds(now_utc: datetime, tz: ZoneInfo) -> tuple[datetime, datetim
     return local_to_utc(day, time(0), tz), local_to_utc(day + timedelta(days=1), time(0), tz)
 
 
-def decide(now_utc: datetime, tz: ZoneInfo, drafted_today: int, cap: int) -> Decision:
-    if not in_send_window(now_utc, tz):
+def decide(
+    now_utc: datetime, tz: ZoneInfo, drafted_today: int, cap: int, mode: WindowMode = "window"
+) -> Decision:
+    if not in_send_window(now_utc, tz, mode):
         return Decision.SKIP_WINDOW
     if drafted_today >= cap:
         return Decision.SKIP_CAP

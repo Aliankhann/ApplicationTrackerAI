@@ -75,9 +75,18 @@ function SyncCard({ connectedParam }: { connectedParam: boolean }) {
       )}
       {failed && (
         <p role="alert" className="mt-1 text-sm text-red-800 dark:text-red-300">
-          Could not start a sync. You can try a few times an hour; please wait and try again.
+          Could not run a sync. You can try a few times an hour; please wait and try again.
         </p>
       )}
+      {start.data?.status === 'in_progress' && (
+        <p role="status" className="mt-1 text-sm">
+          Part of your email is synced. The rest continues at the next daily update, or press Sync
+          now again.
+        </p>
+      )}
+      <p className="mt-1 text-sm">
+        Gmail updates once a day. Press Sync now for fresher data.
+      </p>
       <button
         type="button"
         className="btn mt-3"

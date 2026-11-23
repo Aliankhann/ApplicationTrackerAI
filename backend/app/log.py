@@ -39,6 +39,16 @@ ALLOWED_FIELDS = frozenset(
         "exc_type",
         "model",
         "llm_calls",
+        "sync_completed",
+        "sync_partial",
+        "sync_failed",
+        "followups_users",
+        "followups_drafted",
+        "followups_failed",
+        "digest_sent",
+        "digest_failed",
+        "maintenance_ran",
+        "budget_exhausted",
     }
 )
 MAX_STRING = 200
@@ -63,6 +73,16 @@ _NUMBER_FIELDS = frozenset(
         "threads_dropped",
         "applications_changed",
         "llm_calls",
+        "sync_completed",
+        "sync_partial",
+        "sync_failed",
+        "followups_users",
+        "followups_drafted",
+        "followups_failed",
+        "digest_sent",
+        "digest_failed",
+        "maintenance_ran",
+        "budget_exhausted",
     }
 )
 _CODE_FIELDS = frozenset({"error_code", "job", "mode", "method", "exc_type", "model"})

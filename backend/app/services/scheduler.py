@@ -92,7 +92,7 @@ def plan_followups(session: Session, user_id: uuid.UUID, now: datetime) -> int:
     for application, thread in repo.plannable(session, user_id):
         base = application.applied_at or thread.first_message_at
         for index, step in enumerate(steps):
-            due = policy.due_at_for(base, step.delay_days, tz)
+            due = policy.due_at_for(base, step.delay_days, tz, get_settings().followup_window_mode)
             stale = due < now - stale_after
             created += repo.insert_if_absent(
                 session,
@@ -289,7 +289,16 @@ def _draft_due(run: _Run, due: list[FollowUpTask]) -> None:
         if repo.has_earlier_open(run.session, run.user_id, task.application_id, task.step_index):
             run.result.waiting_earlier_step += 1  # keep step order: wait for the earlier step
             continue
-        if policy.decide(run.now, run.tz, already + run.result.drafted, cap) is Decision.SKIP_CAP:
+        if (
+            policy.decide(
+                run.now,
+                run.tz,
+                already + run.result.drafted,
+                cap,
+                get_settings().followup_window_mode,
+            )
+            is Decision.SKIP_CAP
+        ):
             run.result.skipped_cap = sum(1 for t in due if t.state == repo.PENDING)
             return
         repo.renew_lease(run.session, run.user_id, run.clock() + _lease_ttl())
@@ -428,7 +437,7 @@ def run_due(
         _resolve_stale_claims(run)
         _reconcile(run)
         due = repo.due_pending(session, user_id, now)
-        if not policy.in_send_window(now, run.tz):
+        if not policy.in_send_window(now, run.tz, get_settings().followup_window_mode):
             run.result.skipped_window = len(due)
         else:
             _draft_due(run, due)

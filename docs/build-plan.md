@@ -140,7 +140,7 @@ Honest note: `gmail.compose` can also send mail. "Drafts only" is enforced by yo
 
 1. Initial sync: list threads matching `newer_than:90d`, fetch metadata plus snippet, classify, keep only job-related threads, drop the rest immediately.
 2. Store `history_id` from the profile after the initial sync.
-3. Incremental sync every hour: `users.history.list` from the stored `history_id`; on a not-found error, fall back to a fresh 90-day sync.
+3. Incremental sync (every hour in the original plan; once a day plus "Sync now" on Vercel Hobby, ADR 0009): `users.history.list` from the stored `history_id`; on a not-found error, fall back to a fresh 90-day sync.
 4. Mark a thread as awaiting reply when its last message is from the user and it is older than the follow-up delay.
 5. Use batch requests and exponential backoff; check current Gmail quota limits before launch, since they change.
 
@@ -184,7 +184,7 @@ A sequence is an ordered list of steps; the scheduler turns due steps into Gmail
 - Template variables: `{recruiter_first_name}`, `{role}`, `{company}`, `{applied_date}`, `{your_name}`. Tone presets: short and direct, warm, formal.
 - Per-application controls: pause, skip a step, custom delay.
 
-**Scheduler (runs every 15 minutes)**
+**Scheduler (every 15 minutes in the original plan; once a day on Vercel Hobby, ADR 0009)**
 
 1. Select applications in Applied or Online assessment where the last message is from the user and now is past the step's due time.
 2. Re-fetch the thread from Gmail right before acting; if anything new arrived, cancel the task.

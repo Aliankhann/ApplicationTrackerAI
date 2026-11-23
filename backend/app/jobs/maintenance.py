@@ -1,6 +1,6 @@
 """Scheduled housekeeping: purge expired rate-limit windows, sessions, and old audit rows.
 
-Run with `python -m app.jobs.maintenance`; scheduling itself is US-05.
+Run with `python -m app.jobs.maintenance`, or as the once-a-UTC-day part of the cron tick.
 """
 
 import sys
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
 from app.log import get_logger
+from app.repositories import job_runs
 from app.repositories.audit import purge_audit
 from app.security import ratelimit, sessions
 
@@ -24,6 +25,16 @@ def run(session: Session, now: datetime) -> dict[str, int]:
     }
     session.commit()
     return counts
+
+
+def run_daily(session: Session, now: datetime) -> bool:
+    """Purge unless it already ran on this UTC day; True when it ran. The claim and the purge
+    commit together, so a failed purge is retried by the next tick."""
+    if not job_runs.claim_daily(session, "maintenance", now):
+        session.rollback()
+        return False
+    run(session, now)
+    return True
 
 
 def main() -> int:

@@ -4,9 +4,14 @@ Only job threads are written; everything else is dropped before any write. Nothi
 or stores exception messages, subjects, or snippets.
 
 Transactions: work is committed per batch through the `commit` callable (default
-`session.commit`), so a crash keeps completed batches and reprocessing is idempotent. Because
-commits end transactions, the per-user lock is a session-level advisory lock released in
-`finally` rather than a transaction-level one (which the first commit would drop).
+`session.commit`), so a crash keeps completed batches and reprocessing is idempotent. The per-user
+lock is a lease row in sync_state (no session-level database state, so it works behind a
+transaction-mode pooler).
+
+Time budget: given a `deadline`, a run stops between batches once it has passed (after at least one
+batch, so every run makes progress), commits, releases the lease, and returns SyncPartial. The
+initial sync stores its history id and Gmail list page token, so the next run continues from that
+page instead of relisting; history_id is only stored when the initial sync completes.
 """
 
 import time
@@ -73,6 +78,14 @@ class SyncResult:
 
 
 @dataclass(frozen=True)
+class SyncPartial:
+    """Stopped at the deadline; progress is committed and the next run continues."""
+
+    threads_seen: int
+    mode: Mode
+
+
+@dataclass(frozen=True)
 class SyncAlreadyRunning:
     """Returned when another sync holds the user's lock; no work was done."""
 
@@ -121,6 +134,7 @@ class _Context:
         sleep: Callable[[float], None],
         clock: Callable[[], datetime],
         force: bool,
+        deadline: datetime | None,
     ) -> None:
         self.session = session
         self.user_id = user_id
@@ -131,7 +145,14 @@ class _Context:
         self.sleep = sleep
         self.clock = clock
         self.force = force
+        self.deadline = deadline
+        self.counts = _Counts()
+        self.batches_done = 0
         self.state: SyncState
+
+    def out_of_time(self) -> bool:
+        """Past the deadline, but never before this run has completed one batch."""
+        return self.deadline is not None and self.batches_done > 0 and self.clock() >= self.deadline
 
     def call(self, fn: Callable[[], T]) -> T:
         """Run a Gmail call, retrying rate limits with exponential backoff."""
@@ -271,23 +292,16 @@ def _fetch(ctx: _Context, ids: list[str]) -> list[ThreadMeta]:
         return found
 
 
-def _process_ids(ctx: _Context, ids: list[str]) -> _Counts:
-    counts = _Counts()
+def _process_ids(ctx: _Context, ids: list[str]) -> bool:
+    """Process in committed batches; False when the deadline stopped it before the end."""
     for batch in _batches(ids):
+        if ctx.out_of_time():
+            return False
         for meta in _fetch(ctx, batch):
-            _process_thread(ctx, meta, counts)
+            _process_thread(ctx, meta, ctx.counts)
         _checkpoint(ctx)
-    return counts
-
-
-def _list_all_thread_ids(ctx: _Context) -> list[str]:
-    ids: dict[str, None] = {}
-    token: str | None = None
-    while True:
-        page, token = ctx.call(partial(ctx.client.list_threads, INITIAL_QUERY, token))
-        ids.update(dict.fromkeys(s.thread_id for s in page))
-        if token is None:
-            return list(ids)
+        ctx.batches_done += 1
+    return True
 
 
 def _list_changed_thread_ids(ctx: _Context, start: str) -> tuple[list[str], str]:
@@ -312,11 +326,20 @@ def _release(state: SyncState, status: SyncStatus, error: str | None) -> None:
     state.lease_expires_at = None
 
 
-def _finish(
-    ctx: _Context, state: SyncState, history_id: str, counts: _Counts, mode: Mode
-) -> SyncResult:
+def _pause(ctx: _Context, state: SyncState, mode: Mode) -> SyncPartial:
+    """Out of time: keep the committed progress (and resume point), free the lease."""
+    _release(state, SyncStatus.IDLE, None)
+    ctx.session.flush()
+    ctx.commit()
+    return SyncPartial(ctx.counts.seen, mode)
+
+
+def _finish(ctx: _Context, state: SyncState, history_id: str, mode: Mode) -> SyncResult:
+    counts = ctx.counts
     state.history_id = _newest(state.history_id, history_id)
     state.initial_sync_done = True
+    state.pending_history_id = None
+    state.list_page_token = None
     state.last_synced_at = ctx.now
     _release(state, SyncStatus.IDLE, None)
     ctx.session.flush()
@@ -326,20 +349,30 @@ def _finish(
     )
 
 
-def _initial(ctx: _Context, state: SyncState, mode: Mode) -> SyncResult:
-    # Taken before listing so changes made during the sync are picked up next time.
-    history_id = ctx.call(ctx.client.get_profile).history_id
-    counts = _process_ids(ctx, _list_all_thread_ids(ctx))
-    return _finish(ctx, state, history_id, counts, mode)
+def _initial(ctx: _Context, state: SyncState, mode: Mode) -> SyncResult | SyncPartial:
+    if state.pending_history_id is None:
+        # Taken before listing so changes made during the sync are picked up next time.
+        state.pending_history_id = ctx.call(ctx.client.get_profile).history_id
+        state.list_page_token = None  # committed with the first batch (or by _pause)
+    while True:
+        token = state.list_page_token
+        page, next_token = ctx.call(partial(ctx.client.list_threads, INITIAL_QUERY, token))
+        ids = list(dict.fromkeys(s.thread_id for s in page))
+        if not _process_ids(ctx, ids):  # the page token stays, so this page is redone next run
+            return _pause(ctx, state, mode)
+        if next_token is None:
+            return _finish(ctx, state, state.pending_history_id, mode)
+        state.list_page_token = next_token
 
 
-def _incremental(ctx: _Context, state: SyncState, start: str) -> SyncResult:
+def _incremental(ctx: _Context, state: SyncState, start: str) -> SyncResult | SyncPartial:
     ids, history_id = _list_changed_thread_ids(ctx, start)
-    counts = _process_ids(ctx, ids)
-    return _finish(ctx, state, history_id, counts, "incremental")
+    if not _process_ids(ctx, ids):  # history_id stays; unchanged threads are skipped next run
+        return _pause(ctx, state, "incremental")
+    return _finish(ctx, state, history_id, "incremental")
 
 
-def _dispatch(ctx: _Context, state: SyncState) -> SyncResult:
+def _dispatch(ctx: _Context, state: SyncState) -> SyncResult | SyncPartial:
     if not state.initial_sync_done or state.history_id is None:
         return _initial(ctx, state, "initial")
     try:
@@ -359,7 +392,17 @@ def _log_failed(ctx: _Context, code: str) -> None:
     logger.warning("sync.failed", extra={"user_id": ctx.user_id, "error_code": code})
 
 
-def _log_completed(ctx: _Context, result: SyncResult) -> None:
+def _log_completed(ctx: _Context, result: SyncResult | SyncPartial) -> None:
+    if isinstance(result, SyncPartial):
+        logger.info(
+            "sync.partial",
+            extra={
+                "user_id": ctx.user_id,
+                "mode": result.mode,
+                "threads_seen": result.threads_seen,
+            },
+        )
+        return
     logger.info(
         "sync.completed",
         extra={
@@ -373,7 +416,7 @@ def _log_completed(ctx: _Context, result: SyncResult) -> None:
     )
 
 
-def _run_claimed(ctx: _Context) -> SyncResult | SyncUserGone:
+def _run_claimed(ctx: _Context) -> SyncResult | SyncPartial | SyncUserGone:
     try:
         result = _dispatch(ctx, ctx.state)
         _log_completed(ctx, result)
@@ -418,12 +461,14 @@ def run_sync(
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], datetime] | None = None,
     force: bool = False,
-) -> SyncResult | SyncAlreadyRunning | SyncUserGone:
+    deadline: datetime | None = None,
+) -> SyncResult | SyncPartial | SyncAlreadyRunning | SyncUserGone:
     """Sync one user. Raises SyncRevoked or SyncFailed after recording the state.
 
     One sync per user: a lease row in sync_state is claimed atomically at `now` and extended
     after each committed batch using `clock` (default: the real UTC clock, so long syncs keep
     their lease; tests pass a fake clock). `force` reprocesses threads even when unchanged.
+    `deadline` (compared with `clock`) stops the run between batches with SyncPartial.
     """
     if now.tzinfo is None:
         raise ValueError("now must be timezone-aware")
@@ -439,6 +484,7 @@ def run_sync(
         sleep,
         clock or _utcnow,
         force,
+        deadline,
     )
     try:
         state = _claim(ctx)

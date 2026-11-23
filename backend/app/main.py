@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
-from app.api import applications, auth, followups, gmail, health, sequences, unsubscribe
+from app.api import applications, auth, cron, followups, gmail, health, sequences, unsubscribe
 from app.api import settings as settings_api
 from app.api import sync as sync_api
 from app.api.deps import SignInRedirect, require_csrf
@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestLogMiddleware)
     app.add_middleware(SecurityHeadersMiddleware, environment=settings.environment)
     app.include_router(health.router)
+    app.include_router(cron.router)
     app.include_router(auth.router)
     app.include_router(applications.router)
     app.include_router(followups.router)

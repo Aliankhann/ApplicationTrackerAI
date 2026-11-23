@@ -1,12 +1,12 @@
 """Sync state queries used when disconnecting Gmail."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 
-from app.models import SyncState, SyncStatus
+from app.models import OAuthToken, SyncState, SyncStatus, TokenStatus, User
 
 
 def lease_held(session: Session, user_id: uuid.UUID, now: datetime) -> bool:
@@ -29,6 +29,8 @@ def reset(session: Session, user_id: uuid.UUID) -> None:
         .where(SyncState.user_id == user_id)
         .values(
             history_id=None,
+            pending_history_id=None,
+            list_page_token=None,
             last_synced_at=None,
             initial_sync_done=False,
             status=SyncStatus.IDLE.value,
@@ -62,3 +64,20 @@ def clear_revoked(session: Session, user_id: uuid.UUID) -> None:
         .values(status=SyncStatus.IDLE.value, last_error=None)
     )
     session.execute(stmt)
+
+
+def due_for_sync(session: Session, now: datetime, min_gap: timedelta) -> list[uuid.UUID]:
+    """Enabled users with a live token that were not synced within `min_gap`, never-synced and
+    oldest first (so users a budget-limited run did not reach go first next time)."""
+    stmt = (
+        select(OAuthToken.user_id)
+        .join(User, User.id == OAuthToken.user_id)
+        .outerjoin(SyncState, SyncState.user_id == OAuthToken.user_id)
+        .where(
+            OAuthToken.status == TokenStatus.ACTIVE,
+            User.disabled_at.is_(None),
+            or_(SyncState.last_synced_at.is_(None), SyncState.last_synced_at < now - min_gap),
+        )
+        .order_by(SyncState.last_synced_at.asc().nulls_first(), OAuthToken.user_id)
+    )
+    return list(session.scalars(stmt))

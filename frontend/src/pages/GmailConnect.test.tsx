@@ -90,7 +90,7 @@ test('US-31: the demo shows Connect Gmail disabled with the demo note and never 
 
 test('US-34: connected shows Sync now with the last synced time, and starts a sync once', async () => {
   const user = userEvent.setup()
-  const startSync = vi.fn(async () => ({ status: 'started' as const }))
+  const startSync = vi.fn(async () => ({ status: 'completed' as const }))
   renderDashboard({
     getGmailStatus: async () => CONNECTED,
     getSyncStatus: async () => ({
@@ -117,7 +117,7 @@ test('US-34: while running it polls every 3 seconds, disables the button, then s
   renderDashboard({
     getGmailStatus: async () => CONNECTED,
     getSyncStatus,
-    startSync: async () => ({ status: 'started' }),
+    startSync: async () => ({ status: 'completed' }),
   })
   await screen.findByRole('button', { name: 'Sync now' })
   await user.click(screen.getByRole('button', { name: 'Sync now' }))
@@ -151,11 +151,11 @@ test('US-34: a rate-limited start is reported', async () => {
     },
   })
   await user.click(await screen.findByRole('button', { name: 'Sync now' }))
-  expect(await screen.findByRole('alert')).toHaveTextContent('Could not start a sync')
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not run a sync')
 })
 
 test('US-31: returning with ?connected=1 shows a success note and starts the first sync once', async () => {
-  const startSync = vi.fn(async () => ({ status: 'started' as const }))
+  const startSync = vi.fn(async () => ({ status: 'completed' as const }))
   renderDashboard(
     { getGmailStatus: async () => CONNECTED, getSyncStatus: async () => IDLE, startSync },
     '/demo?connected=1',

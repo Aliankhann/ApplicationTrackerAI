@@ -207,15 +207,16 @@ def test_docs_endpoints_disabled_outside_local_and_relaxed_csp_only_in_local(
     )
 
 
-def test_frontend_headers_file_has_strict_csp() -> None:
-    text = (Path(__file__).parents[2] / "frontend/public/_headers").read_text()
+def test_frontend_vercel_json_has_strict_csp() -> None:
+    text = (Path(__file__).parents[2] / "frontend/vercel.json").read_text()
     for part in (
         "default-src 'self'",
         "script-src 'self'",
         "connect-src 'self' __API_ORIGIN__",
         "frame-ancestors 'none'",
         "object-src 'none'",
-        "X-Content-Type-Options: nosniff",
+        "nosniff",
+        "Strict-Transport-Security",
     ):
         assert part in text
 
@@ -301,7 +302,7 @@ def test_head_health_is_allowed(client: TestClient) -> None:
 
 
 def check_deploy(tmp_path: Path, content: str, deploy: str | None) -> int:
-    headers = tmp_path / "_headers"
+    headers = tmp_path / "vercel.json"
     headers.write_text(content)
     env = {k: v for k, v in os.environ.items() if k != "DEPLOY"}
     if deploy:

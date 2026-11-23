@@ -8,8 +8,11 @@ Connect Gmail and see every internship application with its status, get follow-u
 right thread, and a short daily digest, without the app ever storing your email bodies.
 
 > **Status:** feature-complete for v1 in code and tested end to end against fakes of Google and
-> Gmail. Not deployed yet: the live demo link, Google project, and hosting are the remaining launch
-> steps (see [Roadmap](#roadmap)). Built for a small invited group, up to 100 users.
+> Gmail. Not deployed yet: the live demo link and Google project are the remaining launch steps. Hosting
+> is set up for Vercel (Hobby plan, see [docs/deploy.md](docs/deploy.md)) (see [Roadmap](#roadmap)). Built for a small invited group, up to 100 users.
+
+**Hosting:** everything on Vercel Hobby (static frontend plus the API as one Python function, one
+daily cron). See [ADR 0009](docs/decisions/0009-hosting-on-vercel.md).
 
 **Demo:** run it locally (`pnpm dev`, then open `/demo`). A hosted demo link will go here once
 staging is deployed. The demo uses synthetic data and makes no network calls.
@@ -26,8 +29,9 @@ staging is deployed. The demo uses synthetic data and makes no network calls.
 
 ## Features
 
-- **Automatic tracking.** A 90-day initial sync, then hourly incremental sync from Gmail history.
-  Non-job email is discarded before anything is stored.
+- **Automatic tracking.** A 90-day initial sync, then an incremental sync from Gmail history
+  once a day, plus a "Sync now" button for fresher data. Non-job email is discarded before
+  anything is stored.
 - **Status board.** Applied, online assessment, interview, offer, rejected, and a derived
   "ghosted" column; a sortable table view; a timeline per application; manual status fixes that
   the classifier never overrides.
@@ -35,9 +39,10 @@ staging is deployed. The demo uses synthetic data and makes no network calls.
   costliest error) with anything unsure marked "needs review", measured on a held-out eval set in
   CI.
 - **Follow-up drafts.** Configurable sequences (default day 7 and day 14) create reply drafts in
-  the original Gmail thread on weekday mornings in your timezone. They stop on any reply. Drafts
+  the original Gmail thread, created at the daily run on weekdays in your timezone. They stop on
+  any reply. Drafts
   only: nothing is ever sent.
-- **Daily digest.** One short email at 8:00 local time with company names and statuses only, and
+- **Daily digest.** One short email a day (around 7 to 8 am Toronto time, at the daily run) with company names and statuses only, and
   one-click unsubscribe.
 - **Your data, your call.** Disconnect Gmail or delete everything in one step. A public
   [privacy page](frontend/src/pages/PrivacyPage.tsx) states exactly what is read and stored.
@@ -144,8 +149,8 @@ fails if it is stale.
 
 Work is tracked story by story in the [backlog](docs/backlog.md).
 
-- **Launch steps (need the operator):** Google Cloud projects and consent screens, a host and
-  staging deploy with scheduled jobs, branch protection, an email provider and domain (SPF, DKIM,
+- **Launch steps (need the operator):** Google Cloud projects and consent screens, Vercel projects and
+  the first staging deploy ([deploy.md](docs/deploy.md)), branch protection, an email provider and domain (SPF, DKIM,
   DMARC), then production behind a manual approval.
 - **v1 optional:** an LLM fallback for emails the rules can't decide, after a review of Google's
   Limited Use policy.

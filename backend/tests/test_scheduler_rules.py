@@ -198,3 +198,54 @@ def test_stop_codes_and_precedence() -> None:
     manual = _thread(sent, _msg(1, user=True, at=BASE + timedelta(minutes=1)))
     assert _stop(manual) is StopReason.USER_ALREADY_SENT
     assert _stop(_thread(sent, _msg(1, user=True, at=BASE))) is None  # not newer than `since`
+
+
+# Daily mode: the job runs once a day, so any local weekday works at run time.
+@given(now=instants, tz=zones, drafted=st.integers(0, 10))
+def test_daily_mode_drafts_on_local_weekdays_only_and_never_over_the_cap(
+    now: datetime, tz: ZoneInfo, drafted: int
+) -> None:
+    decision = decide(now, tz, drafted, DAILY_DRAFT_CAP, "daily")
+    weekday = now.astimezone(tz).weekday() < 5
+    assert (decision is Decision.DRAFT) == (weekday and drafted < DAILY_DRAFT_CAP)
+    assert in_send_window(now, tz, "daily") == weekday
+
+
+@given(now=instants, tz=zones)
+def test_daily_mode_is_a_superset_of_the_window_and_window_mode_is_unchanged(
+    now: datetime, tz: ZoneInfo
+) -> None:
+    if in_send_window(now, tz, "window"):
+        assert in_send_window(now, tz, "daily")
+    assert in_send_window(now, tz) == in_send_window(now, tz, "window")
+
+
+@given(tz=zones, cap=st.integers(1, 6), times=st.lists(instants, max_size=60))
+@settings(max_examples=60)
+def test_daily_mode_never_exceeds_the_daily_cap_and_never_drafts_on_weekends(
+    tz: ZoneInfo, cap: int, times: list[datetime]
+) -> None:
+    drafted: dict[date, int] = {}
+    for now in sorted(times):
+        day = now.astimezone(tz).date()
+        if decide(now, tz, drafted.get(day, 0), cap, "daily") is Decision.DRAFT:
+            assert day.weekday() < 5
+            drafted[day] = drafted.get(day, 0) + 1
+    assert all(n <= cap for n in drafted.values())
+
+
+def test_daily_mode_due_time_is_start_of_the_local_day_so_that_days_run_picks_it_up() -> None:
+    toronto = ZoneInfo("America/Toronto")
+    applied = datetime(2026, 3, 2, 15, 0, tzinfo=UTC)
+    due = due_at_for(applied, 7, toronto, "daily")
+    assert due.astimezone(toronto).replace(tzinfo=None) == datetime(2026, 3, 9, 0, 0)
+    run_at = datetime(2026, 3, 9, 12, 0, tzinfo=UTC)  # 08:00 local that day
+    assert due <= run_at
+    assert due_at_for(applied, 7, toronto) == datetime(
+        2026, 3, 9, 13, 0, tzinfo=UTC
+    )  # window: 9:00
+
+
+def test_daily_mode_replies_still_stop_followups() -> None:
+    reply = _thread(_msg(0, user=True), _msg(1, user=False))
+    assert _stop(reply, since=BASE - timedelta(days=1)) is StopReason.REPLY_RECEIVED

@@ -231,6 +231,22 @@ def test_ac10_nothing_drafts_outside_the_window_and_weekend_waits_for_monday(
     assert first.state == "drafted"
 
 
+def test_daily_mode_drafts_at_run_time_on_any_weekday_but_never_on_weekends(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("FOLLOWUP_WINDOW_MODE", "daily")
+    get_settings.cache_clear()
+    user, client, app, _ = setup(db_session)
+    first, second = tasks(db_session, user, app)
+    assert first.due_at == datetime(2026, 3, 9, 4, 0, tzinfo=UTC)  # local midnight (EDT)
+    saturday = datetime(2026, 3, 14, 12, 0, tzinfo=UTC)
+    first.due_at = datetime(2026, 3, 13, 4, 0, tzinfo=UTC)
+    assert run(db_session, user, client, saturday).skipped_window == 1 and client.drafts == ()
+    monday_early = datetime(2026, 3, 16, 12, 0, tzinfo=UTC)  # 08:00 local: before any 9-11 window
+    assert run(db_session, user, client, monday_early).drafted == 1
+    assert (first.state, second.state) == ("drafted", "pending")  # the later step is not due yet
+
+
 def test_ac11_daily_cap_holds_across_runs_and_resets_next_local_day(
     db_session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

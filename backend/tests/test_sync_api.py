@@ -6,7 +6,7 @@ import logging
 import os
 import uuid
 from collections.abc import Callable, Iterator
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 import httpx
@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_sync_launcher
+from app.api.deps import get_classifier, get_client_factory, get_clock
 from app.jobs import scheduler as scheduler_job
 from app.jobs import sync as sync_job
 from app.log import AllowlistJsonFormatter
@@ -27,8 +27,10 @@ from app.providers.google.tokens import ACCESS_TOKENS
 from app.repositories import oauth_tokens
 from app.security.crypto import get_keyring
 from app.services import gmail_access
+from app.services import sync as sync_service
 from app.services.sync_runner import SyncOutcome, run_user_sync
 from tests import test_scheduler as sched
+from tests.clocks import StepClock
 from tests.fake_gmail_api import REFRESH_TOKEN, FakeGmailApi
 from tests.fixtures.gmail_threads import OWNER, build_threads
 from tests.test_applications_api import login
@@ -55,57 +57,38 @@ def connect(env: Env, user: User, scopes: str = READONLY) -> None:  # noqa: F811
     env.db.flush()
 
 
-class Launches:
-    """A background-task stand-in: records launches, optionally running a fake-client sync."""
-
-    def __init__(
-        self,
-        env: Env,  # noqa: F811
-        run: bool = False,
-        factory: Callable[[Session, uuid.UUID], FakeGmailClient] = lambda s, u: fake(),
-    ) -> None:
-        self.env, self.run, self.factory = env, run, factory
-        self.calls: list[uuid.UUID] = []
-
-    def __call__(self, user_id: uuid.UUID) -> None:
-        self.calls.append(user_id)
-        if self.run:
-            run_user_sync(
-                self.env.db,
-                user_id,
-                self.env.clock.now,
-                self.factory,
-                CLASSIFIER,
-                sleep=lambda _: None,
-            )
-
-
-def app_for(env: Env, user: User, launches: Launches) -> TestClient:  # noqa: F811
+def app_for(
+    env: Env,  # noqa: F811
+    user: User,
+    factory: Callable[[Session, uuid.UUID], FakeGmailClient] = lambda s, u: fake(),
+    clock: Callable[[], datetime] | None = None,
+) -> TestClient:
     client = login(env, user)
-    client.app.dependency_overrides[get_sync_launcher] = lambda: launches  # type: ignore[attr-defined]
+    overrides = client.app.dependency_overrides  # type: ignore[attr-defined]
+    overrides[get_client_factory] = lambda: factory
+    overrides[get_classifier] = lambda: CLASSIFIER
+    if clock is not None:
+        overrides[get_clock] = lambda: clock
     return client
 
 
-# ---------- POST /sync, GET /sync ----------
+# ---------- POST /sync (inline), GET /sync ----------
 
 
 def test_us34_sync_without_a_live_token_is_409_gmail_not_connected(env: Env) -> None:  # noqa: F811
     user = env.user()
-    launches = Launches(env)
-    client = app_for(env, user, launches)
+    client = app_for(env, user)
     response = client.post("/sync")
     assert (response.status_code, response.json()) == (409, {"detail": "gmail_not_connected"})
     connect(env, user)
     oauth_tokens.mark_revoked(env.db, user.id)
     assert client.post("/sync").status_code == 409
-    assert launches.calls == []
 
 
-def test_us34_sync_starts_in_the_background_and_status_reports_the_result(env: Env) -> None:  # noqa: F811
+def test_us34_sync_runs_inline_and_status_reports_the_result(env: Env) -> None:  # noqa: F811
     user = env.user()
     connect(env, user)
-    launches = Launches(env, run=True)
-    client = app_for(env, user, launches)
+    client = app_for(env, user)
     assert client.get("/sync").json() == {
         "status": "idle",
         "last_synced_at": None,
@@ -113,61 +96,83 @@ def test_us34_sync_starts_in_the_background_and_status_reports_the_result(env: E
         "last_error": None,
     }
     response = client.post("/sync")
-    assert (response.status_code, response.json()) == (202, {"status": "started"})
-    assert launches.calls == [user.id]
+    assert (response.status_code, response.json()) == (200, {"status": "completed"})
     status = client.get("/sync").json()
     assert status["status"] == "idle" and status["initial_sync_done"] is True
     assert (
         status["last_synced_at"].startswith("2026-01-01T12:00:00") and status["last_error"] is None
     )
     assert {"t-confirm", "t-interview", "t-reject"} <= thread_ids(env.db, user.id)
+    assert client.post("/sync").json() == {"status": "completed"}  # incremental the second time
 
 
-def test_us34_second_request_while_running_returns_the_existing_run_not_a_new_one(env: Env) -> None:  # noqa: F811
+def test_us34_initial_sync_returns_in_progress_after_a_bounded_slice_and_continues(
+    env: Env,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sync_service, "BATCH_SIZE", 1)
+    user = env.user()
+    connect(env, user)
+    # one tick of the clock per read: the 25 s inline budget runs out after a few batches
+    slice_clock = StepClock(T0, step=10.0)
+    client = app_for(env, user, lambda s, u: fake(page_size=2), clock=slice_clock)
+    assert client.post("/sync").json() == {"status": "in_progress"}
+    status = client.get("/sync").json()
+    assert status["status"] == "idle" and status["initial_sync_done"] is False
+    state = env.db.get(SyncState, user.id, populate_existing=True)
+    assert state is not None and state.pending_history_id is not None
+    first = thread_ids(env.db, user.id)
+    for _ in range(10):  # each press continues the same initial sync until it completes
+        if client.post("/sync").json()["status"] == "completed":
+            break
+    assert client.get("/sync").json()["initial_sync_done"] is True
+    assert first <= thread_ids(env.db, user.id)
+    assert {"t-confirm", "t-interview", "t-reject"} <= thread_ids(env.db, user.id)
+
+
+def test_us34_a_sync_already_holding_the_lease_is_reported_not_run_twice(env: Env) -> None:  # noqa: F811
     user = env.user()
     connect(env, user)
     env.db.add(
         SyncState(user_id=user.id, status="running", lease_expires_at=T0 + timedelta(minutes=5))
     )
     env.db.flush()
-    launches = Launches(env)
-    client = app_for(env, user, launches)
+    client = app_for(env, user)
     response = client.post("/sync")
     assert (response.status_code, response.json()) == (200, {"status": "already_running"})
-    assert launches.calls == []
     assert client.get("/sync").json()["status"] == "running"
+    assert not thread_ids(env.db, user.id)
 
 
-def test_us34_an_expired_lease_is_a_crashed_sync_so_a_new_one_starts(env: Env) -> None:  # noqa: F811
+def test_us34_an_expired_lease_is_a_crashed_sync_so_a_new_one_runs(env: Env) -> None:  # noqa: F811
     user = env.user()
     connect(env, user)
     env.db.add(
         SyncState(user_id=user.id, status="running", lease_expires_at=T0 - timedelta(minutes=1))
     )
     env.db.flush()
-    launches = Launches(env)
-    client = app_for(env, user, launches)
+    client = app_for(env, user)
     assert client.get("/sync").json()["status"] == "idle"
-    assert client.post("/sync").status_code == 202 and launches.calls == [user.id]
+    assert client.post("/sync").json() == {"status": "completed"}
 
 
 def test_us34_sync_is_rate_limited_per_user(env: Env) -> None:  # noqa: F811
     user, other = env.user(), env.user()
     connect(env, user)
     connect(env, other)
-    client = app_for(env, user, Launches(env))
-    assert [client.post("/sync").status_code for _ in range(6)] == [202] * 6
+    client = app_for(env, user)
+    assert [client.post("/sync").status_code for _ in range(6)] == [200] * 6
     blocked = client.post("/sync")
     assert blocked.status_code == 429 and blocked.json() == {"detail": "rate_limited"}
     assert int(blocked.headers["Retry-After"]) > 0
-    assert app_for(env, other, Launches(env)).post("/sync").status_code == 202  # per user
+    assert app_for(env, other).post("/sync").status_code == 200  # per user
 
 
 def test_us34_status_shows_stable_error_codes_and_revocation(env: Env) -> None:  # noqa: F811
     user = env.user()
     connect(env, user)
-    client = app_for(env, user, Launches(env, run=True, factory=lambda s, u: _revoked_client()))
-    assert client.post("/sync").status_code == 202
+    client = app_for(env, user, lambda s, u: _revoked_client())
+    assert client.post("/sync").json() == {"status": "revoked"}
     assert client.get("/sync").json()["status"] == "revoked"
     assert client.get("/sync").json()["last_error"] == "auth_revoked"
     assert client.post("/sync").status_code == 409  # token flagged revoked: connect again
@@ -180,7 +185,7 @@ def _revoked_client() -> FakeGmailClient:
 
 
 def test_us34_status_for_a_user_without_gmail_state_is_idle_and_empty(env: Env) -> None:  # noqa: F811
-    client = app_for(env, env.user(), Launches(env))
+    client = app_for(env, env.user())
     assert client.get("/sync").json()["status"] == "idle"
     assert client.get("/gmail/status").json() == {"connected": False, "followups_enabled": False}
 

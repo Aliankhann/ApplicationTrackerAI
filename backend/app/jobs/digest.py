@@ -5,6 +5,7 @@ concurrent run can only ever lose a digest, not duplicate it.
 """
 
 import uuid
+from collections.abc import Callable
 from datetime import UTC, date, datetime, time, timedelta
 from urllib.parse import quote
 
@@ -83,7 +84,8 @@ def _run_user(
 ) -> str | None:
     user_id = user.id
     local = now.astimezone(user_timezone(user))
-    if local.time() < time(settings.digest_hour):
+    after = settings.digest_send_after_local_hour
+    if after is not None and local.time() < time(after):
         return None
     day = local.date()
     claimed = _claim(session, user_id, day, now)
@@ -118,12 +120,19 @@ def _run_user_isolated(
 
 
 def run_digest(
-    session: Session, sender: EmailSender, now: datetime, settings: Settings | None = None
+    session: Session,
+    sender: EmailSender,
+    now: datetime,
+    settings: Settings | None = None,
+    should_stop: Callable[[], bool] = lambda: False,
 ) -> dict[str, int]:
-    """Send today's digest to every enabled user past the digest hour. Returns counts by status."""
+    """Send today's digest to every enabled user (past the optional local hour). Returns counts
+    by status; `should_stop` is checked before each user (time budget)."""
     settings = settings or get_settings()
     counts = {repo.SENT: 0, repo.FAILED: 0, repo.SKIPPED_EMPTY: 0}
     for user in repo.enabled_users(session):
+        if should_stop():
+            break
         status = _run_user_isolated(session, sender, settings, user, now)
         if status is not None:
             counts[status] += 1

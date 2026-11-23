@@ -7,7 +7,7 @@ visited; a failure for one user never stops the rest. Drafts only, never sends. 
 import sys
 import uuid
 from collections import Counter
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
@@ -29,12 +29,16 @@ def run(
     now: datetime,
     client_factory: ClientFactory,
     only: Collection[uuid.UUID] | None = None,
+    should_stop: Callable[[], bool] = lambda: False,
 ) -> Counter[str]:
-    """Returns counts: users, drafted, skipped (no compose scope), failed. `only` limits users."""
+    """Returns counts: users, drafted, skipped (no compose scope), failed. `only` limits users;
+    `should_stop` is checked before each user (time budget)."""
     counts: Counter[str] = Counter()
     for user_id, scopes in tokens_repo.active_scopes(session):
         if only is not None and user_id not in only:
             continue
+        if should_stop():
+            break
         if not can_compose(scopes):
             counts["skipped"] += 1
             continue

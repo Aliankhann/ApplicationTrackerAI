@@ -20,8 +20,8 @@ export function DigestToggle() {
         Daily digest
       </label>
       <p className="mt-1 text-sm">
-        A short email at 8:00 your time with company names and statuses only. Nothing is sent on
-        quiet days.
+        A short email once a day (around 7 to 8 am Toronto time) with company names and statuses
+        only. Nothing is sent on quiet days.
       </p>
       {demo && <p className="mt-1 text-sm">Digest settings are not available in the demo.</p>}
       {update.isError && (

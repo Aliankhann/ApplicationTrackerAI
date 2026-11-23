@@ -4,9 +4,11 @@ from collections.abc import Iterator
 from datetime import datetime
 
 from sqlalchemy import DateTime, MetaData, create_engine, func
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
+from sqlalchemy.pool import NullPool
 
-from app.config import get_settings
+from app.config import Settings, get_settings
 
 # Stable constraint names so Alembic autogenerate produces predictable migrations.
 NAMING_CONVENTION = {
@@ -28,7 +30,18 @@ class TimestampMixin:
     )
 
 
-engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+def build_engine(settings: Settings) -> Engine:
+    """ "serverless" (Vercel): every function invocation may be a new process behind a
+    transaction-mode pooler (Neon/Supabase pooled URL), so no app-side pool and no server-side
+    prepared statements. The app keeps no session-level database state across transactions."""
+    if settings.db_pool_mode == "serverless":
+        return create_engine(
+            settings.database_url, poolclass=NullPool, connect_args={"prepare_threshold": None}
+        )
+    return create_engine(settings.database_url, pool_pre_ping=True)
+
+
+engine = build_engine(get_settings())
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 

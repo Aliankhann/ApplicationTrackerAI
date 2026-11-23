@@ -23,7 +23,7 @@ def _race(engine: Engine, uid: uuid.UUID, n: int) -> list[bool]:
     def worker() -> None:
         with Session(engine) as s:
             args = cast(
-                Any, (s, uid, None, None, NOW, s.commit, lambda _x: None, lambda: NOW, False)
+                Any, (s, uid, None, None, NOW, s.commit, lambda _x: None, lambda: NOW, False, None)
             )
             ctx = sync._Context(*args)
             barrier.wait()

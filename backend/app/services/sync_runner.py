@@ -1,5 +1,5 @@
-"""Run one user's sync end to end (client, lease, errors contained). Shared by the manual
-`POST /sync` background task and the hourly job. Logs codes and counts only."""
+"""Run one user's sync end to end (client, lease, errors contained). Shared by the inline
+`POST /sync` and the daily job. Logs codes and counts only."""
 
 import time
 import uuid
@@ -18,6 +18,7 @@ from app.services.gmail_access import ClientFactory
 from app.services.sync import (
     SyncAlreadyRunning,
     SyncFailed,
+    SyncPartial,
     SyncRevoked,
     SyncUserGone,
     run_sync,
@@ -29,6 +30,7 @@ ERROR_TOKEN_UNREADABLE = "token_unreadable"  # noqa: S105
 
 class SyncOutcome(StrEnum):
     COMPLETED = "completed"
+    PARTIAL = "partial"  # stopped at the deadline; the next run continues
     ALREADY_RUNNING = "already_running"
     REVOKED = "revoked"
     FAILED = "failed"
@@ -43,6 +45,8 @@ def run_user_sync(
     classifier: ClassifierProvider,
     *,
     sleep: Callable[[float], None] = time.sleep,
+    deadline: datetime | None = None,
+    clock: Callable[[], datetime] | None = None,
 ) -> SyncOutcome:
     """Never raises for per-user problems; unexpected errors are logged by class name only."""
     try:
@@ -57,7 +61,9 @@ def run_user_sync(
         )
         return SyncOutcome.FAILED
     try:
-        result = run_sync(session, user_id, client, classifier, now, sleep=sleep)
+        result = run_sync(
+            session, user_id, client, classifier, now, sleep=sleep, deadline=deadline, clock=clock
+        )
     except SyncRevoked:
         return SyncOutcome.REVOKED
     except SyncFailed:
@@ -67,6 +73,8 @@ def run_user_sync(
         return SyncOutcome.FAILED
     if isinstance(result, SyncAlreadyRunning):
         return SyncOutcome.ALREADY_RUNNING
+    if isinstance(result, SyncPartial):
+        return SyncOutcome.PARTIAL
     if isinstance(result, SyncUserGone):
         return SyncOutcome.USER_GONE
     return SyncOutcome.COMPLETED

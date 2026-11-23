@@ -1,22 +1,37 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Response
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.api.deps import CurrentUser, Db, Now, SyncLauncher
+from app.api.deps import (
+    ClassifierDep,
+    ClientFactoryDep,
+    Clock,
+    Config,
+    CurrentUser,
+    Db,
+    Now,
+)
 from app.models import SyncStatus
 from app.repositories import oauth_tokens as tokens_repo
 from app.repositories import sync_state as sync_state_repo
 from app.security.ratelimit import limit_by_user
+from app.services.sync_runner import SyncOutcome, run_user_sync
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
 SYNC_LIMIT_PER_USER = 6
 
 
-class SyncStartOut(BaseModel):
-    status: Literal["started", "already_running"]
+RunStatus = Literal["completed", "in_progress", "already_running", "revoked", "failed"]
+
+
+class SyncRunOut(BaseModel):
+    """`in_progress`: stopped at the short inline budget; the daily job and the next "Sync now"
+    continue where this left off."""
+
+    status: RunStatus
 
 
 class SyncStatusOut(BaseModel):
@@ -26,28 +41,44 @@ class SyncStatusOut(BaseModel):
     last_error: str | None
 
 
+_STATUS: dict[SyncOutcome, RunStatus] = {
+    SyncOutcome.COMPLETED: "completed",
+    SyncOutcome.PARTIAL: "in_progress",
+    SyncOutcome.ALREADY_RUNNING: "already_running",
+    SyncOutcome.REVOKED: "revoked",
+    SyncOutcome.FAILED: "failed",
+    SyncOutcome.USER_GONE: "failed",
+}
+
+
 @router.post(
     "",
-    status_code=202,
-    response_model=SyncStartOut,
+    response_model=SyncRunOut,
     dependencies=[limit_by_user("sync", SYNC_LIMIT_PER_USER)],
 )
-def start_sync(
+def run_sync_now(
     user: CurrentUser,
     db: Db,
-    now: Now,
-    launch: SyncLauncher,
-    background: BackgroundTasks,
-    response: Response,
-) -> SyncStartOut:
-    """Start a sync in the background; the lease in sync_state keeps it to one at a time."""
+    clock: Clock,
+    settings: Config,
+    client_factory: ClientFactoryDep,
+    classifier: ClassifierDep,
+) -> SyncRunOut:
+    """Sync inline within a short time budget (no background tasks on serverless). The lease in
+    sync_state keeps it to one sync per user at a time."""
     if tokens_repo.active_row(db, user.id) is None:
         raise HTTPException(status_code=409, detail="gmail_not_connected")
-    if sync_state_repo.lease_active(sync_state_repo.get(db, user.id), now):
-        response.status_code = 200
-        return SyncStartOut(status="already_running")
-    background.add_task(launch, user.id)
-    return SyncStartOut(status="started")
+    now = clock()
+    outcome = run_user_sync(
+        db,
+        user.id,
+        now,
+        client_factory,
+        classifier,
+        deadline=now + timedelta(seconds=settings.manual_sync_budget_seconds),
+        clock=clock,
+    )
+    return SyncRunOut(status=_STATUS[outcome])
 
 
 @router.get("", response_model=SyncStatusOut)
