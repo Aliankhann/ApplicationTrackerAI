@@ -47,6 +47,7 @@ def run_user_sync(
     sleep: Callable[[float], None] = time.sleep,
     deadline: datetime | None = None,
     clock: Callable[[], datetime] | None = None,
+    ensure_progress: bool = True,
 ) -> SyncOutcome:
     """Never raises for per-user problems; unexpected errors are logged by class name only."""
     try:
@@ -62,7 +63,15 @@ def run_user_sync(
         return SyncOutcome.FAILED
     try:
         result = run_sync(
-            session, user_id, client, classifier, now, sleep=sleep, deadline=deadline, clock=clock
+            session,
+            user_id,
+            client,
+            classifier,
+            now,
+            sleep=sleep,
+            deadline=deadline,
+            clock=clock,
+            ensure_progress=ensure_progress,
         )
     except SyncRevoked:
         return SyncOutcome.REVOKED

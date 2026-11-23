@@ -77,6 +77,7 @@ def run_sync_now(
         classifier,
         deadline=now + timedelta(seconds=settings.manual_sync_budget_seconds),
         clock=clock,
+        ensure_progress=False,  # the daily job guarantees progress; a manual press may stop early
     )
     return SyncRunOut(status=_STATUS[outcome])
 

@@ -114,7 +114,7 @@ def test_us34_initial_sync_returns_in_progress_after_a_bounded_slice_and_continu
     user = env.user()
     connect(env, user)
     # one tick of the clock per read: the 25 s inline budget runs out after a few batches
-    slice_clock = StepClock(T0, step=10.0)
+    slice_clock = StepClock(T0, step=2.0)
     client = app_for(env, user, lambda s, u: fake(page_size=2), clock=slice_clock)
     assert client.post("/sync").json() == {"status": "in_progress"}
     status = client.get("/sync").json()
@@ -122,7 +122,7 @@ def test_us34_initial_sync_returns_in_progress_after_a_bounded_slice_and_continu
     state = env.db.get(SyncState, user.id, populate_existing=True)
     assert state is not None and state.pending_history_id is not None
     first = thread_ids(env.db, user.id)
-    for _ in range(10):  # each press continues the same initial sync until it completes
+    for _ in range(5):  # each press continues the same initial sync until it completes
         if client.post("/sync").json()["status"] == "completed":
             break
     assert client.get("/sync").json()["initial_sync_done"] is True

@@ -194,23 +194,32 @@ def set_session_cookies(
     """Used by sign-in (US-11). Max-Age is the absolute session lifetime."""
     max_age = settings.session_absolute_days * 86400
     set_cookie(response, settings.session_cookie, raw_token, max_age, True, settings)
-    set_cookie(response, settings.csrf_cookie, csrf_token, max_age, False, settings)
+    set_cookie(
+        response, settings.csrf_cookie, csrf_token, max_age, False, settings, settings.cookie_domain
+    )
 
 
 def clear_session_cookies(response: Response, settings: Settings) -> None:
     set_cookie(response, settings.session_cookie, "", 0, True, settings)
-    set_cookie(response, settings.csrf_cookie, "", 0, False, settings)
+    set_cookie(response, settings.csrf_cookie, "", 0, False, settings, settings.cookie_domain)
 
 
 def set_cookie(
-    response: Response, name: str, value: str, max_age: int, http_only: bool, settings: Settings
+    response: Response,
+    name: str,
+    value: str,
+    max_age: int,
+    http_only: bool,
+    settings: Settings,
+    domain: str | None = None,
 ) -> None:
+    """Host-only by default (no Domain). Only the CSRF cookie passes a domain."""
     response.set_cookie(
         name,
         value,
         max_age=max_age,
         path="/",
-        domain=settings.cookie_domain,
+        domain=domain,
         secure=settings.environment != "local",
         httponly=http_only,
         samesite="lax",

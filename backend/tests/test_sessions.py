@@ -83,11 +83,10 @@ def test_cookie_flags_httponly_lax_secure_path_domain_and_readable_csrf(env: Env
         session_c, csrf_c = (h.lower() for h in headers)
         for header in (session_c, csrf_c):
             assert "samesite=lax" in header and "path=/" in header
-            assert "domain=.example.com" in header
             assert ("secure" in header) == secure
             assert f"max-age={14 * 86400}" in header
-        assert "httponly" in session_c
-        assert "httponly" not in csrf_c
+        assert "httponly" in session_c and "domain=" not in session_c  # session: host-only
+        assert "httponly" not in csrf_c and "domain=.example.com" in csrf_c  # csrf: shared
 
 
 def test_me_returns_profile_with_valid_session_and_401_without(env: Env) -> None:
@@ -204,12 +203,13 @@ def test_host_prefixed_cookie_names_outside_local_without_domain(
         ("prod", ".example.com", ""),
         ("local", None, ""),
     ):
+        session_prefix = "" if environment == "local" else "__Host-"  # never widened by a domain
         monkeypatch.setenv("ENVIRONMENT", environment)
         monkeypatch.delenv("COOKIE_DOMAIN", raising=False)
         if domain:
             monkeypatch.setenv("COOKIE_DOMAIN", domain)
         settings = Settings()
-        assert settings.session_cookie == f"{prefix}tracker_session"
+        assert settings.session_cookie == f"{session_prefix}tracker_session"
         assert settings.csrf_cookie == f"{prefix}tracker_csrf"
 
 
@@ -237,3 +237,29 @@ def test_creating_eleventh_session_revokes_the_oldest(env: Env) -> None:
     env.db.expire_all()
     assert rows[0].revoked_at == env.clock.now
     assert all(r.revoked_at is None for r in rows[1:])
+
+
+def test_session_cookie_stays_host_only_when_a_cookie_domain_is_set_and_logout_clears_both(
+    env: Env,
+) -> None:
+    from app.api.deps import clear_session_cookies
+
+    env.app("prod", cookie_domain=".example.com")
+    settings = Settings()
+    assert settings.session_cookie == "__Host-tracker_session"
+    assert settings.csrf_cookie == "tracker_csrf"
+    from fastapi import FastAPI, Response
+
+    app = FastAPI()
+
+    @app.get("/clear")
+    def clear(response: Response) -> None:
+        clear_session_cookies(response, settings)
+
+    session_c, csrf_c = (
+        h.lower() for h in TestClient(app).get("/clear").headers.get_list("set-cookie")
+    )
+    assert session_c.startswith("__host-tracker_session=") and "domain=" not in session_c
+    assert csrf_c.startswith("tracker_csrf=") and "domain=.example.com" in csrf_c
+    assert "max-age=0" in session_c and "max-age=0" in csrf_c
+    assert "secure" in session_c and "httponly" in session_c

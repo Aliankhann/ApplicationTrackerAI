@@ -31,9 +31,12 @@ Create a Vercel **access token** (Account Settings, Tokens).
 
 Give each project a custom domain on the **same registrable domain**: `app.<domain>` for the
 frontend and `api.<domain>` for the API (staging example: `app.staging.<domain>`,
-`api.staging.<domain>`). The browser reads the CSRF cookie from the frontend origin, so set
-`COOKIE_DOMAIN=.<domain>` on the API (`.staging.<domain>` for staging). Without a shared parent
-domain, sign-in cookies and CSRF will not work.
+`api.staging.<domain>`). The app on `app.<domain>` must read the CSRF cookie that the API sets, so
+set `COOKIE_DOMAIN=.<domain>` on the API (`.staging.<domain>` for staging). `COOKIE_DOMAIN` affects
+**only the CSRF cookie** (`tracker_csrf`, `Domain=.<domain>`, Secure, SameSite=Lax, readable by
+JavaScript by design). The session cookie is always host-only on the API
+(`__Host-tracker_session`: Secure, HttpOnly, Path=/, no Domain, SameSite=Lax), as are the sign-in
+flow cookies. Without a shared parent domain the CSRF header cannot be sent and writes fail.
 
 ## 4. Environment variables
 
@@ -43,11 +46,11 @@ projects only ever deploy as `--prod`):
 | Variable | Value / purpose |
 | --- | --- |
 | `ENVIRONMENT` | `staging` or `prod` |
-| `DATABASE_URL` | the **pooled** URL |
+| `DATABASE_URL` | the **pooled** (transaction-mode) URL. Not the direct one |
 | `DB_POOL_MODE` | `serverless` (no app pool, no prepared statements) |
 | `FRONTEND_ORIGIN` | `https://app.<domain>` (CORS and Origin check) |
 | `API_BASE_URL` | `https://api.<domain>` (unsubscribe links; must be https) |
-| `COOKIE_DOMAIN` | `.<domain>` |
+| `COOKIE_DOMAIN` | `.<domain>`; only the CSRF cookie uses it (required, see section 3) |
 | `SESSION_SECRET` | `openssl rand -hex 32` (at least 32 bytes) |
 | `CRON_SECRET` | `openssl rand -hex 32`; Vercel sends it as `Authorization: Bearer <value>` to the cron path (**verify on first deploy**) |
 | `TOKEN_ENCRYPTION_KEYS` | `1:<base64-urlsafe 32-byte key>` (see `.env.example`) |
@@ -79,7 +82,9 @@ OAuth client of the matching environment: `https://api.<domain>/auth/google/call
 Settings, Environments: create `staging` and `production`. On `production`, add yourself as a
 **required reviewer** (and optionally restrict deployment to tags). In each environment add:
 
-- Secrets: `DATABASE_URL` (the **direct** URL, used for `alembic upgrade head`), `VERCEL_TOKEN`,
+- Secrets: `DATABASE_URL`, which **must be the DIRECT (non-pooled) URL**: migrations run
+  `alembic upgrade head` with it, and a transaction-mode pooler is not safe for DDL. (The Vercel
+  project's own `DATABASE_URL` is the **pooled** one.) Also `VERCEL_TOKEN`,
   `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_FRONTEND`, `VERCEL_PROJECT_ID_BACKEND`.
 - Variables: `API_URL` (`https://api.<domain>`), `APP_URL` (`https://app.<domain>`).
 

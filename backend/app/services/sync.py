@@ -41,6 +41,7 @@ from app.providers.gmail import (
     GmailRateLimited,
     MessageMeta,
     ThreadMeta,
+    ThreadSummary,
 )
 from app.repositories import applications as applications_repo
 from app.repositories import oauth_tokens as tokens_repo
@@ -135,6 +136,7 @@ class _Context:
         clock: Callable[[], datetime],
         force: bool,
         deadline: datetime | None,
+        ensure_progress: bool = True,
     ) -> None:
         self.session = session
         self.user_id = user_id
@@ -146,13 +148,23 @@ class _Context:
         self.clock = clock
         self.force = force
         self.deadline = deadline
+        self.ensure_progress = ensure_progress
         self.counts = _Counts()
         self.batches_done = 0
         self.state: SyncState
 
     def out_of_time(self) -> bool:
-        """Past the deadline, but never before this run has completed one batch."""
-        return self.deadline is not None and self.batches_done > 0 and self.clock() >= self.deadline
+        """Past the deadline. With `ensure_progress` (the cron path) never before this run has
+        completed one batch, so every run advances; a manual run may stop right away."""
+        if self.deadline is None or (self.ensure_progress and self.batches_done == 0):
+            return False
+        return self.clock() >= self.deadline
+
+    def backoff(self, seconds: float) -> None:
+        """Sleep for a rate-limit backoff, never past the deadline."""
+        if self.deadline is not None:
+            seconds = min(seconds, max((self.deadline - self.clock()).total_seconds(), 0.0))
+        self.sleep(seconds)
 
     def call(self, fn: Callable[[], T]) -> T:
         """Run a Gmail call, retrying rate limits with exponential backoff."""
@@ -162,7 +174,7 @@ class _Context:
             except GmailRateLimited as exc:
                 if attempt == MAX_ATTEMPTS - 1:
                     raise
-                self.sleep(
+                self.backoff(
                     min(exc.retry_after or BACKOFF_BASE_SECONDS * 2**attempt, MAX_RETRY_AFTER)
                 )
         raise AssertionError("unreachable")
@@ -298,6 +310,9 @@ def _process_ids(ctx: _Context, ids: list[str]) -> bool:
         if ctx.out_of_time():
             return False
         for meta in _fetch(ctx, batch):
+            if ctx.out_of_time():  # budget ran out inside the batch: keep what is done
+                _checkpoint(ctx)
+                return False
             _process_thread(ctx, meta, ctx.counts)
         _checkpoint(ctx)
         ctx.batches_done += 1
@@ -349,19 +364,47 @@ def _finish(ctx: _Context, state: SyncState, history_id: str, mode: Mode) -> Syn
     )
 
 
+def _start_listing(ctx: _Context, state: SyncState) -> None:
+    # Taken before listing so changes made during the sync are picked up next time.
+    state.pending_history_id = ctx.call(ctx.client.get_profile).history_id
+    state.list_page_token = None  # committed with the first batch (or by _pause)
+
+
+def _list_page(
+    ctx: _Context, state: SyncState, restarted: bool
+) -> tuple[list[ThreadSummary], str | None, bool]:
+    """One page of the initial listing. A stored page token Gmail rejects (it expired) would wedge
+    the sync forever, so it is dropped and the listing restarts once from the first page."""
+    token = state.list_page_token
+    try:
+        page, next_token = ctx.call(partial(ctx.client.list_threads, INITIAL_QUERY, token))
+    except (GmailAuthRevoked, GmailRateLimited):
+        raise
+    except GmailError:
+        if token is None or restarted:
+            raise
+        _start_listing(ctx, state)
+        return _list_page(ctx, state, True)
+    return page, next_token, restarted
+
+
+def _pending(state: SyncState) -> str:
+    if state.pending_history_id is None:
+        raise ValueError("initial sync without a pending history id")
+    return state.pending_history_id
+
+
 def _initial(ctx: _Context, state: SyncState, mode: Mode) -> SyncResult | SyncPartial:
     if state.pending_history_id is None:
-        # Taken before listing so changes made during the sync are picked up next time.
-        state.pending_history_id = ctx.call(ctx.client.get_profile).history_id
-        state.list_page_token = None  # committed with the first batch (or by _pause)
+        _start_listing(ctx, state)
+    restarted = False
     while True:
-        token = state.list_page_token
-        page, next_token = ctx.call(partial(ctx.client.list_threads, INITIAL_QUERY, token))
+        page, next_token, restarted = _list_page(ctx, state, restarted)
         ids = list(dict.fromkeys(s.thread_id for s in page))
         if not _process_ids(ctx, ids):  # the page token stays, so this page is redone next run
             return _pause(ctx, state, mode)
         if next_token is None:
-            return _finish(ctx, state, state.pending_history_id, mode)
+            return _finish(ctx, state, _pending(state), mode)
         state.list_page_token = next_token
 
 
@@ -462,13 +505,15 @@ def run_sync(
     clock: Callable[[], datetime] | None = None,
     force: bool = False,
     deadline: datetime | None = None,
+    ensure_progress: bool = True,
 ) -> SyncResult | SyncPartial | SyncAlreadyRunning | SyncUserGone:
     """Sync one user. Raises SyncRevoked or SyncFailed after recording the state.
 
     One sync per user: a lease row in sync_state is claimed atomically at `now` and extended
     after each committed batch using `clock` (default: the real UTC clock, so long syncs keep
     their lease; tests pass a fake clock). `force` reprocesses threads even when unchanged.
-    `deadline` (compared with `clock`) stops the run between batches with SyncPartial.
+    `deadline` (compared with `clock`) stops the run between batches (and between threads) with
+    SyncPartial. `ensure_progress` (default) completes one batch first; a manual run passes False.
     """
     if now.tzinfo is None:
         raise ValueError("now must be timezone-aware")
@@ -485,6 +530,7 @@ def run_sync(
         clock or _utcnow,
         force,
         deadline,
+        ensure_progress,
     )
     try:
         state = _claim(ctx)
