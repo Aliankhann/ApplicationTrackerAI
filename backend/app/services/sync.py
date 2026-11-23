@@ -1,4 +1,4 @@
-"""Gmail sync: initial 90-day pull and incremental sync from history.
+"""Gmail sync: initial pull (last `initial_sync_days`, default 30) and incremental from history.
 
 Only job threads are written; everything else is dropped before any write. Nothing here logs
 or stores exception messages, subjects, or snippets.
@@ -50,7 +50,7 @@ from app.services.applications import record_classification
 from app.services.extraction import SOURCE_LLM, Extracted, extract
 from app.services.prefilter import EmailMeta, prefilter, sender_domain
 
-INITIAL_QUERY = "newer_than:90d"
+MAX_CONSECUTIVE_RATE_LIMITS = 3  # rate-limited runs in a row before the sync is shown as an error
 BATCH_SIZE = 50
 MAX_ATTEMPTS = 5
 BACKOFF_BASE_SECONDS = 1.0
@@ -81,6 +81,14 @@ class SyncResult:
 @dataclass(frozen=True)
 class SyncPartial:
     """Stopped at the deadline; progress is committed and the next run continues."""
+
+    threads_seen: int
+    mode: Mode
+
+
+@dataclass(frozen=True)
+class SyncPaused:
+    """Gmail kept rate limiting; progress is committed, the lease is free, the next run goes on."""
 
     threads_seen: int
     mode: Mode
@@ -151,6 +159,8 @@ class _Context:
         self.ensure_progress = ensure_progress
         self.counts = _Counts()
         self.batches_done = 0
+        self.rate_limit_hits = 0
+        self.mode: Mode = "incremental"
         self.state: SyncState
 
     def out_of_time(self) -> bool:
@@ -166,18 +176,27 @@ class _Context:
             seconds = min(seconds, max((self.deadline - self.clock()).total_seconds(), 0.0))
         self.sleep(seconds)
 
+    def total_rate_limit_hits(self) -> int:
+        return self.rate_limit_hits + self.client.rate_limit_hits
+
     def call(self, fn: Callable[[], T]) -> T:
-        """Run a Gmail call, retrying rate limits with exponential backoff."""
+        """Run one single-request Gmail call, retrying rate limits with exponential backoff.
+        (Batch fetches retry per thread inside the client, so they are not wrapped here.)"""
         for attempt in range(MAX_ATTEMPTS):
             try:
                 return fn()
             except GmailRateLimited as exc:
+                self.rate_limit_hits += 1
                 if attempt == MAX_ATTEMPTS - 1:
                     raise
                 self.backoff(
                     min(exc.retry_after or BACKOFF_BASE_SECONDS * 2**attempt, MAX_RETRY_AFTER)
                 )
         raise AssertionError("unreachable")
+
+
+def _initial_query() -> str:
+    return f"newer_than:{get_settings().initial_sync_days}d"
 
 
 def _lease() -> timedelta:
@@ -291,9 +310,10 @@ def _record(
 
 
 def _fetch(ctx: _Context, ids: list[str]) -> list[ThreadMeta]:
-    """Batch fetch; if a thread vanished (deleted), fetch the rest one by one."""
+    """Batch fetch; if a thread vanished (deleted), fetch the rest one by one. Raises
+    GmailRateLimited carrying the threads that were fetched."""
     try:
-        return ctx.call(lambda: ctx.client.get_threads(ids))
+        return ctx.client.get_threads(ids)
     except GmailNotFound:
         found: list[ThreadMeta] = []
         for thread_id in ids:
@@ -301,20 +321,30 @@ def _fetch(ctx: _Context, ids: list[str]) -> list[ThreadMeta]:
                 found.append(ctx.call(partial(ctx.client.get_thread, thread_id)))
             except GmailNotFound:
                 continue
+            except GmailRateLimited as exc:
+                raise GmailRateLimited(exc.retry_after, tuple(found)) from None
         return found
 
 
 def _process_ids(ctx: _Context, ids: list[str]) -> bool:
-    """Process in committed batches; False when the deadline stopped it before the end."""
+    """Process in committed batches; False when the deadline stopped it before the end. When
+    Gmail stays rate limited, the threads that were fetched are kept, then it is re-raised."""
     for batch in _batches(ids):
         if ctx.out_of_time():
             return False
-        for meta in _fetch(ctx, batch):
+        limited: GmailRateLimited | None = None
+        try:
+            metas = _fetch(ctx, batch)
+        except GmailRateLimited as exc:
+            metas, limited = list(exc.fetched), exc
+        for meta in metas:
             if ctx.out_of_time():  # budget ran out inside the batch: keep what is done
                 _checkpoint(ctx)
                 return False
             _process_thread(ctx, meta, ctx.counts)
         _checkpoint(ctx)
+        if limited is not None:
+            raise limited
         ctx.batches_done += 1
     return True
 
@@ -343,10 +373,20 @@ def _release(state: SyncState, status: SyncStatus, error: str | None) -> None:
 
 def _pause(ctx: _Context, state: SyncState, mode: Mode) -> SyncPartial:
     """Out of time: keep the committed progress (and resume point), free the lease."""
+    state.consecutive_rate_limits = 0
     _release(state, SyncStatus.IDLE, None)
     ctx.session.flush()
     ctx.commit()
     return SyncPartial(ctx.counts.seen, mode)
+
+
+def _pause_rate_limited(ctx: _Context, state: SyncState) -> SyncPaused:
+    """Gmail kept refusing: keep the progress, free the lease, and show "paused" (not an error)."""
+    state.consecutive_rate_limits += 1
+    _release(state, SyncStatus.PAUSED, ERROR_RATE_LIMITED)
+    ctx.session.flush()
+    ctx.commit()
+    return SyncPaused(ctx.counts.seen, ctx.mode)
 
 
 def _finish(ctx: _Context, state: SyncState, history_id: str, mode: Mode) -> SyncResult:
@@ -356,6 +396,7 @@ def _finish(ctx: _Context, state: SyncState, history_id: str, mode: Mode) -> Syn
     state.pending_history_id = None
     state.list_page_token = None
     state.last_synced_at = ctx.now
+    state.consecutive_rate_limits = 0
     _release(state, SyncStatus.IDLE, None)
     ctx.session.flush()
     ctx.commit()
@@ -377,7 +418,7 @@ def _list_page(
     the sync forever, so it is dropped and the listing restarts once from the first page."""
     token = state.list_page_token
     try:
-        page, next_token = ctx.call(partial(ctx.client.list_threads, INITIAL_QUERY, token))
+        page, next_token = ctx.call(partial(ctx.client.list_threads, _initial_query(), token))
     except (GmailAuthRevoked, GmailRateLimited):
         raise
     except GmailError:
@@ -417,11 +458,13 @@ def _incremental(ctx: _Context, state: SyncState, start: str) -> SyncResult | Sy
 
 def _dispatch(ctx: _Context, state: SyncState) -> SyncResult | SyncPartial:
     if not state.initial_sync_done or state.history_id is None:
+        ctx.mode = "initial"
         return _initial(ctx, state, "initial")
     try:
         return _incremental(ctx, state, state.history_id)
     except GmailHistoryExpired:
         ctx.force = True
+        ctx.mode = "fallback_full"
         return _initial(ctx, state, "fallback_full")
 
 
@@ -432,17 +475,27 @@ def _record_failure(ctx: _Context, status: SyncStatus, code: str) -> None:
 
 
 def _log_failed(ctx: _Context, code: str) -> None:
-    logger.warning("sync.failed", extra={"user_id": ctx.user_id, "error_code": code})
+    logger.warning(
+        "sync.failed",
+        extra={
+            "user_id": ctx.user_id,
+            "error_code": code,
+            "rate_limit_hits": ctx.total_rate_limit_hits(),
+        },
+    )
 
 
-def _log_completed(ctx: _Context, result: SyncResult | SyncPartial) -> None:
-    if isinstance(result, SyncPartial):
+def _log_completed(ctx: _Context, result: SyncResult | SyncPartial | SyncPaused) -> None:
+    hits = ctx.total_rate_limit_hits()
+    if isinstance(result, SyncPartial | SyncPaused):
+        event = "sync.partial" if isinstance(result, SyncPartial) else "sync.paused"
         logger.info(
-            "sync.partial",
+            event,
             extra={
                 "user_id": ctx.user_id,
                 "mode": result.mode,
                 "threads_seen": result.threads_seen,
+                "rate_limit_hits": hits,
             },
         )
         return
@@ -455,11 +508,12 @@ def _log_completed(ctx: _Context, result: SyncResult | SyncPartial) -> None:
             "threads_kept": result.threads_kept,
             "threads_dropped": result.threads_dropped,
             "applications_changed": result.applications_changed,
+            "rate_limit_hits": hits,
         },
     )
 
 
-def _run_claimed(ctx: _Context) -> SyncResult | SyncPartial | SyncUserGone:
+def _run_claimed(ctx: _Context) -> SyncResult | SyncPartial | SyncPaused | SyncUserGone:
     try:
         result = _dispatch(ctx, ctx.state)
         _log_completed(ctx, result)
@@ -470,6 +524,11 @@ def _run_claimed(ctx: _Context) -> SyncResult | SyncPartial | SyncUserGone:
         _log_failed(ctx, ERROR_AUTH_REVOKED)
         raise SyncRevoked from None
     except GmailRateLimited:
+        if ctx.state.consecutive_rate_limits + 1 < MAX_CONSECUTIVE_RATE_LIMITS:
+            paused = _pause_rate_limited(ctx, ctx.state)
+            _log_completed(ctx, paused)
+            return paused
+        ctx.state.consecutive_rate_limits += 1
         _record_failure(ctx, SyncStatus.ERROR, ERROR_RATE_LIMITED)
         _log_failed(ctx, ERROR_RATE_LIMITED)
         raise SyncFailed(ERROR_RATE_LIMITED) from None
@@ -506,14 +565,16 @@ def run_sync(
     force: bool = False,
     deadline: datetime | None = None,
     ensure_progress: bool = True,
-) -> SyncResult | SyncPartial | SyncAlreadyRunning | SyncUserGone:
+) -> SyncResult | SyncPartial | SyncPaused | SyncAlreadyRunning | SyncUserGone:
     """Sync one user. Raises SyncRevoked or SyncFailed after recording the state.
 
     One sync per user: a lease row in sync_state is claimed atomically at `now` and extended
     after each committed batch using `clock` (default: the real UTC clock, so long syncs keep
     their lease; tests pass a fake clock). `force` reprocesses threads even when unchanged.
     `deadline` (compared with `clock`) stops the run between batches (and between threads) with
-    SyncPartial. `ensure_progress` (default) completes one batch first; a manual run passes False.
+    SyncPartial. A rate limit Gmail will not lift within the call's retries pauses the run
+    (SyncPaused, state "paused"); after MAX_CONSECUTIVE_RATE_LIMITS in a row it is an error
+    (SyncFailed). `ensure_progress` (default) completes one batch first; a manual run passes False.
     """
     if now.tzinfo is None:
         raise ValueError("now must be timezone-aware")

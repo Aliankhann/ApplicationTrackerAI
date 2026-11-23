@@ -39,7 +39,7 @@ export default function PrivacyPage() {
 
       <Section id="reads" title="What we read from Gmail">
         <p>
-          When you connect Gmail we look at threads from the last 90 days, and after that at
+          When you connect Gmail we look at threads from the last 30 days, and after that at
           threads that changed. For each thread we read metadata only: the sender, the subject, a
           short snippet (cut to 200 characters), message dates, and whether the last message was
           yours. We do not read full message bodies.

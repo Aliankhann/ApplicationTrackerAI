@@ -20,9 +20,11 @@ export function connectErrorMessage(code: string): string {
   return CONNECT_ERRORS[code] ?? 'Connecting to Gmail did not work. Please try again.'
 }
 
+export const RATE_LIMITED_TEXT = "Gmail asked us to slow down. We'll keep going on the next sync."
+
 const SYNC_ERRORS: Record<string, string> = {
   auth_revoked: 'Google access was removed. Connect Gmail again to resume syncing.',
-  rate_limited: 'Gmail asked us to slow down. We will try again at the next hourly sync.',
+  rate_limited: RATE_LIMITED_TEXT,
   gmail_error: 'Gmail returned an error. We will try again at the next hourly sync.',
 }
 

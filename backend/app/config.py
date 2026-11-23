@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     llm_rejection_threshold: float = Field(default=0.9, ge=0, le=1)
     llm_offer_interview_threshold: float = Field(default=0.85, ge=0, le=1)
     llm_timeout_seconds: float = Field(default=10.0, gt=0)
+    # How far back the first sync (and the history-expired full resync) looks.
+    initial_sync_days: int = Field(default=30, ge=1, le=365)
+    # Gmail charges quota units per call against a per-user per-second limit (see
+    # providers/gmail/pacing.py); stay well under it.
+    gmail_quota_units_per_second: float = Field(default=100.0, gt=0)
+    gmail_max_concurrency: int = Field(default=2, ge=1)
     sync_lease_minutes: int = Field(default=15, ge=1)
     followup_daily_draft_cap: int = Field(default=5, ge=1)
     followup_stale_days: int = Field(default=3, ge=0)

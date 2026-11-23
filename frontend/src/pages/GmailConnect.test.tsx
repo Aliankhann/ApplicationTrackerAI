@@ -32,7 +32,10 @@ const IDLE: SyncStatus = {
   initial_sync_done: false,
   last_error: null,
 }
-const DISCONNECTED: GmailStatus = { connected: false, followups_enabled: false }
+const DISCONNECTED: GmailStatus = {
+  connected: false,
+  followups_enabled: false,
+}
 const CONNECTED: GmailStatus = { connected: true, followups_enabled: false }
 
 function source(overrides: Partial<DataSource>): DataSource {
@@ -54,7 +57,10 @@ test('US-31: not connected shows the Connect Gmail card, which explains and link
   const startGmailConnect = vi.fn(async () => ({
     authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth?x=1',
   }))
-  renderDashboard({ getGmailStatus: async () => DISCONNECTED, startGmailConnect })
+  renderDashboard({
+    getGmailStatus: async () => DISCONNECTED,
+    startGmailConnect,
+  })
   expect(await screen.findByRole('heading', { name: 'Connect Gmail' })).toBeVisible()
   expect(screen.getByText(/We never store full emails/)).toBeVisible()
   expect(screen.getByRole('link', { name: 'What we read and store' })).toHaveAttribute(
@@ -112,7 +118,11 @@ test('US-34: while running it polls every 3 seconds, disables the button, then s
   const getSyncStatus = vi.fn(async (): Promise<SyncStatus> => {
     polls += 1
     if (polls <= 3) return { ...IDLE, status: 'running' }
-    return { ...IDLE, last_synced_at: '2026-01-01T12:00:00Z', initial_sync_done: true }
+    return {
+      ...IDLE,
+      last_synced_at: '2026-01-01T12:00:00Z',
+      initial_sync_done: true,
+    }
   })
   renderDashboard({
     getGmailStatus: async () => CONNECTED,
@@ -122,7 +132,7 @@ test('US-34: while running it polls every 3 seconds, disables the button, then s
   await screen.findByRole('button', { name: 'Sync now' })
   await user.click(screen.getByRole('button', { name: 'Sync now' }))
   expect(await screen.findByText('Syncing your email…')).toBeVisible()
-  expect(screen.getByRole('button', { name: 'Sync now' })).toBeDisabled()
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Sync now' })).toBeDisabled())
   const before = getSyncStatus.mock.calls.length
   await act(() => vi.advanceTimersByTimeAsync(3000))
   expect(getSyncStatus.mock.calls.length).toBeGreaterThan(before)
@@ -134,7 +144,11 @@ test('US-34: while running it polls every 3 seconds, disables the button, then s
 test('US-34: a failed sync is explained in plain words, not as a code', async () => {
   renderDashboard({
     getGmailStatus: async () => CONNECTED,
-    getSyncStatus: async () => ({ ...IDLE, status: 'error', last_error: 'rate_limited' }),
+    getSyncStatus: async () => ({
+      ...IDLE,
+      status: 'error',
+      last_error: 'rate_limited',
+    }),
   })
   const alert = await screen.findByRole('alert')
   expect(alert).toHaveTextContent('Gmail asked us to slow down')
@@ -154,10 +168,60 @@ test('US-34: a rate-limited start is reported', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent('Could not run a sync')
 })
 
+test('a paused sync says Gmail asked us to slow down, politely and without an alert', async () => {
+  const user = userEvent.setup()
+  const startSync = vi.fn(async () => ({
+    status: 'paused' as const,
+    reason: 'rate_limited' as const,
+  }))
+  renderDashboard({
+    getGmailStatus: async () => CONNECTED,
+    getSyncStatus: async () => ({
+      ...IDLE,
+      status: 'paused',
+      last_error: 'rate_limited',
+    }),
+    startSync,
+  })
+  const message = await screen.findByText(
+    "Gmail asked us to slow down. We'll keep going on the next sync.",
+  )
+  expect(message).toHaveAttribute('aria-live', 'polite')
+  expect(screen.queryByRole('alert')).toBeNull()
+  expect(screen.getByRole('button', { name: 'Sync now' })).toBeEnabled()
+  await user.click(screen.getByRole('button', { name: 'Sync now' }))
+  expect(startSync).toHaveBeenCalledTimes(1)
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Sync now' })).toBeDisabled()) // short cooldown
+  expect(screen.getByText(/keep going on the next sync/)).toBeVisible()
+})
+
+test('after the cooldown a paused sync can be started again', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  const user = userEvent.setup()
+  renderDashboard({
+    getGmailStatus: async () => CONNECTED,
+    getSyncStatus: async () => ({
+      ...IDLE,
+      status: 'paused',
+      last_error: 'rate_limited',
+    }),
+    startSync: async () => ({ status: 'paused', reason: 'rate_limited' }),
+  })
+  await user.click(await screen.findByRole('button', { name: 'Sync now' }))
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Sync now' })).toBeDisabled())
+  await act(() => vi.advanceTimersByTimeAsync(6000))
+  expect(screen.getByRole('button', { name: 'Sync now' })).toBeEnabled()
+  vi.useRealTimers()
+})
+
 test('US-31: returning with ?connected=1 shows a success note and starts the first sync once', async () => {
   const startSync = vi.fn(async () => ({ status: 'completed' as const }))
   renderDashboard(
-    { getGmailStatus: async () => CONNECTED, getSyncStatus: async () => IDLE, startSync },
+    {
+      getGmailStatus: async () => CONNECTED,
+      getSyncStatus: async () => IDLE,
+      startSync,
+    },
     '/demo?connected=1',
   )
   expect(await screen.findByText(/Gmail is connected/)).toBeVisible()
@@ -178,7 +242,9 @@ function renderSettings(overrides: Partial<DataSource>, route = '/demo') {
 
 test('US-31: settings shows the connection and turns on follow-up drafts by requesting compose', async () => {
   const user = userEvent.setup()
-  const startGmailConnect = vi.fn(async () => ({ authorize_url: 'https://accounts.google.com/x' }))
+  const startGmailConnect = vi.fn(async () => ({
+    authorize_url: 'https://accounts.google.com/x',
+  }))
   renderSettings({ getGmailStatus: async () => CONNECTED, startGmailConnect })
   expect(await screen.findByText(/Gmail is connected\./)).toBeVisible()
   expect(screen.getByText(/Follow-up drafts are off\./)).toBeVisible()
@@ -188,7 +254,9 @@ test('US-31: settings shows the connection and turns on follow-up drafts by requ
 })
 
 test('US-31: with follow-ups already on there is no button to turn them on', async () => {
-  renderSettings({ getGmailStatus: async () => ({ connected: true, followups_enabled: true }) })
+  renderSettings({
+    getGmailStatus: async () => ({ connected: true, followups_enabled: true }),
+  })
   expect(await screen.findByText(/Follow-up drafts are on\./)).toBeVisible()
   expect(screen.queryByRole('button', { name: 'Turn on follow-up drafts' })).toBeNull()
 })

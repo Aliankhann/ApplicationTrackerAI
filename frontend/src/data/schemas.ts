@@ -190,12 +190,13 @@ export const ConnectResultSchema = z.object({
 export type ConnectResult = z.infer<typeof ConnectResultSchema>
 
 export const SyncStartSchema = z.object({
-  status: z.enum(['completed', 'in_progress', 'already_running', 'revoked', 'failed']),
+  status: z.enum(['completed', 'in_progress', 'already_running', 'revoked', 'failed', 'paused']),
+  reason: z.literal('rate_limited').nullish(),
 })
 export type SyncStart = z.infer<typeof SyncStartSchema>
 
 export const SyncStatusSchema = z.object({
-  status: z.enum(['idle', 'running', 'error', 'revoked']),
+  status: z.enum(['idle', 'running', 'error', 'revoked', 'paused']),
   last_synced_at: timestamp.nullable(),
   initial_sync_done: z.boolean(),
   last_error: z.string().nullable(),

@@ -24,7 +24,7 @@ router = APIRouter(prefix="/sync", tags=["sync"])
 SYNC_LIMIT_PER_USER = 6
 
 
-RunStatus = Literal["completed", "in_progress", "already_running", "revoked", "failed"]
+RunStatus = Literal["completed", "in_progress", "already_running", "revoked", "failed", "paused"]
 
 
 class SyncRunOut(BaseModel):
@@ -32,10 +32,11 @@ class SyncRunOut(BaseModel):
     continue where this left off."""
 
     status: RunStatus
+    reason: Literal["rate_limited"] | None = None
 
 
 class SyncStatusOut(BaseModel):
-    status: Literal["idle", "running", "error", "revoked"]
+    status: Literal["idle", "running", "error", "revoked", "paused"]
     last_synced_at: datetime | None
     initial_sync_done: bool
     last_error: str | None
@@ -44,6 +45,7 @@ class SyncStatusOut(BaseModel):
 _STATUS: dict[SyncOutcome, RunStatus] = {
     SyncOutcome.COMPLETED: "completed",
     SyncOutcome.PARTIAL: "in_progress",
+    SyncOutcome.PAUSED: "paused",
     SyncOutcome.ALREADY_RUNNING: "already_running",
     SyncOutcome.REVOKED: "revoked",
     SyncOutcome.FAILED: "failed",
@@ -54,6 +56,7 @@ _STATUS: dict[SyncOutcome, RunStatus] = {
 @router.post(
     "",
     response_model=SyncRunOut,
+    response_model_exclude_none=True,
     dependencies=[limit_by_user("sync", SYNC_LIMIT_PER_USER)],
 )
 def run_sync_now(
@@ -79,7 +82,8 @@ def run_sync_now(
         clock=clock,
         ensure_progress=False,  # the daily job guarantees progress; a manual press may stop early
     )
-    return SyncRunOut(status=_STATUS[outcome])
+    paused = outcome is SyncOutcome.PAUSED
+    return SyncRunOut(status=_STATUS[outcome], reason="rate_limited" if paused else None)
 
 
 @router.get("", response_model=SyncStatusOut)

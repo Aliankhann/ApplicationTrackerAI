@@ -1,0 +1,9 @@
+# CodeQL scans application code. Test suites are excluded: they deliberately log fake secrets and
+# assert on URLs to prove the app redacts and validates them, which CodeQL reports as findings.
+name: application-tracker
+paths-ignore:
+  - backend/tests
+  - backend/eval/fixtures
+  - frontend/e2e
+  - "**/*.test.ts"
+  - "**/*.test.tsx"

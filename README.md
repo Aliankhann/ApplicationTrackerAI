@@ -29,7 +29,7 @@ staging is deployed. The demo uses synthetic data and makes no network calls.
 
 ## Features
 
-- **Automatic tracking.** A 90-day initial sync, then an incremental sync from Gmail history
+- **Automatic tracking.** A 30-day initial sync, then an incremental sync from Gmail history
   once a day, plus a "Sync now" button for fresher data. Non-job email is discarded before
   anything is stored.
 - **Status board.** Applied, online assessment, interview, offer, rejected, and a derived

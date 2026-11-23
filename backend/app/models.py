@@ -238,6 +238,7 @@ class SyncStatus(StrEnum):
     RUNNING = "running"
     ERROR = "error"
     REVOKED = "revoked"
+    PAUSED = "paused"  # Gmail asked us to slow down; progress is kept and the next run continues
 
 
 class SyncState(TimestampMixin, Base):
@@ -248,7 +249,9 @@ class SyncState(TimestampMixin, Base):
 
     __tablename__ = "sync_state"
     __table_args__ = (
-        CheckConstraint("status in ('idle', 'running', 'error', 'revoked')", name="status_valid"),
+        CheckConstraint(
+            "status in ('idle', 'running', 'error', 'revoked', 'paused')", name="status_valid"
+        ),
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -269,6 +272,10 @@ class SyncState(TimestampMixin, Base):
     # token of the page being processed. Both are cleared when the initial sync completes.
     pending_history_id: Mapped[str | None] = mapped_column(String(32))
     list_page_token: Mapped[str | None] = mapped_column(Text)
+    # Runs in a row that ended rate limited; reset by any run that did not.
+    consecutive_rate_limits: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     updated_at: Mapped[datetime] = _updated_at()
 
 

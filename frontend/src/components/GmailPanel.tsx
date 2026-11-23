@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useDataSource } from '../data/context'
 import { useConnectGmail, useGmailStatus, useSync } from '../data/hooks'
-import { syncErrorMessage } from './gmailText'
+import { RATE_LIMITED_TEXT, syncErrorMessage } from './gmailText'
 
 function ConnectCard({ demo }: { demo: boolean }) {
   const connect = useConnectGmail()
@@ -41,6 +41,20 @@ function lastSyncedText(iso: string | null): string {
   return iso ? `Last synced ${new Date(iso).toLocaleString()}.` : 'Not synced yet.'
 }
 
+const COOLDOWN_MS = 5000
+
+// True for a few seconds after a paused result (identified by the result object), so a paused
+// sync is not hammered with presses. The server's per-user rate limit still applies.
+function useCooldown(result: object | null): boolean {
+  const [endedFor, setEndedFor] = useState<object | null>(null)
+  useEffect(() => {
+    if (result === null) return
+    const timer = setTimeout(() => setEndedFor(result), COOLDOWN_MS)
+    return () => clearTimeout(timer)
+  }, [result])
+  return result !== null && endedFor !== result
+}
+
 function SyncCard({ connectedParam }: { connectedParam: boolean }) {
   const [justConnected] = useState(connectedParam) // the URL param is removed right away
   const { query, running, start } = useSync(true)
@@ -55,6 +69,8 @@ function SyncCard({ connectedParam }: { connectedParam: boolean }) {
   }, [justConnected, startSync, setParams])
   const data = query.data
   const failed = start.isError
+  const paused = start.data?.status === 'paused' || (!start.data && data?.status === 'paused')
+  const coolingDown = useCooldown(start.data?.status === 'paused' ? start.data : null)
   return (
     <section aria-labelledby="sync-heading" className="mb-6 rounded border p-4">
       <h2 id="sync-heading" className="text-lg font-bold">
@@ -68,7 +84,7 @@ function SyncCard({ connectedParam }: { connectedParam: boolean }) {
       <p aria-live="polite" className="mt-2 text-sm">
         {running ? 'Syncing your email…' : data ? lastSyncedText(data.last_synced_at) : ''}
       </p>
-      {!running && data?.last_error && (
+      {!running && !paused && data?.last_error && (
         <p role="alert" className="mt-1 text-sm text-red-800 dark:text-red-300">
           {syncErrorMessage(data.last_error)}
         </p>
@@ -78,19 +94,22 @@ function SyncCard({ connectedParam }: { connectedParam: boolean }) {
           Could not run a sync. You can try a few times an hour; please wait and try again.
         </p>
       )}
+      {paused && (
+        <p role="status" aria-live="polite" className="mt-1 text-sm">
+          {RATE_LIMITED_TEXT}
+        </p>
+      )}
       {start.data?.status === 'in_progress' && (
         <p role="status" className="mt-1 text-sm">
           Part of your email is synced. The rest continues at the next daily update, or press Sync
           now again.
         </p>
       )}
-      <p className="mt-1 text-sm">
-        Gmail updates once a day. Press Sync now for fresher data.
-      </p>
+      <p className="mt-1 text-sm">Gmail updates once a day. Press Sync now for fresher data.</p>
       <button
         type="button"
         className="btn mt-3"
-        disabled={running || start.isPending}
+        disabled={running || start.isPending || coolingDown}
         onClick={() => start.mutate()}
       >
         Sync now

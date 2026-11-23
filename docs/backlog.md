@@ -240,9 +240,9 @@ As a signed-in user, I want to connect Gmail as a separate step so I understand 
   are exactly as expected, CSRF is required.
 - **Depends on:** US-13, US-20 · **Estimate:** 1.5h
 
-### [x] US-32 Initial 90-day sync
-As a newly connected user, I want my last 90 days of job email pulled in.
-- **AC:** Lists threads with `newer_than:90d`; fetches metadata plus snippet; the snippet is
+### [x] US-32 Initial 30-day sync
+As a newly connected user, I want my last 30 days of job email pulled in.
+- **AC:** Lists threads with `newer_than:{initial_sync_days}d` (default 30); fetches metadata plus snippet; the snippet is
   capped at 200 characters; non-job threads are discarded and never written; `history_id` and
   `initial_sync_done` are saved; re-running is idempotent (unique on user and thread).
 - **Tests:** Integration with the fake client: only job threads stored, snippet length capped,
@@ -252,7 +252,7 @@ As a newly connected user, I want my last 90 days of job email pulled in.
 ### [x] US-33 Incremental sync
 As a user, I want new email picked up regularly without a full resync (once a day on Vercel Hobby, plus "Sync now"; see ADR 0009).
 - **AC:** Uses `history.list` from the stored `history_id`; a not-found response triggers a fresh
-  90-day sync; `invalid_grant` marks the token revoked and stops syncing for that user.
+  initial sync; `invalid_grant` marks the token revoked and stops syncing for that user.
 - **Tests:** Integration with the fake: new thread appears, expired history falls back,
   revoked token stops sync and flags the user.
 - **Depends on:** US-32 · **Estimate:** 1.5h

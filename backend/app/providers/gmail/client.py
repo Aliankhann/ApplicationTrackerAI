@@ -13,6 +13,8 @@ from app.providers.gmail.types import (
 class GmailClient(Protocol):
     """All Gmail access goes through this interface; tests use FakeGmailClient."""
 
+    rate_limit_hits: int  # rate-limit responses seen so far (a count, for logging)
+
     def get_profile(self) -> Profile: ...
 
     def list_threads(
@@ -22,7 +24,8 @@ class GmailClient(Protocol):
     def get_thread(self, thread_id: str) -> ThreadMeta: ...
 
     def get_threads(self, thread_ids: list[str]) -> list[ThreadMeta]:
-        """Batch fetch; raises GmailNotFound if any id is missing."""
+        """Batch fetch; raises GmailNotFound if any id is missing, or GmailRateLimited (carrying the
+        threads it did fetch) if some stay rate limited after its own retries."""
         ...
 
     def list_history(self, start_history_id: str, page_token: str | None = None) -> HistoryPage: ...

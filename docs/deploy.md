@@ -67,6 +67,7 @@ projects only ever deploy as `--prod`):
 | `CRON_TIME_BUDGET_SECONDS` | optional, default `240` (must stay under the 300 s function limit with margin) |
 | `MANUAL_SYNC_BUDGET_SECONDS` | optional, default `25` |
 | `SYNC_MIN_GAP_HOURS` | optional, default `12`; users synced more recently are skipped by the daily run |
+| `INITIAL_SYNC_DAYS` | optional, default `30` (1 to 365); how far back the first sync looks |
 | `FOLLOWUP_WINDOW_MODE` | optional, default `daily` |
 | `DIGEST_SEND_AFTER_LOCAL_HOUR` | optional, empty = send at the daily run |
 

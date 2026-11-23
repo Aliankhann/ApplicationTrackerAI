@@ -1,6 +1,7 @@
 """In-memory GmailClient for tests. Never talks to Google."""
 
 import re
+from collections.abc import Iterable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -9,6 +10,7 @@ from app.providers.gmail.errors import (
     GmailError,
     GmailHistoryExpired,
     GmailNotFound,
+    GmailRateLimited,
 )
 from app.providers.gmail.types import (
     DraftRef,
@@ -73,6 +75,9 @@ class FakeGmailClient:
         self._message_seq = 0
         self._revoked = False
         self._next_error: GmailError | None = None
+        self._rate_limited: dict[str, int | None] = {}  # thread id -> fetches left to refuse
+        self.rate_limit_hits = 0
+        self.fetched_thread_ids: list[str] = []  # every thread successfully returned, in order
 
     @property
     def drafts(self) -> tuple[DraftRequest, ...]:
@@ -85,6 +90,25 @@ class FakeGmailClient:
 
     def fail_next(self, exc: GmailError) -> None:
         self._next_error = exc
+
+    def rate_limit_threads(self, thread_ids: Iterable[str], times: int | None = None) -> None:
+        """Refuse these threads as rate limited `times` fetches each (None: until cleared)."""
+        self._rate_limited.update(dict.fromkeys(thread_ids, times))
+
+    def clear_rate_limits(self) -> None:
+        self._rate_limited.clear()
+
+    def _limited(self, thread_id: str) -> bool:
+        if thread_id not in self._rate_limited:
+            return False
+        left = self._rate_limited[thread_id]
+        if left is not None:
+            if left <= 1:
+                del self._rate_limited[thread_id]
+            else:
+                self._rate_limited[thread_id] = left - 1
+        self.rate_limit_hits += 1
+        return True
 
     def _guard(self) -> None:
         if self._revoked:
@@ -210,11 +234,26 @@ class FakeGmailClient:
 
     def get_thread(self, thread_id: str) -> ThreadMeta:
         self._guard()
-        return self._thread(thread_id)
+        if self._limited(thread_id):
+            raise GmailRateLimited
+        found = self._thread(thread_id)
+        self.fetched_thread_ids.append(thread_id)
+        return found
 
     def get_threads(self, thread_ids: list[str]) -> list[ThreadMeta]:
+        """Like the real client: threads that stay rate limited raise with the rest attached."""
         self._guard()
-        return [self._thread(tid) for tid in thread_ids]
+        found: list[ThreadMeta] = []
+        limited = False
+        for tid in thread_ids:
+            if self._limited(tid):
+                limited = True
+                continue
+            found.append(self._thread(tid))
+            self.fetched_thread_ids.append(tid)
+        if limited:
+            raise GmailRateLimited(fetched=tuple(found))
+        return found
 
     def list_history(self, start_history_id: str, page_token: str | None = None) -> HistoryPage:
         self._guard()

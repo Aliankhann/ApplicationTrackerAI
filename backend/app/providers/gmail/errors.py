@@ -1,3 +1,6 @@
+from app.providers.gmail.types import ThreadMeta
+
+
 class GmailError(Exception):
     """Base class for Gmail provider failures."""
 
@@ -11,9 +14,14 @@ class GmailHistoryExpired(GmailError):
 
 
 class GmailRateLimited(GmailError):
-    def __init__(self, retry_after: float | None = None) -> None:
+    """`fetched` holds the threads a batch fetch did get before giving up, so none is re-fetched."""
+
+    def __init__(
+        self, retry_after: float | None = None, fetched: tuple[ThreadMeta, ...] = ()
+    ) -> None:
         super().__init__("Gmail rate limited")
         self.retry_after = retry_after
+        self.fetched = fetched
 
 
 class GmailNotFound(GmailError):

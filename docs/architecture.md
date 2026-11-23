@@ -67,7 +67,7 @@ flowchart TD
     Start["Sync starts for a user"] --> Lease{"Take per-user lease"}
     Lease -->|"held by a live sync"| Stop["Return: already running"]
     Lease -->|"acquired"| Mode{"initial_sync_done and history_id?"}
-    Mode -->|"no"| List["List threads: newer_than:90d"]
+    Mode -->|"no"| List["List threads: newer_than:30d"]
     Mode -->|"yes"| Hist["history.list from history_id"]
     Hist -->|"not found"| List
     Hist --> Fetch

@@ -297,7 +297,12 @@ export function useSync(enabled: boolean) {
   }, [running, client, source.kind])
   const start = useMutation({
     mutationFn: () => source.startSync(),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      // A paused run is already final (the server ran it inline): nothing to wait for.
+      if (result.status === 'paused') {
+        await client.invalidateQueries({ queryKey: ['sync', source.kind] })
+        return
+      }
       const before = await client.fetchQuery({
         queryKey: ['sync', source.kind],
         queryFn: () => source.getSyncStatus(),

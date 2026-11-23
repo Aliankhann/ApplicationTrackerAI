@@ -54,7 +54,7 @@ SNIPPETS = {
 
 
 def threads() -> dict[str, list[MessageMeta]]:
-    """Fixture threads with decisive snippets and the newsletter inside the 90-day window."""
+    """Fixture threads with decisive snippets and the newsletter inside the 30-day window."""
     built = build_threads(NOW)
     for thread_id, snippet in SNIPPETS.items():
         built[thread_id][-1] = replace(built[thread_id][-1], snippet=snippet)
@@ -144,7 +144,7 @@ def test_history_id_is_taken_before_listing(db_session: Session, user_id: uuid.U
     assert int(racy.get_profile().history_id) > int(before)
 
 
-def test_only_threads_within_90_days_and_pagination_handles_each_once(
+def test_only_threads_within_the_initial_window_and_pagination_handles_each_once(
     db_session: Session, user_id: uuid.UUID
 ) -> None:
     built = threads()
@@ -307,26 +307,6 @@ def test_rate_limit_retries_with_backoff_then_succeeds(
     result = sync_once(db_session, user_id, RateLimitedClient(3), sleep=sleeps.append)
     assert sleeps == [1.0, 2.0, 4.0]
     assert result.threads_kept == 4
-
-
-def test_rate_limit_after_five_attempts_sets_error_status(
-    db_session: Session, user_id: uuid.UUID
-) -> None:
-    sleeps: list[float] = []
-    with pytest.raises(SyncFailed):
-        run_sync(
-            db_session,
-            user_id,
-            RateLimitedClient(99),
-            CLASSIFIER,
-            NOW,
-            commit=db_session.flush,
-            sleep=sleeps.append,
-        )
-    assert sleeps == [1.0, 2.0, 4.0, 8.0]
-    state = db_session.get(SyncState, user_id)
-    assert state is not None
-    assert (state.status, state.last_error) == ("error", "rate_limited")
 
 
 def test_other_gmail_error_stores_only_a_stable_code(

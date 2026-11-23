@@ -42,7 +42,7 @@ def build_threads(now: datetime) -> dict[str, list[MessageMeta]]:
             _msg("t-interview", 2, "hr@globex-labs.example", "Interview invitation", now - 5 * day),
         ],
         "t-reject": [
-            _msg("t-reject", 1, "talent@initech.example", "Your application update", now - 40 * day)
+            _msg("t-reject", 1, "talent@initech.example", "Your application update", now - 25 * day)
         ],
         "t-newsletter": [
             _msg(

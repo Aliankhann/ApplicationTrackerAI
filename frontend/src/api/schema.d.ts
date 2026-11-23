@@ -696,7 +696,9 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "completed" | "in_progress" | "already_running" | "revoked" | "failed";
+            status: "completed" | "in_progress" | "already_running" | "revoked" | "failed" | "paused";
+            /** Reason */
+            reason?: "rate_limited" | null;
         };
         /** SyncStatusOut */
         SyncStatusOut: {
@@ -704,7 +706,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "idle" | "running" | "error" | "revoked";
+            status: "idle" | "running" | "error" | "revoked" | "paused";
             /** Last Synced At */
             last_synced_at: string | null;
             /** Initial Sync Done */

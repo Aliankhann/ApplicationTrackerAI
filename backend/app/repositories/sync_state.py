@@ -35,6 +35,7 @@ def reset(session: Session, user_id: uuid.UUID) -> None:
             initial_sync_done=False,
             status=SyncStatus.IDLE.value,
             last_error=None,
+            consecutive_rate_limits=0,
             started_at=None,
             lease_expires_at=None,
         )
@@ -76,7 +77,11 @@ def due_for_sync(session: Session, now: datetime, min_gap: timedelta) -> list[uu
         .where(
             OAuthToken.status == TokenStatus.ACTIVE,
             User.disabled_at.is_(None),
-            or_(SyncState.last_synced_at.is_(None), SyncState.last_synced_at < now - min_gap),
+            or_(
+                SyncState.last_synced_at.is_(None),
+                SyncState.last_synced_at < now - min_gap,
+                SyncState.status == SyncStatus.PAUSED.value,  # unfinished: keep going
+            ),
         )
         .order_by(SyncState.last_synced_at.asc().nulls_first(), OAuthToken.user_id)
     )

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.providers.gmail.client import GmailClient
 from app.providers.gmail.errors import GmailAuthRevoked
+from app.providers.gmail.pacing import TokenBucket
 from app.providers.gmail.rest import RestGmailClient
 from app.providers.google.oidc import HTTP_TIMEOUT, OidcConfig
 from app.providers.google.tokens import CachedAccessTokens
@@ -32,4 +33,10 @@ def gmail_client_for(session: Session, user_id: uuid.UUID) -> GmailClient:
         raise GmailAuthRevoked
     config = OidcConfig.from_settings(get_settings())
     http = shared_http()
-    return RestGmailClient(CachedAccessTokens(user_id, refresh_token, config, http), http)
+    settings = get_settings()
+    return RestGmailClient(
+        CachedAccessTokens(user_id, refresh_token, config, http),
+        http,
+        bucket=TokenBucket(settings.gmail_quota_units_per_second),
+        max_concurrency=settings.gmail_max_concurrency,
+    )

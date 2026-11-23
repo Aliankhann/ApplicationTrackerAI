@@ -44,6 +44,7 @@ class TickSummary:
 
     sync_completed: int = 0
     sync_partial: int = 0
+    sync_paused: int = 0  # Gmail rate limited; those users continue on the next run
     sync_failed: int = 0
     followups_users: int = 0
     followups_drafted: int = 0
@@ -75,6 +76,7 @@ def _sync(
     )
     summary.sync_completed = outcomes[SyncOutcome.COMPLETED]
     summary.sync_partial = outcomes[SyncOutcome.PARTIAL]
+    summary.sync_paused = outcomes[SyncOutcome.PAUSED]
     summary.sync_failed = outcomes[SyncOutcome.FAILED] + outcomes[SyncOutcome.REVOKED]
     if summary.sync_partial:  # stopped by the deadline inside a user's sync
         budget.tripped = True

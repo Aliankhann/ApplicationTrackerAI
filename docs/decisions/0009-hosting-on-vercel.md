@@ -28,7 +28,7 @@ digest after 8:00 local. The operator then asked for the scheduled job to run on
   needs `Authorization: Bearer <CRON_SECRET>` (constant-time compare, 401 otherwise, no session,
   hidden from OpenAPI). The old `python -m app.jobs.*` entry points remain.
 - **Time budgets in sync.** A sync past its deadline stops between batches, commits, frees its
-  lease, and reports partial. The initial 90-day sync stores its history id and Gmail page token in
+  lease, and reports partial. The initial sync stores its history id and Gmail page token in
   `sync_state` and continues from there on the next run, so it spreads over daily runs and "Sync now"
   presses without duplicates.
 - **"Sync now" is inline.** `POST /sync` runs the sync inside the request with a 25 s budget and

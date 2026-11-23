@@ -23,6 +23,8 @@ Two constraints shape everything: inboxes are sensitive, so store as little as p
 | Repo | Public from day one | Resume visibility; requires strict secret hygiene |
 | Budget | Up to about $10 a month plus a domain | Always-on backend, no cold starts |
 
+> Note: the first-sync window was changed from 90 to 30 days on the user's request (setting `INITIAL_SYNC_DAYS`, default 30).
+
 Working title: Application Tracker. Pick a real name before the domain purchase in week 5 (see Open items).
 
 ## Scope

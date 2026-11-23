@@ -101,11 +101,36 @@ jobs:
       - name: Smoke test
         if: steps.cfg.outputs.configured == 'true'
         run: |
-          curl --fail --silent --show-error --retry 6 --retry-delay 10 --retry-all-errors \
-            "${API_URL%/}/health" | grep -q '"ok"'
-          page="$(curl --fail --silent --show-error --retry 6 --retry-delay 10 \
-            --retry-all-errors "${APP_URL%/}/")"
+          set -euo pipefail
+          retry=(--fail --silent --show-error --retry 6 --retry-delay 10 --retry-all-errors)
+
+          echo "check: GET ${API_URL%/}/health"
+          curl "${retry[@]}" "${API_URL%/}/health" | grep -q '"ok"'
+          echo "/health -> ok"
+
+          echo "check: GET ${APP_URL%/}/"
+          page="$(curl "${retry[@]}" "${APP_URL%/}/")"
           echo "$page" | grep -q 'id="root"'
+          echo "landing page -> has #root"
+
           headers="$(curl --silent --head "${APP_URL%/}/")"
+          echo "check: Content-Security-Policy header"
           echo "$headers" | grep -qi '^content-security-policy:'
-          if echo "$headers" | grep -q '__API_ORIGIN__'; then exit 1; fi
+          echo "CSP header present"
+
+          echo "check: API origin placeholder replaced"
+          if echo "$headers" | grep -q '__API_ORIGIN__'; then
+            echo "API origin placeholder still present" >&2
+            exit 1
+          fi
+          echo "API origin substituted"
+
+          echo "check: GET ${API_URL%/}/me without a session"
+          me_status="$(curl --silent --output /tmp/me.json --write-out '%{http_code}' \
+            --retry 3 --retry-delay 5 "${API_URL%/}/me")"
+          if [ "$me_status" != "401" ]; then
+            echo "expected 401 from /me, got $me_status" >&2
+            exit 1
+          fi
+          python3 -c 'import json; json.load(open("/tmp/me.json"))'
+          echo "/me -> 401 json (routed to FastAPI)"

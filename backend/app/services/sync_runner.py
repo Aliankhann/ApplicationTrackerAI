@@ -19,6 +19,7 @@ from app.services.sync import (
     SyncAlreadyRunning,
     SyncFailed,
     SyncPartial,
+    SyncPaused,
     SyncRevoked,
     SyncUserGone,
     run_sync,
@@ -31,6 +32,7 @@ ERROR_TOKEN_UNREADABLE = "token_unreadable"  # noqa: S105
 class SyncOutcome(StrEnum):
     COMPLETED = "completed"
     PARTIAL = "partial"  # stopped at the deadline; the next run continues
+    PAUSED = "paused"  # Gmail rate limited; progress kept, the next run continues
     ALREADY_RUNNING = "already_running"
     REVOKED = "revoked"
     FAILED = "failed"
@@ -84,6 +86,8 @@ def run_user_sync(
         return SyncOutcome.ALREADY_RUNNING
     if isinstance(result, SyncPartial):
         return SyncOutcome.PARTIAL
+    if isinstance(result, SyncPaused):
+        return SyncOutcome.PAUSED
     if isinstance(result, SyncUserGone):
         return SyncOutcome.USER_GONE
     return SyncOutcome.COMPLETED
