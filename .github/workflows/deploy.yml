@@ -105,21 +105,22 @@ jobs:
           retry=(--fail --silent --show-error --retry 6 --retry-delay 10 --retry-all-errors)
 
           echo "check: GET ${API_URL%/}/health"
-          curl "${retry[@]}" "${API_URL%/}/health" | grep -q '"ok"'
+          health="$(curl "${retry[@]}" "${API_URL%/}/health")"
+          grep -q '"ok"' <<<"$health"
           echo "/health -> ok"
 
           echo "check: GET ${APP_URL%/}/"
           page="$(curl "${retry[@]}" "${APP_URL%/}/")"
-          echo "$page" | grep -q 'id="root"'
+          grep -q 'id="root"' <<<"$page"
           echo "landing page -> has #root"
 
           headers="$(curl --silent --head "${APP_URL%/}/")"
           echo "check: Content-Security-Policy header"
-          echo "$headers" | grep -qi '^content-security-policy:'
+          grep -qi '^content-security-policy:' <<<"$headers"
           echo "CSP header present"
 
           echo "check: API origin placeholder replaced"
-          if echo "$headers" | grep -q '__API_ORIGIN__'; then
+          if grep -q '__API_ORIGIN__' <<<"$headers"; then
             echo "API origin placeholder still present" >&2
             exit 1
           fi

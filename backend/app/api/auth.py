@@ -46,6 +46,7 @@ class MeResponse(BaseModel):
     timezone: str | None
     setup_completed: bool
     invite_held_until: datetime | None  # set while the user still has to connect Gmail
+    initial_sync_days: int  # how far back the first Gmail sync looks (for user-facing copy)
 
 
 class DeleteBody(BaseModel):
@@ -60,7 +61,7 @@ class DeleteOut(BaseModel):
 
 
 @router.get("/me", response_model=MeResponse)
-def me(user: CurrentUser, db: Db) -> MeResponse:
+def me(user: CurrentUser, db: Db, settings: Config) -> MeResponse:
     held_until = None
     if user.setup_completed_at is None:
         claim = invite_codes.claim_of(db, user.id)
@@ -71,6 +72,7 @@ def me(user: CurrentUser, db: Db) -> MeResponse:
         timezone=user.timezone,
         setup_completed=user.setup_completed_at is not None,
         invite_held_until=held_until,
+        initial_sync_days=settings.initial_sync_days,
     )
 
 

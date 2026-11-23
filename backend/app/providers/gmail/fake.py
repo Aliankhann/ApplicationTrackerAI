@@ -1,7 +1,7 @@
 """In-memory GmailClient for tests. Never talks to Google."""
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -240,17 +240,20 @@ class FakeGmailClient:
         self.fetched_thread_ids.append(thread_id)
         return found
 
-    def get_threads(self, thread_ids: list[str]) -> list[ThreadMeta]:
-        """Like the real client: threads that stay rate limited raise with the rest attached."""
+    def get_threads(
+        self, thread_ids: list[str], time_left: Callable[[], float | None] | None = None
+    ) -> list[ThreadMeta]:
+        """Like the real client: deleted threads are left out; threads that stay rate limited
+        raise with the rest attached."""
         self._guard()
         found: list[ThreadMeta] = []
         limited = False
         for tid in thread_ids:
             if self._limited(tid):
                 limited = True
-                continue
-            found.append(self._thread(tid))
-            self.fetched_thread_ids.append(tid)
+            elif self._threads.get(tid):
+                found.append(self._thread(tid))
+                self.fetched_thread_ids.append(tid)
         if limited:
             raise GmailRateLimited(fetched=tuple(found))
         return found

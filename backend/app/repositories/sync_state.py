@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timedelta
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import case, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.models import OAuthToken, SyncState, SyncStatus, TokenStatus, User
@@ -31,6 +31,7 @@ def reset(session: Session, user_id: uuid.UUID) -> None:
             history_id=None,
             pending_history_id=None,
             list_page_token=None,
+            list_page_offset=0,
             last_synced_at=None,
             initial_sync_done=False,
             status=SyncStatus.IDLE.value,
@@ -68,8 +69,11 @@ def clear_revoked(session: Session, user_id: uuid.UUID) -> None:
 
 
 def due_for_sync(session: Session, now: datetime, min_gap: timedelta) -> list[uuid.UUID]:
-    """Enabled users with a live token that were not synced within `min_gap`, never-synced and
-    oldest first (so users a budget-limited run did not reach go first next time)."""
+    """Enabled users with a live token that were not synced within `min_gap` (or are paused).
+
+    Order: never-synced first, then oldest last sync (so users a budget-limited run did not reach
+    go first next time), then paused (rate-limited) users last so they cannot starve the rest."""
+    paused_last = case((SyncState.status == SyncStatus.PAUSED.value, 1), else_=0)
     stmt = (
         select(OAuthToken.user_id)
         .join(User, User.id == OAuthToken.user_id)
@@ -83,6 +87,10 @@ def due_for_sync(session: Session, now: datetime, min_gap: timedelta) -> list[uu
                 SyncState.status == SyncStatus.PAUSED.value,  # unfinished: keep going
             ),
         )
-        .order_by(SyncState.last_synced_at.asc().nulls_first(), OAuthToken.user_id)
+        .order_by(
+            paused_last,
+            SyncState.last_synced_at.asc().nulls_first(),
+            OAuthToken.user_id,
+        )
     )
     return list(session.scalars(stmt))

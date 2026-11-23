@@ -104,6 +104,7 @@ def test_me_returns_profile_with_valid_session_and_401_without(env: Env) -> None
         "timezone": "UTC",
         "setup_completed": True,
         "invite_held_until": None,
+        "initial_sync_days": 30,
     }
 
 

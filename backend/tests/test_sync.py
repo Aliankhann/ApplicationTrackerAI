@@ -25,10 +25,8 @@ from app.providers.gmail import (
     FakeGmailClient,
     GmailError,
     GmailHistoryExpired,
-    GmailNotFound,
     GmailRateLimited,
     MessageMeta,
-    ThreadMeta,
 )
 from app.services import sync
 from app.services.classification import ApplicationStatus
@@ -231,15 +229,8 @@ def test_incremental_skips_a_deleted_thread(db_session: Session, user_id: uuid.U
     client.add_message("t-here", from_address="jobs@y.example", subject="Application received")
 
     class Missing(FakeGmailClient):
-        def get_threads(self, thread_ids: list[str]) -> list[ThreadMeta]:
-            if "t-gone" in thread_ids:
-                raise GmailNotFound("t-gone")
-            return super().get_threads(thread_ids)
-
-        def get_thread(self, thread_id: str) -> ThreadMeta:
-            if thread_id == "t-gone":
-                raise GmailNotFound(thread_id)
-            return super().get_thread(thread_id)
+        def get_threads(self, thread_ids, time_left=None):  # type: ignore[no-untyped-def]
+            return super().get_threads([t for t in thread_ids if t != "t-gone"], time_left)
 
     client.__class__ = Missing
     result = sync_once(db_session, user_id, client)

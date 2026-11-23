@@ -272,6 +272,10 @@ class SyncState(TimestampMixin, Base):
     # token of the page being processed. Both are cleared when the initial sync completes.
     pending_history_id: Mapped[str | None] = mapped_column(String(32))
     list_page_token: Mapped[str | None] = mapped_column(Text)
+    # How many ids of the current list page are already processed (resume skips them).
+    list_page_offset: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     # Runs in a row that ended rate limited; reset by any run that did not.
     consecutive_rate_limits: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"

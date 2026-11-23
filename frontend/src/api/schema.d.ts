@@ -600,6 +600,8 @@ export interface components {
             setup_completed: boolean;
             /** Invite Held Until */
             invite_held_until: string | null;
+            /** Initial Sync Days */
+            initial_sync_days: number;
         };
         /** PreviewBody */
         PreviewBody: {

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Protocol
 
 from app.providers.gmail.types import (
@@ -23,9 +24,12 @@ class GmailClient(Protocol):
 
     def get_thread(self, thread_id: str) -> ThreadMeta: ...
 
-    def get_threads(self, thread_ids: list[str]) -> list[ThreadMeta]:
-        """Batch fetch; raises GmailNotFound if any id is missing, or GmailRateLimited (carrying the
-        threads it did fetch) if some stay rate limited after its own retries."""
+    def get_threads(
+        self, thread_ids: list[str], time_left: Callable[[], float | None] | None = None
+    ) -> list[ThreadMeta]:
+        """Batch fetch in id order; deleted threads are left out. Rate-limited threads are
+        retried alone, within `time_left` seconds when given. Raises GmailRateLimited (carrying
+        the threads it did fetch) if some stay rate limited."""
         ...
 
     def list_history(self, start_history_id: str, page_token: str | None = None) -> HistoryPage: ...

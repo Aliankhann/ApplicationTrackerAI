@@ -15,8 +15,8 @@ export default function FinishSetupPage({ me }: { me: Me }) {
       <h1 className="text-2xl font-bold">Finish setup: connect Gmail</h1>
       <p className="mt-4 text-gray-700 dark:text-gray-300">
         You are signed in. To finish creating your account, connect Gmail. We read only the sender,
-        subject, and a short snippet of job-related email from the last 30 days. We never store full
-        emails and never send anything.{' '}
+        subject, and a short snippet of job-related email from the last {me.initial_sync_days} days.
+        We never store full emails and never send anything.{' '}
         <Link to="/privacy" className="link">
           What we read and store
         </Link>

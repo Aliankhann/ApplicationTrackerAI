@@ -10,6 +10,7 @@ const ME = {
   timezone: null,
   setup_completed: false,
   invite_held_until: '2026-12-01T10:00:00Z',
+  initial_sync_days: 45,
 }
 
 function stubApi(me: object, connectUrl = 'https://accounts.google.com/o/oauth2/v2/auth?x=1') {
@@ -50,6 +51,12 @@ test('AC: an invite_expired error is explained on the finish-setup screen', asyn
   stubApi(ME)
   renderRoute('/app/settings?gmail_error=invite_expired')
   expect(await screen.findByRole('alert')).toHaveTextContent('Ask for a new invite code')
+})
+
+test('AC: the sync window in the copy comes from the API, not a hard-coded number', async () => {
+  stubApi(ME)
+  renderRoute('/app')
+  expect(await screen.findByText(/from the last 45 days/)).toBeVisible()
 })
 
 test('AC: a user who finished setup sees the normal app navigation', async () => {

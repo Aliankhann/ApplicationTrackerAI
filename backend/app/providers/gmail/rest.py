@@ -57,6 +57,7 @@ RATE_REASONS = frozenset(
 
 # `provider(force_refresh)` returns a bearer token; True means the cached one was rejected.
 AccessTokenProvider = Callable[[bool], str]
+TimeLeft = Callable[[], float | None]  # seconds left in the caller's budget; None: unlimited
 Params = list[tuple[str, str | int | float | bool | None]]
 
 
@@ -209,29 +210,39 @@ class RestGmailClient:
         data = self._get("threads.get", f"/threads/{thread_id}", params, missing=GmailNotFound)
         return self._thread(data, owner)
 
-    def get_threads(self, thread_ids: list[str]) -> list[ThreadMeta]:
-        """Fetch in id order. Only rate-limited threads are retried (Retry-After, else full-jitter
-        backoff). Raises GmailRateLimited carrying the threads fetched if some still fail, or the
-        first other error in id order (e.g. GmailNotFound)."""
+    def get_threads(
+        self, thread_ids: list[str], time_left: TimeLeft | None = None
+    ) -> list[ThreadMeta]:
+        """Fetch in id order; threads that no longer exist are left out. Only rate-limited threads
+        are retried (Retry-After, else full-jitter backoff). `time_left` (seconds, or None for
+        unlimited) bounds the retries: a delay longer than the time left is not slept, the call
+        gives up at once. Raises GmailRateLimited carrying the threads fetched if some stay rate
+        limited, or the first other error in id order."""
         self._owner()  # warm the profile and access token once, not once per worker
         done: dict[str, ThreadMeta] = {}
         pending = list(thread_ids)
         hint: float | None = None
         for attempt in range(THREAD_FETCH_ATTEMPTS):
             if attempt:
-                self._sleep(self._retry_delay(attempt - 1, hint))
+                delay = self._retry_delay(attempt - 1, hint)
+                left = time_left() if time_left else None
+                if left is not None and left <= delay:
+                    break
+                self._sleep(delay)
             outcomes = self._fetch_round(pending)
             pending, hint = [], None
             for thread_id, outcome in outcomes.items():
                 if isinstance(outcome, GmailRateLimited):
                     pending.append(thread_id)
                     hint = max(hint or 0.0, outcome.retry_after or 0.0) or None
+                elif isinstance(outcome, GmailNotFound):
+                    continue  # deleted since it was listed
                 elif isinstance(outcome, GmailError):
                     raise outcome
                 else:
                     done[thread_id] = outcome
             if not pending:
-                return [done[thread_id] for thread_id in thread_ids]
+                return [done[t] for t in thread_ids if t in done]
         raise GmailRateLimited(hint, tuple(done[t] for t in thread_ids if t in done))
 
     def _fetch_round(self, thread_ids: list[str]) -> dict[str, ThreadMeta | GmailError]:

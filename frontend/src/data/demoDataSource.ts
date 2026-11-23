@@ -4,6 +4,7 @@ import {
   buildDemoSequences,
   type DemoRecord,
 } from '../demo/data'
+import { DEFAULT_INITIAL_SYNC_DAYS } from '../constants'
 import { renderPreview } from '../demo/preview'
 import { ApiError, type DataSource } from './dataSource'
 import type { ApplicationDetail, FollowUp, ListParams, Sequence } from './schemas'
@@ -164,6 +165,7 @@ export function createDemoDataSource(now: Date = new Date()): DataSource {
         timezone: null,
         setup_completed: true,
         invite_held_until: null,
+        initial_sync_days: DEFAULT_INITIAL_SYNC_DAYS,
       }
     },
     async getGmailStatus() {

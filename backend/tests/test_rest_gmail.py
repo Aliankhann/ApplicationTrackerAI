@@ -239,9 +239,9 @@ def test_us31_get_threads_is_bounded_to_five_concurrent_and_ordered(api: FakeGma
     assert 1 < api.max_in_flight <= 5
 
 
-def test_us31_get_threads_raises_not_found_when_one_is_missing(api: FakeGmailApi) -> None:
-    with pytest.raises(GmailNotFound):
-        make(api).get_threads(["t-confirm", "t-gone"])
+def test_us31_get_threads_leaves_out_a_missing_thread(api: FakeGmailApi) -> None:
+    found = make(api).get_threads(["t-confirm", "t-gone"])
+    assert [t.thread_id for t in found] == ["t-confirm"]
 
 
 def test_us31_reply_recipient_prefers_reply_to_and_skips_own_messages(api: FakeGmailApi) -> None:

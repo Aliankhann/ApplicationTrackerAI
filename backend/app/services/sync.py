@@ -37,7 +37,6 @@ from app.providers.gmail import (
     GmailClient,
     GmailError,
     GmailHistoryExpired,
-    GmailNotFound,
     GmailRateLimited,
     MessageMeta,
     ThreadMeta,
@@ -176,6 +175,12 @@ class _Context:
             seconds = min(seconds, max((self.deadline - self.clock()).total_seconds(), 0.0))
         self.sleep(seconds)
 
+    def time_left(self) -> float | None:
+        """Seconds until the deadline (None: no deadline); bounds the client's retry sleeps."""
+        if self.deadline is None:
+            return None
+        return max((self.deadline - self.clock()).total_seconds(), 0.0)
+
     def total_rate_limit_hits(self) -> int:
         return self.rate_limit_hits + self.client.rate_limit_hits
 
@@ -309,32 +314,32 @@ def _record(
     return application is not None and application.status != before_status
 
 
-def _fetch(ctx: _Context, ids: list[str]) -> list[ThreadMeta]:
-    """Batch fetch; if a thread vanished (deleted), fetch the rest one by one. Raises
-    GmailRateLimited carrying the threads that were fetched."""
-    try:
-        return ctx.client.get_threads(ids)
-    except GmailNotFound:
-        found: list[ThreadMeta] = []
-        for thread_id in ids:
-            try:
-                found.append(ctx.call(partial(ctx.client.get_thread, thread_id)))
-            except GmailNotFound:
-                continue
-            except GmailRateLimited as exc:
-                raise GmailRateLimited(exc.retry_after, tuple(found)) from None
-        return found
+def _fetched_prefix(batch: list[str], metas: list[ThreadMeta]) -> int:
+    """How many leading ids of the batch were fetched: safe to skip on a resume."""
+    got = {meta.thread_id for meta in metas}
+    count = 0
+    for thread_id in batch:
+        if thread_id not in got:
+            break
+        count += 1
+    return count
 
 
-def _process_ids(ctx: _Context, ids: list[str]) -> bool:
+def _process_ids(ctx: _Context, ids: list[str], *, resume_at: int | None = None) -> bool:
     """Process in committed batches; False when the deadline stopped it before the end. When
-    Gmail stays rate limited, the threads that were fetched are kept, then it is re-raised."""
-    for batch in _batches(ids):
+    Gmail stays rate limited, the threads that were fetched are kept, then it is re-raised.
+
+    `resume_at` is for a list page of the initial sync: it starts at that offset and stores how
+    far it got in `list_page_offset`, so a resumed run skips ids already fetched. (Ids that
+    move because mail arrived meanwhile are covered by the incremental sync that follows.)"""
+    track = resume_at is not None
+    for start in range(resume_at or 0, len(ids), BATCH_SIZE):
         if ctx.out_of_time():
             return False
+        batch = ids[start : start + BATCH_SIZE]
         limited: GmailRateLimited | None = None
         try:
-            metas = _fetch(ctx, batch)
+            metas = ctx.client.get_threads(batch, ctx.time_left)
         except GmailRateLimited as exc:
             metas, limited = list(exc.fetched), exc
         for meta in metas:
@@ -342,6 +347,9 @@ def _process_ids(ctx: _Context, ids: list[str]) -> bool:
                 _checkpoint(ctx)
                 return False
             _process_thread(ctx, meta, ctx.counts)
+        if track:
+            done = len(batch) if limited is None else _fetched_prefix(batch, metas)
+            ctx.state.list_page_offset = start + done
         _checkpoint(ctx)
         if limited is not None:
             raise limited
@@ -395,6 +403,7 @@ def _finish(ctx: _Context, state: SyncState, history_id: str, mode: Mode) -> Syn
     state.initial_sync_done = True
     state.pending_history_id = None
     state.list_page_token = None
+    state.list_page_offset = 0
     state.last_synced_at = ctx.now
     state.consecutive_rate_limits = 0
     _release(state, SyncStatus.IDLE, None)
@@ -409,6 +418,7 @@ def _start_listing(ctx: _Context, state: SyncState) -> None:
     # Taken before listing so changes made during the sync are picked up next time.
     state.pending_history_id = ctx.call(ctx.client.get_profile).history_id
     state.list_page_token = None  # committed with the first batch (or by _pause)
+    state.list_page_offset = 0
 
 
 def _list_page(
@@ -442,11 +452,12 @@ def _initial(ctx: _Context, state: SyncState, mode: Mode) -> SyncResult | SyncPa
     while True:
         page, next_token, restarted = _list_page(ctx, state, restarted)
         ids = list(dict.fromkeys(s.thread_id for s in page))
-        if not _process_ids(ctx, ids):  # the page token stays, so this page is redone next run
+        if not _process_ids(ctx, ids, resume_at=state.list_page_offset):  # resumes mid-page
             return _pause(ctx, state, mode)
         if next_token is None:
             return _finish(ctx, state, _pending(state), mode)
         state.list_page_token = next_token
+        state.list_page_offset = 0
 
 
 def _incremental(ctx: _Context, state: SyncState, start: str) -> SyncResult | SyncPartial:
@@ -528,7 +539,7 @@ def _run_claimed(ctx: _Context) -> SyncResult | SyncPartial | SyncPaused | SyncU
             paused = _pause_rate_limited(ctx, ctx.state)
             _log_completed(ctx, paused)
             return paused
-        ctx.state.consecutive_rate_limits += 1
+        ctx.state.consecutive_rate_limits = 0  # so a later throttle pauses again
         _record_failure(ctx, SyncStatus.ERROR, ERROR_RATE_LIMITED)
         _log_failed(ctx, ERROR_RATE_LIMITED)
         raise SyncFailed(ERROR_RATE_LIMITED) from None

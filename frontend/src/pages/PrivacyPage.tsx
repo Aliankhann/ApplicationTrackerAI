@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { CONTACT_MAILTO, GOOGLE_PERMISSIONS_URL, PRIVACY_LAST_UPDATED } from '../constants'
+import {
+  CONTACT_MAILTO,
+  DEFAULT_INITIAL_SYNC_DAYS,
+  GOOGLE_PERMISSIONS_URL,
+  PRIVACY_LAST_UPDATED,
+} from '../constants'
 
 function Todo({ children }: { children: ReactNode }) {
   return <strong className="font-bold">[TODO: {children}]</strong>
@@ -39,19 +44,19 @@ export default function PrivacyPage() {
 
       <Section id="reads" title="What we read from Gmail">
         <p>
-          When you connect Gmail we look at threads from the last 30 days, and after that at
-          threads that changed. For each thread we read metadata only: the sender, the subject, a
-          short snippet (cut to 200 characters), message dates, and whether the last message was
-          yours. We do not read full message bodies.
+          When you connect Gmail we look at threads from the last {DEFAULT_INITIAL_SYNC_DAYS} days,
+          and after that at threads that changed. For each thread we read metadata only: the sender,
+          the subject, a short snippet (cut to 200 characters), message dates, and whether the last
+          message was yours. We do not read full message bodies.
         </p>
         <p>
           Permissions: <code>gmail.readonly</code> when you connect Gmail. Follow-up drafts need
-          <code> gmail.compose</code>, which we ask for only if you turn follow-ups on. That step
-          is planned and not built yet.
+          <code> gmail.compose</code>, which we ask for only if you turn follow-ups on. That step is
+          planned and not built yet.
         </p>
         <p>
-          Honest note: <code>gmail.compose</code> technically allows sending mail, not just
-          drafting it. The app only ever creates drafts, and that is enforced in our code: the Gmail
+          Honest note: <code>gmail.compose</code> technically allows sending mail, not just drafting
+          it. The app only ever creates drafts, and that is enforced in our code: the Gmail
           interface the app uses has no send operation. You review and send every draft yourself.
         </p>
       </Section>
@@ -124,13 +129,13 @@ export default function PrivacyPage() {
       <Section id="access" title="Who can access your data">
         <p>
           Only the operator of this app, who runs it for a small invited group. The operator does
-          not browse user data, though they are technically able to read the database. A planned admin view will show counts only, never email content.
-          That view is not built yet.
+          not browse user data, though they are technically able to read the database. A planned
+          admin view will show counts only, never email content. That view is not built yet.
         </p>
         <p>
-          Your data is not sold or shared. The services we depend on are Google (Gmail), our
-          hosting provider <Todo>hosting provider not yet chosen</Todo>, and an email provider for
-          the digest (not yet chosen).
+          Your data is not sold or shared. The services we depend on are Google (Gmail), our hosting
+          provider <Todo>hosting provider not yet chosen</Todo>, and an email provider for the
+          digest (not yet chosen).
         </p>
       </Section>
 
@@ -150,15 +155,15 @@ export default function PrivacyPage() {
         <p>
           <strong>Disconnect Gmail</strong> (Settings): will revoke our access at Google (the Google
           connection is not built yet, so until then Disconnect reports an error and changes
-          nothing), and deletes your
-          stored token and all synced email threads, and cancels follow-ups that have not been
-          drafted. Your applications stay, without their email details, and your account stays.
+          nothing), and deletes your stored token and all synced email threads, and cancels
+          follow-ups that have not been drafted. Your applications stay, without their email
+          details, and your account stays.
         </p>
         <p>
-          <strong>Delete my account and data</strong> (Settings): deletes every row we hold for you in one step and, once the Google connection exists, revokes our access there. A
-          confirmation email is planned; sending it
-          is not wired yet. One anonymous record that an account was deleted remains, with no user
-          ID or address.
+          <strong>Delete my account and data</strong> (Settings): deletes every row we hold for you
+          in one step and, once the Google connection exists, revokes our access there. A
+          confirmation email is planned; sending it is not wired yet. One anonymous record that an
+          account was deleted remains, with no user ID or address.
         </p>
         <p>
           If revoking at Google fails, you can remove access yourself at{' '}

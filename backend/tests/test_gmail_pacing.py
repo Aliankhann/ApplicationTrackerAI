@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
-from app.providers.gmail import DraftRequest, GmailNotFound, GmailRateLimited
+from app.providers.gmail import DraftRequest, GmailRateLimited
 from app.providers.gmail.pacing import UNIT_COSTS, TokenBucket
 from app.providers.gmail.rest import RETRY_CAP_SECONDS, THREAD_FETCH_ATTEMPTS, RestGmailClient
 from app.providers.google.oidc import OidcConfig
@@ -207,7 +207,19 @@ def test_persistent_rate_limit_raises_with_the_threads_already_fetched(
     assert limiter.thread_gets["t-confirm"] == 1  # successes are never fetched again
 
 
-def test_a_missing_thread_still_raises_not_found(api: FakeGmailApi) -> None:
-    client, _ = make(api, FakeTime())
-    with pytest.raises(GmailNotFound):
-        client.get_threads(["t-confirm", "t-nope"])
+def test_a_missing_thread_beside_rate_limited_ones_keeps_the_successes(api: FakeGmailApi) -> None:
+    client, limiter = make(api, FakeTime(), {"t-reject": 1})
+    found = client.get_threads(["t-confirm", "t-nope", "t-reject"])
+    assert [t.thread_id for t in found] == ["t-confirm", "t-reject"]
+    assert limiter.thread_gets["t-confirm"] == 1  # nothing was fetched twice
+
+
+def test_retries_stop_when_the_next_delay_exceeds_the_time_left(api: FakeGmailApi) -> None:
+    time_ = FakeTime()
+    client, limiter = make(api, time_, {"t-reject": 99}, retry_after="5")
+    budget_end = 12.0  # three 5 s retries cannot all fit
+    with pytest.raises(GmailRateLimited) as raised:
+        client.get_threads(IDS, lambda: budget_end - time_.now)
+    assert time_.now <= budget_end
+    assert limiter.thread_gets["t-reject"] == 3  # first try plus two retries that fit
+    assert {t.thread_id for t in raised.value.fetched} == {"t-confirm", "t-interview", "t-sent"}

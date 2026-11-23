@@ -5,6 +5,7 @@ import logging
 import uuid
 from datetime import timedelta
 
+import httpx
 import pytest
 from sqlalchemy.orm import Session
 
@@ -12,9 +13,15 @@ from app.config import get_settings
 from app.jobs.tick import TickSummary
 from app.models import SyncState
 from app.providers.gmail import FakeGmailClient, GmailRateLimited
+from app.providers.gmail.pacing import TokenBucket
+from app.providers.gmail.rest import RestGmailClient
+from app.repositories import sync_state as repo
+from app.services import sync
 from app.services.sync import SyncFailed, SyncPaused, SyncResult, run_sync
-from tests.fixtures.gmail_threads import OWNER
+from tests.fake_gmail_api import FakeGmailApi
+from tests.fixtures.gmail_threads import OWNER, build_threads
 from tests.test_cron import MONDAY, tick
+from tests.test_gmail_pacing import FakeTime, Limiter
 from tests.test_sessions import Env, env  # noqa: F401
 from tests.test_sync import CLASSIFIER, DAY, NOW, RateLimitedClient, fake, make_user, thread_ids
 from tests.test_sync_api import _keyring as _keyring
@@ -104,7 +111,7 @@ def test_three_consecutive_rate_limited_runs_record_an_error(
         "rate_limited",
         None,
     )
-    assert state.consecutive_rate_limits == 3
+    assert state.consecutive_rate_limits == 0  # reset, so a later throttle pauses again
 
 
 def test_a_successful_run_between_rate_limited_runs_resets_the_count(
@@ -221,3 +228,80 @@ def test_the_initial_window_setting_is_validated(
     get_settings.cache_clear()
     with pytest.raises(ValueError):
         get_settings()
+
+
+# ---------- follow-up fixes: deadline, page offset, fairness ----------
+
+
+def test_a_rest_client_that_is_always_rate_limited_finishes_within_the_manual_budget(
+    user_id: uuid.UUID, db_session: Session
+) -> None:
+    api = FakeGmailApi.from_metas(OWNER, build_threads(NOW))
+    api.page_size = 100
+    time_ = FakeTime()
+    limiter = Limiter(api, dict.fromkeys(api.threads, 999), retry_after="20")
+    http = httpx.Client(transport=httpx.MockTransport(limiter))
+    client = RestGmailClient(
+        lambda _: api.valid_token,
+        http,
+        bucket=TokenBucket(100.0, time_.clock, time_.sleep),
+        sleep=time_.sleep,
+    )
+    result = run_sync(
+        db_session,
+        user_id,
+        client,
+        CLASSIFIER,
+        NOW,
+        commit=db_session.flush,
+        sleep=time_.sleep,
+        clock=lambda: NOW + timedelta(seconds=time_.now),
+        deadline=NOW + timedelta(seconds=25),
+        ensure_progress=False,
+    )
+    assert isinstance(result, SyncPaused)
+    assert time_.now <= 25.0  # the 20 s Retry-After fits once; a second one would not
+
+
+def test_a_resumed_page_requests_only_the_ids_not_yet_fetched(
+    db_session: Session, user_id: uuid.UUID, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sync, "BATCH_SIZE", 2)
+    client = fake()
+    client.rate_limit_threads(["t-reject"])
+    assert isinstance(attempt(db_session, user_id, client), SyncPaused)
+    assert state_of(db_session, user_id).list_page_offset == 3  # sent, interview, confirm done
+    client.clear_rate_limits()
+    client.fetched_thread_ids.clear()
+    assert isinstance(attempt(db_session, user_id, client), SyncResult)
+    assert client.fetched_thread_ids == ["t-reject", "t-newsletter"]
+    state = state_of(db_session, user_id)
+    assert (state.list_page_offset, state.list_page_token) == (0, None)
+
+
+def test_the_offset_resets_when_moving_to_the_next_page(
+    db_session: Session, user_id: uuid.UUID, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sync, "BATCH_SIZE", 2)
+    client = fake(page_size=2)
+    client.rate_limit_threads(["t-reject"])  # on the second page
+    assert isinstance(attempt(db_session, user_id, client), SyncPaused)
+    state = state_of(db_session, user_id)
+    assert state.list_page_token is not None and state.list_page_offset == 1
+
+
+def test_due_users_are_never_synced_then_oldest_then_paused_last(env: Env) -> None:  # noqa: F811
+    never, old, recent_enough, paused = users_with_tokens(env, 4)
+    env.clock.now = MONDAY
+    env.db.add_all(
+        [
+            SyncState(user_id=old.id, last_synced_at=MONDAY - timedelta(hours=40)),
+            SyncState(user_id=recent_enough.id, last_synced_at=MONDAY - timedelta(hours=20)),
+            SyncState(
+                user_id=paused.id, last_synced_at=MONDAY - timedelta(hours=90), status="paused"
+            ),
+        ]
+    )
+    env.db.commit()
+    due = repo.due_for_sync(env.db, MONDAY, timedelta(hours=12))
+    assert due == [never.id, old.id, recent_enough.id, paused.id]

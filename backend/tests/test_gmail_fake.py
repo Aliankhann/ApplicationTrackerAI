@@ -203,14 +203,13 @@ def test_send_and_delete_draft_update_thread_and_draft_existence() -> None:
     assert client.get_draft(gone.draft_id) is None
 
 
-def test_get_threads_batch_and_missing_id_raises_not_found() -> None:
+def test_get_threads_batch_leaves_out_a_missing_id() -> None:
     client = make()
     assert [t.thread_id for t in client.get_threads(["t-sent", "t-confirm"])] == [
         "t-sent",
         "t-confirm",
     ]
-    with pytest.raises(GmailNotFound):
-        client.get_threads(["t-sent", "nope"])
+    assert [t.thread_id for t in client.get_threads(["t-sent", "nope"])] == ["t-sent"]
 
 
 def test_list_history_pagination_stable_against_concurrent_adds() -> None:

@@ -179,6 +179,7 @@ export const MeSchema = z.object({
   timezone: z.string().nullable(),
   setup_completed: z.boolean(),
   invite_held_until: timestamp.nullable(),
+  initial_sync_days: z.number().int(),
 })
 export type Me = z.infer<typeof MeSchema>
 
