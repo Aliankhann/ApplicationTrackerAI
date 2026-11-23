@@ -50,6 +50,7 @@ projects only ever deploy as `--prod`):
 | `DB_POOL_MODE` | `serverless` (no app pool, no prepared statements) |
 | `FRONTEND_ORIGIN` | `https://app.<domain>` (CORS and Origin check) |
 | `API_BASE_URL` | `https://api.<domain>` (unsubscribe links; must be https) |
+| `COOKIE_DOMAIN` (staging name) | with a cookie domain, staging's CSRF cookie is `tracker_csrf_staging` (production keeps `tracker_csrf`), so a browser signed into both never overwrites one with the other. `deploy.yml` passes the matching `VITE_CSRF_COOKIE_NAME` to the frontend build |
 | `COOKIE_DOMAIN` | `.<domain>`; only the CSRF cookie uses it (required, see section 3) |
 | `SESSION_SECRET` | `openssl rand -hex 32` (at least 32 bytes) |
 | `CRON_SECRET` | `openssl rand -hex 32`; Vercel sends it as `Authorization: Bearer <value>` to the cron path (**verify on first deploy**) |

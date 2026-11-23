@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.api.deps import get_oidc
+from app.config import get_settings
 from app.models import AuditLog, InviteCode, OAuthToken, SyncState, TokenStatus, User
 from app.providers.google.scopes import GMAIL_COMPOSE, GMAIL_READONLY, parse_scopes
 from app.repositories import invite_codes, oauth_tokens
@@ -412,3 +413,22 @@ def test_connecting_gmail_again_for_a_completed_user_changes_no_invite(env: Env)
     c = Connect(env)
     c.consent()
     assert c.audit() == ["gmail_connected"]  # no account_setup_completed for a finished account
+
+
+def test_finalize_for_a_pending_user_whose_claim_vanished_stores_no_token(env: Env) -> None:  # noqa: F811
+    user = env.user(setup_completed_at=None)  # pending, but no code is bound to them
+    c = Connect(env, user)
+    assert_rejected(c, c.consent(), "invite_expired")
+    env.db.refresh(user)
+    assert user.setup_completed_at is None
+
+
+def test_complete_setup_after_cleanup_deleted_the_user_returns_false_without_error(
+    env: Env,  # noqa: F811
+) -> None:
+    user, _ = pending_user(env, claim=SHORT)
+    env.db.commit()
+    stale = env.db.get(User, user.id)
+    assert stale is not None
+    assert account.delete_expired_pending(env.db, T0 + 2 * SHORT) == 1
+    assert account.complete_setup(env.db, stale, get_settings(), T0 + 2 * SHORT) is False

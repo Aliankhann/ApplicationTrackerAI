@@ -85,12 +85,15 @@ def delete_account(
     the user link and any email for them removed. The user's audit rows (no FK) are deleted
     explicitly, then one
     anonymous `account_deleted` entry is written. A code the user had claimed becomes available
-    again. `forget_invite_email=False` (expiry cleanup) keeps an operator-set email binding.
+    again. A pending user's deletion (and `forget_invite_email=False`, expiry cleanup) keeps an
+    operator-set email binding; a completed user's deletion removes their email from invites.
     """
     audit_repo.delete_for_user(session, user_id)
     user = session.get(User, user_id)
+    pending = user is not None and user.setup_completed_at is None
+    keep_binding = pending or not forget_invite_email  # a pending user only held a claim
     invite_codes_repo.forget_user(
-        session, user_id, user.email if user and forget_invite_email else None
+        session, user_id, user.email if user and not keep_binding else None
     )
     users_repo.delete(session, user_id)
     audit_repo.record(session, None, AuditAction.ACCOUNT_DELETED, now)
@@ -113,19 +116,25 @@ def complete_setup(session: Session, user: User, settings: Settings, now: dateti
 
     Called in the transaction that stores the Gmail token. False means the code is gone (revoked,
     or lapsed with no room left): the caller must not store the token. A lapsed claim is
-    re-claimed when the code is still valid and a slot is free. A user with no claim at all
-    (created outside the invite flow) just completes. Caller commits.
+    re-claimed when the code is still valid and a slot is free. A user who is gone (cleanup won the
+    race) or has no claim cannot complete without a code; allowlisted and dev users are created
+    complete, so they never get here. Caller commits.
     """
+    invite_codes_repo.lock_user_cap(session)
+    fresh = session.get(User, user.id, populate_existing=True)  # cleanup may have won the race
+    if fresh is None:
+        return False
+    user = fresh
     if user.setup_completed_at is not None:
         return True
-    invite_codes_repo.lock_user_cap(session)
     held = invite_codes_repo.claim_of(session, user.id)
-    if held is not None:
-        lapsed = held.claimed_until is None or held.claimed_until <= now
-        if lapsed and invite_codes_repo.slots_in_use(session, now) >= settings.max_users:
-            return False
-        if not invite_codes_repo.finalize(session, user.id, now):
-            return False
+    if held is None:
+        return False  # pending users always hold a claim; without one there is no code to consume
+    lapsed = held.claimed_until is None or held.claimed_until <= now
+    if lapsed and invite_codes_repo.slots_in_use(session, now) >= settings.max_users:
+        return False
+    if not invite_codes_repo.finalize(session, user.id, now):
+        return False
     user.setup_completed_at = now
     audit_repo.record(session, user.id, AuditAction.ACCOUNT_SETUP_COMPLETED, now)
     return True

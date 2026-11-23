@@ -234,3 +234,41 @@ def test_migration_0014_marks_existing_users_complete_and_keeps_used_codes(
         command.downgrade(cfg, "0013")
         command.upgrade(cfg, "head")
         engine.dispose()
+
+
+def _delete_me(env: Env, user: User) -> None:  # noqa: F811
+    from app.api.deps import get_oidc  # noqa: F401
+    from tests.test_applications_api import CSRF
+    from tests.test_sessions import cookies
+
+    client = env.app()
+    raw, csrf, _ = env.login(user)
+    cookies(client, raw, csrf)
+    client.headers[CSRF] = csrf
+    assert client.request("DELETE", "/me", json={"confirm": "DELETE"}).status_code == 200
+
+
+def test_deleting_a_pending_account_keeps_the_operator_email_binding_on_the_code(
+    env: Env,  # noqa: F811
+) -> None:
+    user, invite = pending_user(env)
+    invite.created_for_email = "intended@example.test"
+    env.db.flush()
+    _delete_me(env, user)
+    env.db.refresh(invite)
+    assert invite.created_for_email == "intended@example.test"
+    assert invite.claimed_by_user_id is None and invite.claimed_until is None
+
+
+def test_deleting_a_completed_account_still_removes_their_email_from_invites(
+    env: Env,  # noqa: F811
+) -> None:
+    user = env.user()
+    invite = invite_codes.create(
+        env.db, hash_code(generate_code()), T0 + timedelta(days=9), user.email
+    )
+    invite.used_at, invite.used_by_user_id = T0, user.id
+    env.db.flush()
+    _delete_me(env, user)
+    env.db.refresh(invite)
+    assert invite.created_for_email is None and invite.used_at == T0

@@ -39,3 +39,28 @@ test('does not send a CSRF header when no CSRF cookie exists (public sign-in rou
   await api.POST('/auth/invite', { body: { code: 'X' } })
   expect(seen[0].headers.get('X-CSRF-Token')).toBeNull()
 })
+
+test('prefers the build-time CSRF cookie name (staging) over the default ones', async () => {
+  vi.stubEnv('VITE_CSRF_COOKIE_NAME', 'tracker_csrf_staging')
+  vi.resetModules()
+  const fresh = await import('./client')
+  expect(fresh.CSRF_COOKIES).toEqual([
+    'tracker_csrf_staging',
+    '__Host-tracker_csrf',
+    'tracker_csrf',
+  ])
+  vi.spyOn(document, 'cookie', 'get').mockReturnValue(
+    'tracker_csrf=prod-token; tracker_csrf_staging=staging-token',
+  )
+  await fresh.api.POST('/auth/logout')
+  expect(seen[0].headers.get('X-CSRF-Token')).toBe('staging-token')
+  vi.restoreAllMocks()
+  vi.unstubAllEnvs()
+})
+
+test('without the build variable only the default CSRF cookie names are tried', async () => {
+  vi.unstubAllEnvs()
+  vi.resetModules()
+  const fresh = await import('./client')
+  expect(fresh.CSRF_COOKIES).toEqual(['__Host-tracker_csrf', 'tracker_csrf'])
+})

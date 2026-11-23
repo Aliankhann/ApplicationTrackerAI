@@ -13,8 +13,14 @@ export const api = createClient<paths>({
   fetch: (request) => globalThis.fetch(request),
 })
 
-// __Host- is used by the backend outside local when no cookie domain is configured.
-const CSRF_COOKIES = ['__Host-tracker_csrf', 'tracker_csrf']
+// Staging and production share a parent domain, so staging's CSRF cookie has its own name
+// (VITE_CSRF_COOKIE_NAME, set at build time). __Host- is used by the backend outside local when no
+// cookie domain is configured.
+export const CSRF_COOKIES = [
+  ...(import.meta.env.VITE_CSRF_COOKIE_NAME ? [import.meta.env.VITE_CSRF_COOKIE_NAME] : []),
+  '__Host-tracker_csrf',
+  'tracker_csrf',
+]
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
 export function readCookie(name: string): string | undefined {

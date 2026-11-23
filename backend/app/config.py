@@ -136,7 +136,10 @@ class Settings(BaseSettings):
         """The only cookie that may carry a Domain (the app origin must read it): `__Host-` only
         when it is host-only, i.e. outside local with no cookie domain."""
         host_only = self.environment != "local" and self.cookie_domain is None
-        return f"{'__Host-' if host_only else ''}{self.csrf_cookie_name}"
+        name = self.csrf_cookie_name
+        if self.cookie_domain is not None and self.environment == "staging":
+            name = f"{name}_staging"  # staging and prod share the parent domain: no collision
+        return f"{'__Host-' if host_only else ''}{name}"
 
     @property
     def _cookie_prefix(self) -> str:

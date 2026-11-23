@@ -270,3 +270,14 @@ def test_session_cookie_stays_host_only_when_a_cookie_domain_is_set_and_logout_c
     assert csrf_c.startswith("tracker_csrf=") and "domain=.example.com" in csrf_c
     assert "max-age=0" in session_c and "max-age=0" in csrf_c
     assert "secure" in session_c and "httponly" in session_c
+
+
+def test_csrf_cookie_name_is_environment_specific_for_staging_with_a_cookie_domain(
+    env: Env,
+) -> None:
+    env.app("staging", cookie_domain=".example.com")
+    assert Settings().csrf_cookie == "tracker_csrf_staging"
+    env.app("prod", cookie_domain=".example.com")
+    assert Settings().csrf_cookie == "tracker_csrf"
+    env.app("local", cookie_domain=".example.com")
+    assert Settings().csrf_cookie == "tracker_csrf"
