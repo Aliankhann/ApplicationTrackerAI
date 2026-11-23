@@ -48,6 +48,8 @@ class User(TimestampMixin, Base):
     digest_enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )
+    # NULL while an invited user has signed in but not yet connected Gmail (see InviteCode).
+    setup_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class OAuthToken(TimestampMixin, Base):
@@ -70,7 +72,12 @@ class OAuthToken(TimestampMixin, Base):
 
 
 class InviteCode(TimestampMixin, Base):
-    """Only a hash of the code is stored, never the code itself."""
+    """Only a hash of the code is stored, never the code itself.
+
+    States: available -> held (entered in a browser, `held_until`) -> claimed (bound to a new
+    pending user until `claimed_until`) -> used (`used_at`, account setup complete). Also expired
+    (`expires_at`) and revoked (`revoked_at`).
+    """
 
     __tablename__ = "invite_codes"
 
@@ -82,6 +89,13 @@ class InviteCode(TimestampMixin, Base):
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    held_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    hold_token_hash: Mapped[str | None] = mapped_column(String(64))
+    claimed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    claimed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class RateLimit(Base):
@@ -370,6 +384,7 @@ class AuditAction(StrEnum):
     ACCOUNT_DELETED = "account_deleted"
     FOLLOWUPS_ENABLED = "followups_enabled"
     DATA_EXPORTED = "data_exported"
+    ACCOUNT_SETUP_COMPLETED = "account_setup_completed"
 
 
 class AuditLog(Base):
@@ -386,7 +401,7 @@ class AuditLog(Base):
         Index("ix_audit_log_at", "at"),
         CheckConstraint(
             "action in ('login', 'logout', 'gmail_connected', 'gmail_disconnected', "
-            "'account_deleted', 'followups_enabled', 'data_exported')",
+            "'account_deleted', 'followups_enabled', 'data_exported', 'account_setup_completed')",
             name="action_valid",
         ),
     )

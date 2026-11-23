@@ -70,7 +70,12 @@ export interface paths {
         put?: never;
         /**
          * Submit Invite
-         * @description Check a code WITHOUT using it; remember it in a signed cookie for the sign-in callback.
+         * @description Hold a code for this browser WITHOUT using it; remember the hold in a signed cookie.
+         *
+         *     Unknown, used, expired, revoked, and malformed codes give the identical 400. A code held by
+         *     another browser (or claimed by someone still setting up) gives a distinct 409 so the
+         *     legitimate holder's rival knows to wait. That reveals "this code exists" to someone who
+         *     already has all 160 bits of it, which is no real gain for an attacker.
          */
         post: operations["submit_invite_auth_invite_post"];
         delete?: never;
@@ -86,7 +91,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Google Start */
+        /**
+         * Google Start
+         * @description `mode=signup` may create an account (with the held invite); anything else only signs in.
+         */
         get: operations["google_start_auth_google_start_get"];
         put?: never;
         post?: never;
@@ -588,6 +596,10 @@ export interface components {
             email: string;
             /** Timezone */
             timezone: string | null;
+            /** Setup Completed */
+            setup_completed: boolean;
+            /** Invite Held Until */
+            invite_held_until: string | null;
         };
         /** PreviewBody */
         PreviewBody: {
@@ -846,7 +858,9 @@ export interface operations {
     };
     google_start_auth_google_start_get: {
         parameters: {
-            query?: never;
+            query?: {
+                mode?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -859,6 +873,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

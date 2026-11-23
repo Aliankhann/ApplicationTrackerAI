@@ -225,7 +225,7 @@ The frontend is a static React app on `app.<domain>` talking to a FastAPI JSON A
 - Session cookie: `HttpOnly`, `Secure`, `SameSite=Lax`, scoped to the parent domain. No tokens in `localStorage`.
 - CORS allows only the app origin with credentials. State-changing requests also require a custom CSRF header checked against a cookie value.
 
-**Invite gate:** the user enters a code first, then signs in with Google. If the email is not on the allowlist and the code is invalid, reject before any token is stored. Codes are long, random, single-use, hashed in the database, and rate limited.
+**Invite gate:** the user enters a code first (held for their browser), then signs up with Google (the code is claimed for 24 hours); connecting Gmail consumes it. Sign in never needs a code. If the email is not on the allowlist and the code is invalid, reject before any token is stored. Codes are long, random, single-use, hashed in the database, and rate limited.
 
 **Endpoints**
 

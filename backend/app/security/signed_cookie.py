@@ -1,6 +1,6 @@
 """HMAC-signed, short-lived cookie values for the sign-in flow.
 
-The OAuth flow (state, PKCE verifier, nonce) and the invite claim live only in these cookies,
+The OAuth flow (state, PKCE verifier, nonce) and the invite hold live only in these cookies,
 so no table is needed. They are HttpOnly and expire after `max_age` seconds. The signing key is
 derived from the session secret and bound to the cookie `kind`, so one kind never validates as
 another. Single use comes from three layers: the callback clears the cookie, the cookie expires
@@ -20,7 +20,6 @@ FLOW_KIND = "oauth-flow"
 INVITE_KIND = "invite-claim"
 CONNECT_KIND = "connect-flow"
 FLOW_MAX_AGE = 600
-INVITE_MAX_AGE = 1800
 
 
 def _b64(data: bytes) -> str:

@@ -59,6 +59,7 @@ projects only ever deploy as `--prod`):
 | `GOOGLE_REDIRECT_URI` | `https://api.<domain>/auth/google/callback` |
 | `GOOGLE_CONNECT_REDIRECT_URI` | `https://api.<domain>/gmail/callback` (or leave empty for the default) |
 | `ALLOWLIST_EMAILS` | comma-separated emails that may sign in without an invite |
+| `INVITE_HOLD_MINUTES`, `INVITE_CLAIM_HOURS` | optional, defaults `10` and `24` (see "Invites" below) |
 | `TRUSTED_PROXY_COUNT` | `1` (Vercel's proxy sets the client IP in `X-Forwarded-For`; **verify on first deploy**, a wrong value breaks rate limits) |
 | `MAX_USERS` | `100` |
 | `LLM_ENABLED`, `ANTHROPIC_API_KEY` | leave `false` and unset until the Limited Use review is done |
@@ -67,6 +68,31 @@ projects only ever deploy as `--prod`):
 | `SYNC_MIN_GAP_HOURS` | optional, default `12`; users synced more recently are skipped by the daily run |
 | `FOLLOWUP_WINDOW_MODE` | optional, default `daily` |
 | `DIGEST_SEND_AFTER_LOCAL_HOUR` | optional, empty = send at the daily run |
+
+### Invites
+
+An invite code goes through four states: **available**, **held** (entered in one browser, for
+`INVITE_HOLD_MINUTES`, so two people cannot use one code at the same time), **claimed** (bound to
+the new account when Google sign-up completes, for `INVITE_CLAIM_HOURS`), and **used**. A code is
+only consumed for good when the person has signed in with Google **and** connected Gmail, which is
+also when Google starts counting them toward its 100-user cap. If they do not finish within the
+claim window, the daily tick deletes the unfinished account (all its rows) and the code reopens.
+Holds do not count toward `MAX_USERS`; claims, used codes, and allowlisted users do. Sign in never
+needs a code.
+
+From `backend/`:
+
+```
+uv run python -m app.cli invite create [--email E] [--days N]   # prints the code once
+uv run python -m app.cli invite list      # id prefix, state, expiry, email binding, user id prefix
+uv run python -m app.cli invite revoke <id-prefix>   # a held or claimed code becomes unusable
+```
+
+A person who holds a revoked claim is told to ask for a new code when they connect Gmail, and
+their unfinished account is removed by the next expiry cleanup. The invite check answers 409
+`invite_in_use` when another browser holds the code; unknown, used, expired, and revoked codes all
+give the same 400. That one distinction tells someone who already knows the full 160-bit code
+that it exists, which gives an attacker nothing.
 
 Frontend project: `VITE_API_BASE_URL=https://api.<domain>` (the workflow also passes it as a build
 env). The CSP `connect-src` is filled in by the workflow from the GitHub variable `API_URL`.

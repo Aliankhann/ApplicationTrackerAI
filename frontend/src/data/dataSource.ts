@@ -4,6 +4,7 @@ import type {
   ConnectResult,
   DisconnectResult,
   GmailStatus,
+  Me,
   SyncStart,
   SyncStatus,
   ApplicationDetail,
@@ -37,6 +38,7 @@ export interface DataSource {
   previewTemplate(template: string, tone: Tone): Promise<Preview>
   getSettings(): Promise<Settings>
   updateSettings(patch: Settings): Promise<Settings>
+  getMe(): Promise<Me>
   getGmailStatus(): Promise<GmailStatus>
   startGmailConnect(followups: boolean): Promise<ConnectResult>
   startSync(): Promise<SyncStart>

@@ -10,15 +10,15 @@ export default function LandingPage() {
         and a daily digest.
       </p>
       <p className="mt-4 text-sm text-gray-700">
-        The demo shows the board, table, follow-ups queue and settings with sample data. Nothing
-        is saved or sent.
+        The demo shows the board, table, follow-ups queue and settings with sample data. Nothing is
+        saved or sent.
       </p>
       <div className="mt-8 flex gap-4">
         <Link to="/demo" className="rounded bg-gray-900 px-4 py-2 text-white">
           Try the demo
         </Link>
         <Link to="/sign-in" className="link self-center">
-          Sign in
+          Sign up or sign in
         </Link>
       </div>
       <div className="mt-8">

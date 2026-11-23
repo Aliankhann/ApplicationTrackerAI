@@ -10,6 +10,7 @@ import {
   FollowUpSchema,
   FollowUpsSchema,
   GmailStatusSchema,
+  MeSchema,
   PreviewSchema,
   SequenceSchema,
   SequencesSchema,
@@ -109,6 +110,9 @@ export const apiDataSource: DataSource = {
   },
   async updateSettings(patch) {
     return SettingsSchema.parse(unwrap(await api.PATCH('/settings', { body: patch })))
+  },
+  async getMe() {
+    return MeSchema.parse(unwrap(await api.GET('/me')))
   },
   async getGmailStatus() {
     return GmailStatusSchema.parse(unwrap(await api.GET('/gmail/status')))

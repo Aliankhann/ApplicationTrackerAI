@@ -65,6 +65,7 @@ export default function PrivacyPage() {
             'Your settings, such as whether the daily digest is on, and your follow-up sequences.',
             'Sign-in sessions: a hash of the session token and a hash of your browser’s user-agent string, used only to tell sessions apart. Neither is stored in readable form.',
             'If you were invited by email address, that address is kept with your invite code until you delete your account. The invite code itself is stored only as a hash.',
+            'If you sign up with an invite code but do not connect Gmail within 24 hours, your unfinished account is deleted automatically and the code is released.',
             'Sync and digest bookkeeping: timestamps, a Gmail sync checkpoint, and send status, with no email content.',
             'A short activity log: sign-in, sign-out, connecting and disconnecting Gmail, and account deletion, with the time and nothing else.',
           ]}

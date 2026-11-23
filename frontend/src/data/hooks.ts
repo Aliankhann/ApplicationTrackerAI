@@ -170,7 +170,10 @@ export function useUpdateSequence(id: string) {
 
 export function useSettings() {
   const source = useDataSource()
-  return useQuery({ queryKey: ['settings', source.kind], queryFn: () => source.getSettings() })
+  return useQuery({
+    queryKey: ['settings', source.kind],
+    queryFn: () => source.getSettings(),
+  })
 }
 
 export function useUpdateSettings() {
@@ -235,6 +238,14 @@ export function useGmailStatus() {
   return useQuery({
     queryKey: ['gmail', source.kind],
     queryFn: () => source.getGmailStatus(),
+  })
+}
+
+export function useMe() {
+  const source = useDataSource()
+  return useQuery({
+    queryKey: ['me', source.kind],
+    queryFn: () => source.getMe(),
   })
 }
 

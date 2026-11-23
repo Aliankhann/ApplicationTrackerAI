@@ -117,6 +117,9 @@ As the operator, I want to create single-use invite codes so I control who uses 
 - **Tests:** Unit: the stored value is a hash, not the code; two codes never collide in 10k
   generations; expiry is set.
 - **Depends on:** US-01 · **Estimate:** 0.5h
+- **Update (two-phase claim):** `invite list` shows id prefix, state (available, held, claimed,
+  used, expired, revoked), expiry and bound email, never the code; `invite revoke <id-prefix>`
+  marks a code unusable. Tests: `tests/test_invite_codes.py` (CLI section).
 
 ### [x] US-11 Google sign-in with PKCE
 _Built and tested against a local fake Google (signed ID tokens, PKCE, JWKS). A live round trip
@@ -138,6 +141,14 @@ As the operator, I want uninvited people rejected before anything about them is 
 - **Tests:** Integration: valid code, reused code, expired code, allowlisted email without a
   code, no row written on rejection, rate limit returns 429.
 - **Depends on:** US-10, US-11 · **Estimate:** 1h
+- **Update (two-phase claim):** a code is held for 10 minutes when entered (409 `invite_in_use`
+  if another browser holds it), claimed by the new pending user at Google sign-up (24 h,
+  `INVITE_CLAIM_HOURS`), and used only when Gmail is connected (`account_setup_completed`).
+  Unfinished sign-ups are deleted by the daily tick and the code reopens. Sign in
+  (`/auth/google/start?mode=signin`) never uses a code; an unknown Google account gets
+  `no_account`. Allowlisted emails skip the code in either mode. Holds do not count toward the
+  cap; claims do. Tests: `tests/test_signin.py`, `test_gmail_connect.py`,
+  `test_invite_lifecycle.py`.
 
 ### [x] US-13 Sessions and logout
 As a signed-in user, I want to stay signed in safely and be able to sign out.
@@ -162,6 +173,10 @@ As an invited friend, I want a clear page to enter my code and sign in.
   plain language; loading, error, and success states exist; the page is keyboard accessible.
 - **Tests:** Vitest: form validation, error message on 4xx, redirect on success.
 - **Depends on:** US-12 · **Estimate:** 1h
+- **Update (two-phase claim):** `/sign-in` first offers Sign up and Sign in. Sign up is the code
+  step then "Continue with Google"; Sign in goes straight to Google. A pending user sees a
+  "Finish setup: connect Gmail" screen with the time the invite is held until. Errors:
+  `invite_in_use`, `invite_expired`, `no_account`.
 
 ### [x] US-16 Audit log
 As the operator, I want a record of sensitive actions without storing any email content.

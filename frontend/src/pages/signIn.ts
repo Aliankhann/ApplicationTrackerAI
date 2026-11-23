@@ -3,14 +3,19 @@ import { API_BASE_URL, api } from '../api/client'
 // Invite codes are 32 base32 characters (A-Z, 2-7) shown in groups of four.
 const CODE_LENGTH = 32
 export const CODE_HINT = 'XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX'
-export const GOOGLE_START_URL = `${API_BASE_URL}/auth/google/start`
+export type AuthMode = 'signup' | 'signin'
+export const googleStartUrl = (mode: AuthMode) => `${API_BASE_URL}/auth/google/start?mode=${mode}`
 
 export function normalizeCode(raw: string): string {
   return raw.replace(/[\s-]+/g, '').toUpperCase()
 }
 
 export function formatCode(raw: string): string {
-  return normalizeCode(raw).match(/.{1,4}/g)?.join('-') ?? ''
+  return (
+    normalizeCode(raw)
+      .match(/.{1,4}/g)
+      ?.join('-') ?? ''
+  )
 }
 
 export type CodeProblem = 'empty' | 'length' | 'characters'
@@ -34,6 +39,9 @@ const GENERIC = 'Sign-in did not work. Please try again.'
 export const ERROR_MESSAGES: Record<string, string> = {
   not_invited:
     'This Google account is not invited yet. Enter a valid invite code first, or ask for a new one.',
+  invite_in_use: 'This code is being used by someone else right now. Try again in a few minutes.',
+  invite_expired: 'Your invite is no longer valid. Ask for a new invite code and sign up again.',
+  no_account: 'No account for this Google account. Sign up with an invite code.',
   invalid_invite: 'That invite code is not valid. It may be mistyped, already used, or expired.',
   sign_in_failed: GENERIC,
   sign_in_cancelled: 'Sign-in was cancelled. You can try again whenever you are ready.',
@@ -50,9 +58,12 @@ export function messageForError(code: string | null): string | null {
 // A stable error code for each way the invite check can fail.
 export async function submitInvite(raw: string): Promise<string | null> {
   try {
-    const { response } = await api.POST('/auth/invite', { body: { code: formatCode(raw) } })
+    const { response } = await api.POST('/auth/invite', {
+      body: { code: formatCode(raw) },
+    })
     if (response.ok) return null
     if (response.status === 400) return 'invalid_invite'
+    if (response.status === 409) return 'invite_in_use'
     if (response.status === 429) return 'rate_limited'
     if (response.status === 503) return 'sign_in_unavailable'
     return 'sign_in_failed'

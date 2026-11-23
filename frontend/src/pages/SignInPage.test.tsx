@@ -13,6 +13,8 @@ function stubFetch(status: number) {
   return fn
 }
 
+const chooseSignUp = () => fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+const chooseSignIn = () => fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 const enter = (value: string) =>
   fireEvent.change(screen.getByLabelText('Invite code'), { target: { value } })
 const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Check code' }))
@@ -32,6 +34,7 @@ test('AC: code validation reports empty, wrong characters, and wrong length', ()
 test('AC: the form shows the format hint and rejects a malformed code without calling the API', async () => {
   const fetchMock = stubFetch(204)
   renderRoute('/sign-in')
+  chooseSignUp()
   expect(screen.getByRole('heading', { name: 'Enter your invite code' })).toBeVisible()
   expect(screen.getByLabelText('Invite code')).toHaveAttribute('placeholder', CODE_HINT)
   enter('ABCD')
@@ -43,6 +46,7 @@ test('AC: the form shows the format hint and rejects a malformed code without ca
 test('AC: a good code is posted with credentials and no CSRF cookie, then step 2 appears', async () => {
   const fetchMock = stubFetch(204)
   renderRoute('/sign-in')
+  chooseSignUp()
   enter(VALID.toLowerCase().replaceAll('-', ' '))
   submit()
   expect(await screen.findByRole('heading', { name: 'Your code is accepted' })).toBeVisible()
@@ -57,6 +61,7 @@ test('AC: a good code is posted with credentials and no CSRF cookie, then step 2
 test('AC: a 400 shows the plain-language invalid code message and keeps the form', async () => {
   stubFetch(400)
   renderRoute('/sign-in')
+  chooseSignUp()
   enter(VALID)
   submit()
   expect(await screen.findByRole('alert')).toHaveTextContent(ERROR_MESSAGES.invalid_invite)
@@ -70,6 +75,7 @@ test.each([
 ])('AC: HTTP %i shows the %s message', async (status, code) => {
   stubFetch(status)
   renderRoute('/sign-in')
+  chooseSignUp()
   enter(VALID)
   submit()
   expect(await screen.findByRole('alert')).toHaveTextContent(ERROR_MESSAGES[code])
@@ -83,6 +89,7 @@ test('AC: a network failure shows the generic error', async () => {
     }),
   )
   renderRoute('/sign-in')
+  chooseSignUp()
   enter(VALID)
   submit()
   expect(await screen.findByRole('alert')).toHaveTextContent(ERROR_MESSAGES.sign_in_failed)
@@ -95,6 +102,7 @@ test('AC: the button is disabled and a status is announced while checking', asyn
     vi.fn(() => new Promise<Response>((resolve) => (release = resolve))),
   )
   renderRoute('/sign-in')
+  chooseSignUp()
   enter(VALID)
   fireEvent.click(screen.getByRole('button', { name: 'Check code' }))
   expect(await screen.findByRole('button', { name: 'Checking...' })).toBeDisabled()
@@ -113,25 +121,66 @@ test('AC: an unknown ?error= code falls back to the generic message', async () =
   expect(await screen.findByRole('alert')).toHaveTextContent(ERROR_MESSAGES.sign_in_failed)
 })
 
-test('AC: the Google step is a plain navigation link, with no token handling or fetch', async () => {
+test('AC: the page offers Sign up and Sign in as two clear choices first', () => {
+  renderRoute('/sign-in')
+  expect(screen.getByRole('button', { name: 'Sign up' })).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Sign in' })).toBeVisible()
+  expect(screen.queryByLabelText('Invite code')).toBeNull()
+})
+
+test('AC: Sign in needs no code and links to Google in signin mode', () => {
   const fetchMock = stubFetch(204)
   renderRoute('/sign-in')
-  const returning = screen.getByRole('link', { name: 'Continue with Google' })
-  expect(returning).toHaveAttribute('href', expect.stringMatching(/\/auth\/google\/start$/))
+  chooseSignIn()
+  expect(screen.queryByLabelText('Invite code')).toBeNull()
+  const link = screen.getByRole('link', { name: 'Continue with Google' })
+  expect(link).toHaveAttribute('href', expect.stringMatching(/\/auth\/google\/start\?mode=signin$/))
+  expect(fetchMock).not.toHaveBeenCalled()
+})
+
+test('AC: after a good code, Sign up links to Google in signup mode as a plain navigation', async () => {
+  const fetchMock = stubFetch(204)
+  renderRoute('/sign-in')
+  chooseSignUp()
   enter(VALID)
   submit()
   await screen.findByText('Your code is accepted')
   const link = screen.getByRole('link', { name: 'Continue with Google' })
   expect(link.tagName).toBe('A')
-  expect(link).toHaveAttribute('href', returning.getAttribute('href'))
+  expect(link).toHaveAttribute('href', expect.stringMatching(/\/auth\/google\/start\?mode=signup$/))
   const calls = fetchMock.mock.calls.length
   link.addEventListener('click', (e) => e.preventDefault())
   fireEvent.click(link)
   expect(fetchMock.mock.calls.length).toBe(calls)
 })
 
+test('AC: a 409 shows the code-in-use message and keeps the form', async () => {
+  stubFetch(409)
+  renderRoute('/sign-in')
+  chooseSignUp()
+  enter(VALID)
+  submit()
+  expect(await screen.findByRole('alert')).toHaveTextContent(ERROR_MESSAGES.invite_in_use)
+  expect(ERROR_MESSAGES.invite_in_use).toContain('someone else right now')
+})
+
+test('AC: ?error=no_account tells the person to sign up with an invite code', async () => {
+  renderRoute('/sign-in?error=no_account')
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'No account for this Google account. Sign up with an invite code.',
+  )
+  expect(screen.getByRole('button', { name: 'Sign up' })).toBeVisible()
+})
+
+test('AC: ?error=invite_in_use opens the sign-up step', async () => {
+  renderRoute('/sign-in?error=invite_in_use')
+  expect(await screen.findByLabelText('Invite code')).toBeVisible()
+})
+
 test('AC: the unverified-app guide has three steps', () => {
   renderRoute('/sign-in')
-  const guide = screen.getByRole('region', { name: /hasn.t verified this app/i })
+  const guide = screen.getByRole('region', {
+    name: /hasn.t verified this app/i,
+  })
   expect(guide.querySelectorAll('ol > li')).toHaveLength(3)
 })

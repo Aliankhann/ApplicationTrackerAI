@@ -97,11 +97,20 @@ def test_ac5_cli_at_cap_exits_nonzero_and_writes_no_row(
     assert len(all_invites(db_session)) == before
 
 
+def mark_used(db: Session, invite: InviteCode, user: User) -> None:
+    invite.used_at, invite.used_by_user_id = NOW, user.id
+    db.flush()
+
+
+HOLD = timedelta(minutes=10)
+CLAIM = timedelta(hours=24)
+
+
 def test_ac5_used_code_whose_user_was_deleted_still_counts(db_session: Session) -> None:
     baseline = repo.slots_in_use(db_session, NOW)
     user = make_user(db_session)
     invite = make_invite(db_session)
-    assert repo.mark_used(db_session, invite.id, user.id, NOW)
+    mark_used(db_session, invite, user)
     assert repo.slots_in_use(db_session, NOW) == baseline + 1
     db_session.delete(user)
     db_session.flush()
@@ -110,51 +119,138 @@ def test_ac5_used_code_whose_user_was_deleted_still_counts(db_session: Session) 
     assert repo.slots_in_use(db_session, NOW) == baseline + 1
 
 
-def test_ac5_unreferenced_users_and_pending_codes_count_expired_do_not(
+def test_cap_counts_claims_and_unreferenced_users_but_not_holds_or_open_codes(
     db_session: Session,
 ) -> None:
     baseline = repo.slots_in_use(db_session, NOW)
-    make_user(db_session)
-    make_invite(db_session, days=1)
-    make_invite(db_session, days=-1)
-    assert repo.slots_in_use(db_session, NOW) == baseline + 2
+    make_user(db_session)  # an allowlisted-style user: +1
+    make_invite(db_session, days=1)  # available: not counted
+    held = make_invite(db_session, days=1)
+    assert repo.try_hold(db_session, held.id, "tok", NOW, HOLD) is repo.HoldResult.HELD
+    assert repo.slots_in_use(db_session, NOW) == baseline + 1  # a hold does not count
+    claimed = make_invite(db_session, days=1)
+    pending = make_user(db_session)
+    repo.try_hold(db_session, claimed.id, "tok2", NOW, HOLD)
+    assert repo.claim(db_session, claimed.id, "tok2", pending.id, NOW, CLAIM)
+    assert repo.slots_in_use(db_session, NOW) == baseline + 2  # the claim counts once
+    assert repo.slots_in_use(db_session, NOW + CLAIM + HOLD) == baseline + 1  # lapsed claim: freed
 
 
-def test_ac6_find_redeemable_ignores_case_hyphens_spaces(db_session: Session) -> None:
+def test_ac6_find_by_code_ignores_case_hyphens_spaces(db_session: Session) -> None:
     code = generate_code()
     invite = make_invite(db_session, code)
     messy = " " + code.lower().replace("-", " - ") + " "
-    found = repo.find_redeemable(db_session, messy, NOW)
+    found = repo.find_by_code(db_session, messy)
     assert found is not None
     assert found.id == invite.id
-    assert repo.find_redeemable(db_session, code.replace("-", ""), NOW) is not None
+    assert repo.find_by_code(db_session, code.replace("-", "")) is not None
+    assert repo.find_by_code(db_session, generate_code()) is None
 
 
-def test_ac6_find_redeemable_none_for_used_expired_unknown(db_session: Session) -> None:
-    used_code, expired_code = generate_code(), generate_code()
-    used = make_invite(db_session, used_code)
-    repo.mark_used(db_session, used.id, make_user(db_session).id, NOW)
-    make_invite(db_session, expired_code, days=-1)
-    assert repo.find_redeemable(db_session, used_code, NOW) is None
-    assert repo.find_redeemable(db_session, expired_code, NOW) is None
-    assert repo.find_redeemable(db_session, generate_code(), NOW) is None
-
-
-def test_ac7_mark_used_true_first_time_false_second(db_session: Session) -> None:
+def test_hold_is_exclusive_refreshable_by_its_owner_and_reopens_after_expiry(
+    db_session: Session,
+) -> None:
     invite = make_invite(db_session)
-    user = make_user(db_session)
-    assert repo.mark_used(db_session, invite.id, user.id, NOW) is True
-    assert repo.mark_used(db_session, invite.id, user.id, NOW) is False
+    assert repo.try_hold(db_session, invite.id, "a", NOW, HOLD) is repo.HoldResult.HELD
+    assert repo.try_hold(db_session, invite.id, "b", NOW, HOLD) is repo.HoldResult.IN_USE
+    later = NOW + timedelta(minutes=9)
+    assert repo.try_hold(db_session, invite.id, "a", later, HOLD) is repo.HoldResult.HELD
+    assert repo.try_hold(db_session, invite.id, "b", NOW + HOLD, HOLD) is repo.HoldResult.IN_USE
+    assert repo.try_hold(db_session, invite.id, "b", later + HOLD, HOLD) is repo.HoldResult.HELD
+
+
+def test_hold_refuses_used_expired_revoked_codes_as_unavailable(db_session: Session) -> None:
+    used, expired, revoked = make_invite(db_session), make_invite(db_session, days=-1), None
+    mark_used(db_session, used, make_user(db_session))
+    revoked = make_invite(db_session)
+    assert repo.revoke(db_session, revoked.id, NOW)
+    for invite in (used, expired, revoked):
+        result = repo.try_hold(db_session, invite.id, "a", NOW, HOLD)
+        assert result is repo.HoldResult.UNAVAILABLE
+
+
+def test_claim_needs_the_holders_token_and_an_unexpired_hold(db_session: Session) -> None:
+    invite, user = make_invite(db_session), make_user(db_session)
+    repo.try_hold(db_session, invite.id, "a", NOW, HOLD)
+    assert not repo.claim(db_session, invite.id, "b", user.id, NOW, CLAIM)
+    assert not repo.claim(db_session, invite.id, "a", user.id, NOW + HOLD, CLAIM)
+    assert repo.claim(db_session, invite.id, "a", user.id, NOW, CLAIM)
+    assert not repo.claim(db_session, invite.id, "a", user.id, NOW, CLAIM)  # one winner
+
+
+def test_finalize_uses_a_claim_even_after_it_lapsed_unless_revoked(db_session: Session) -> None:
+    invite, user = make_invite(db_session, days=3), make_user(db_session)
+    repo.try_hold(db_session, invite.id, "a", NOW, HOLD)
+    repo.claim(db_session, invite.id, "a", user.id, NOW, CLAIM)
+    assert repo.finalize(db_session, user.id, NOW + timedelta(hours=30))
+    db_session.refresh(invite)
+    assert invite.used_by_user_id == user.id and invite.claimed_by_user_id is None
+    other, other_user = make_invite(db_session), make_user(db_session)
+    repo.try_hold(db_session, other.id, "a", NOW, HOLD)
+    repo.claim(db_session, other.id, "a", other_user.id, NOW, CLAIM)
+    repo.revoke(db_session, other.id, NOW)
+    assert not repo.finalize(db_session, other_user.id, NOW)
 
 
 @pytest.mark.parametrize("raw", ["", "--  ", "AAAA", "A" * 31 + "1", "A" * 31 + "\u00e9", "A" * 33])
 def test_malformed_codes_never_match_and_cannot_be_hashed(db_session: Session, raw: str) -> None:
     assert not is_well_formed(raw)
-    assert repo.find_redeemable(db_session, raw, NOW) is None
+    assert repo.find_by_code(db_session, raw) is None
     with pytest.raises(ValueError):
         hash_code(raw)
 
 
 def test_naive_now_is_rejected(db_session: Session) -> None:
     with pytest.raises(ValueError):
-        repo.find_redeemable(db_session, generate_code(), datetime(2026, 1, 1))
+        repo.try_hold(db_session, uuid.uuid4(), "a", datetime(2026, 1, 1), HOLD)
+
+
+# --- CLI: list and revoke -------------------------------------------------------------------
+
+
+def run_admin(db: Session, *args: str) -> int:
+    return cli.main(["invite", *args], lambda: nullcontext(db), lambda: NOW)
+
+
+def test_cli_list_shows_id_prefix_and_state_but_never_the_code_or_hash(
+    db_session: Session, capsys: pytest.CaptureFixture[str]
+) -> None:
+    code = generate_code()
+    invite = make_invite(db_session, code)
+    held = make_invite(db_session)
+    repo.try_hold(db_session, held.id, "a", NOW, HOLD)
+    used = make_invite(db_session)
+    mark_used(db_session, used, make_user(db_session))
+    capsys.readouterr()
+    assert run_admin(db_session, "list") == 0
+    out = capsys.readouterr().out
+    assert str(invite.id)[:8] in out and "available" in out
+    assert "held" in out and "used" in out
+    assert code not in out and normalize_code(code) not in out and invite.code_hash not in out
+    assert str(invite.id) not in out  # prefix only
+
+
+def test_cli_revoke_marks_a_held_code_unusable_and_is_idempotent(
+    db_session: Session, capsys: pytest.CaptureFixture[str]
+) -> None:
+    invite = make_invite(db_session)
+    repo.try_hold(db_session, invite.id, "a", NOW, HOLD)
+    assert run_admin(db_session, "revoke", str(invite.id)[:8]) == 0
+    db_session.refresh(invite)
+    assert invite.revoked_at == NOW and invite.held_until is None
+    assert repo.try_hold(db_session, invite.id, "a", NOW, HOLD) is repo.HoldResult.UNAVAILABLE
+    assert run_admin(db_session, "revoke", str(invite.id)[:8]) == 0
+    capsys.readouterr()
+    assert run_admin(db_session, "list") == 0
+    assert "revoked" in capsys.readouterr().out
+
+
+def test_cli_revoke_rejects_unknown_ambiguous_and_used_codes(
+    db_session: Session, capsys: pytest.CaptureFixture[str]
+) -> None:
+    used = make_invite(db_session)
+    mark_used(db_session, used, make_user(db_session))
+    assert run_admin(db_session, "revoke", "zzzzzzzz") == 1
+    assert run_admin(db_session, "revoke", str(used.id)[:8]) == 1
+    assert "already used" in capsys.readouterr().err
+    assert run_admin(db_session, "revoke", "") == 1

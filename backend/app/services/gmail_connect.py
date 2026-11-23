@@ -21,6 +21,7 @@ from app.repositories import oauth_tokens as tokens_repo
 from app.repositories import sync_state as sync_state_repo
 from app.security import signed_cookie
 from app.security.crypto import KeyringError, get_keyring
+from app.services import account
 
 logger = get_logger("app.gmail_connect")
 
@@ -33,6 +34,7 @@ SESSION_REQUIRED = "session_required"
 ACCESS_DENIED = "access_denied"
 GOOGLE_ERROR = "google_error"
 FOLLOWUPS_DENIED = "followups_denied"
+INVITE_EXPIRED = "invite_expired"
 PUBLIC_CODES = frozenset(
     {
         ACCOUNT_MISMATCH,
@@ -44,6 +46,7 @@ PUBLIC_CODES = frozenset(
         ACCESS_DENIED,
         GOOGLE_ERROR,
         FOLLOWUPS_DENIED,
+        INVITE_EXPIRED,
     }
 )
 
@@ -129,6 +132,8 @@ def complete(
         raise ConnectFailed(NO_REFRESH_TOKEN)
     if not can_read(token.scope):
         raise ConnectFailed(SCOPE_DENIED)
+    if not account.complete_setup(session, user, settings, now):
+        raise ConnectFailed(INVITE_EXPIRED)  # nothing is stored; the caller rolls back
     _store(session, user.id, token.refresh_token, token.scope, now)
     return ConnectOutcome(
         followups_denied=bool(flow.get("followups")) and not can_compose(token.scope)

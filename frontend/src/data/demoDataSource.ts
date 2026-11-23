@@ -157,6 +157,15 @@ export function createDemoDataSource(now: Date = new Date()): DataSource {
     async updateSettings() {
       throw new ApiError(501, NOT_IN_DEMO)
     },
+    async getMe() {
+      return {
+        id: 'demo',
+        email: 'demo@example.test',
+        timezone: null,
+        setup_completed: true,
+        invite_held_until: null,
+      }
+    },
     async getGmailStatus() {
       return { connected: false, followups_enabled: false }
     },

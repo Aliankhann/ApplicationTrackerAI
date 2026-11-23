@@ -1,6 +1,7 @@
 """User lookups."""
 
 import uuid
+from datetime import datetime
 
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
@@ -32,8 +33,11 @@ def get_by_google_sub(session: Session, google_sub: str) -> User | None:
     return session.execute(select(User).where(User.google_sub == google_sub)).scalar_one_or_none()
 
 
-def create(session: Session, google_sub: str, email: str) -> User:
-    user = User(google_sub=google_sub, email=email)
+def create(
+    session: Session, google_sub: str, email: str, setup_completed_at: datetime | None
+) -> User:
+    """`setup_completed_at=None` creates a pending user (invited, Gmail not connected yet)."""
+    user = User(google_sub=google_sub, email=email, setup_completed_at=setup_completed_at)
     session.add(user)
     session.flush()
     return user

@@ -52,8 +52,10 @@ class Flow:
     def submit_code(self, code: str) -> Any:
         return self.client.post("/auth/invite", json={"code": code}, headers={"Origin": FRONTEND})
 
-    def start(self) -> str:
-        response = self.client.get("/auth/google/start", follow_redirects=False)
+    def start(self, mode: str = "signup") -> str:
+        response = self.client.get(
+            "/auth/google/start", params={"mode": mode}, follow_redirects=False
+        )
         assert response.status_code == 302
         return str(response.headers["location"])
 
@@ -61,8 +63,10 @@ class Flow:
         params = {"code": code, **({"state": state} if state else {})}
         return self.client.get("/auth/google/callback", params=params, follow_redirects=False)
 
-    def sign_in(self, email: str, sub: str = "sub-new", **overrides: Any) -> Any:
-        url = self.start()
+    def sign_in(
+        self, email: str, sub: str = "sub-new", mode: str = "signup", **overrides: Any
+    ) -> Any:
+        url = self.start(mode)
         state = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["state"][0]
         code = self.google.issue_code(url, sub, email, **overrides)
         return self.callback(code, state)
@@ -147,7 +151,7 @@ def test_ac_sign_in_routes_fail_closed_with_503_when_google_is_not_configured(
     assert client.get("/health").status_code == 200  # the app itself still runs
 
 
-def test_ac_invite_code_plus_google_creates_user_session_audit_and_marks_code_used(
+def test_ac_invite_code_plus_google_creates_a_pending_user_and_claims_the_code_for_24_hours(
     env: Env,  # noqa: F811
 ) -> None:
     flow = Flow(env)
@@ -157,13 +161,16 @@ def test_ac_invite_code_plus_google_creates_user_session_audit_and_marks_code_us
     response = flow.sign_in(NEW, "sub-1")
     assert response.status_code == 302 and response.headers["location"] == f"{FRONTEND}/app"
     user = env.db.scalars(select(User).where(User.google_sub == "sub-1")).one()
-    assert user.email == NEW
+    assert user.email == NEW and user.setup_completed_at is None
     invite = env.db.scalars(select(InviteCode)).one()
-    assert invite.used_by_user_id == user.id and invite.used_at == T0
+    assert invite.claimed_by_user_id == user.id and invite.claimed_until == T0 + timedelta(hours=24)
+    assert invite.used_at is None and invite.held_until is None and invite.hold_token_hash is None
     logins = env.db.scalars(select(AuditLog).where(AuditLog.action == "login")).all()
     assert [row.user_id for row in logins] == [user.id]
     assert env.db.scalar(select(func.count()).select_from(OAuthToken)) == 0
-    assert flow.client.get("/me").json()["email"] == NEW
+    me = flow.client.get("/me").json()
+    assert me["email"] == NEW and me["setup_completed"] is False
+    assert me["invite_held_until"] == (T0 + timedelta(hours=24)).isoformat().replace("+00:00", "Z")
     cookies = {c.name for c in flow.client.cookies.jar}
     assert "tracker_oauth" not in cookies and "tracker_invite" not in cookies
 
@@ -300,18 +307,18 @@ def test_ac_gate_rejects_uninvited_person_with_no_code_and_no_allowlist(env: Env
     assert_rejected(env, flow.sign_in(NEW), "not_invited", before)
 
 
-def test_ac_gate_rejects_reused_code_for_a_second_google_account(env: Env) -> None:  # noqa: F811
+def test_ac_gate_rejects_a_claimed_code_for_a_second_google_account(env: Env) -> None:  # noqa: F811
     flow = Flow(env)
     code = flow.invite()
     flow.submit_code(code)
+    stale = flow.client.cookies["tracker_invite"]
     assert flow.sign_in(NEW, "sub-1").headers["location"] == f"{FRONTEND}/app"
     other = Flow(env)  # a fresh browser that learned the same code
-    # The code is spent, so validation already refuses it.
-    assert other.submit_code(code).status_code == 400
-    # And a stale claim cookie cannot redeem it either.
-    other.client.cookies.set("tracker_invite", flow.client.cookies.get("tracker_invite") or "x")
+    assert other.submit_code(code).status_code == 409  # claimed by someone still setting up
+    # And a stale invite cookie cannot claim it either: the hold was cleared by the claim.
+    other.client.cookies.set("tracker_invite", stale)
     before = counts(env.db)
-    assert_rejected(env, other.sign_in("other@example.test", "sub-2"), "not_invited", before)
+    assert_rejected(env, other.sign_in("other@example.test", "sub-2"), "invite_in_use", before)
 
 
 def test_ac_gate_rejects_code_that_expired_after_it_was_validated(env: Env) -> None:  # noqa: F811
@@ -359,10 +366,13 @@ def test_ac_gate_rejects_when_the_user_cap_is_reached(env: Env) -> None:  # noqa
     assert_rejected(env, invited.sign_in(NEW, "sub-9"), "not_invited", counts(env.db))
 
 
-def test_ac_gate_last_slot_is_usable_by_the_invite_that_holds_it(env: Env) -> None:  # noqa: F811
-    flow = Flow(env, max_users="1")
-    flow.submit_code(flow.invite())
-    assert flow.sign_in(NEW, "sub-1").headers["location"] == f"{FRONTEND}/app"
+def test_ac_cap_counts_claims_but_not_holds_and_never_overshoots(env: Env) -> None:  # noqa: F811
+    first, second = Flow(env, max_users="1"), Flow(env, max_users="1")
+    first.submit_code(first.invite())
+    second.submit_code(second.invite())  # two holds at once: holds take no slot
+    assert first.sign_in(NEW, "sub-1").headers["location"] == f"{FRONTEND}/app"
+    before = counts(env.db)
+    assert_rejected(env, second.sign_in("other@example.test", "sub-2"), "not_invited", before)
 
 
 def test_ac_tampered_invite_claim_is_ignored(env: Env) -> None:  # noqa: F811
@@ -421,11 +431,13 @@ def test_ac_invite_endpoint_gives_the_same_400_for_invalid_used_expired_and_malf
 ) -> None:
     flow = Flow(env)
     used = flow.invite()
-    flow.submit_code(used)
-    flow.sign_in(NEW, "sub-1")
+    env.db.scalars(select(InviteCode)).one().used_at = T0
+    revoked = flow.invite()
+    invite_codes.revoke(env.db, invite_codes.find_by_code(env.db, revoked).id, T0)  # type: ignore[union-attr]
     expired = flow.invite(expires_at=T0 - timedelta(days=1))
     responses = [
-        flow.submit_code(code) for code in (generate_code(), used, expired, "short", "!!!!")
+        flow.submit_code(code)
+        for code in (generate_code(), used, revoked, expired, "short", "!!!!")
     ]
     assert {(r.status_code, r.text) for r in responses} == {(400, '{"detail":"invalid_invite"}')}
     assert all("set-cookie" not in r.headers for r in responses)
@@ -459,12 +471,17 @@ def test_ac_invite_post_from_frontend_origin_passes_and_foreign_origin_is_reject
 # --- concurrency -------------------------------------------------------------------------------
 
 
-def test_ac_same_code_used_by_two_google_accounts_at_once_lets_exactly_one_in() -> None:
+def test_ac_two_browsers_racing_the_callback_for_one_code_create_exactly_one_user() -> None:
+    """Real two-connection race on one hold token: one wins, the other leaves no row."""
     settings = get_settings()
     engine = create_engine(settings.database_url)
     code = generate_code()
     with Session(engine) as setup:
         invite = invite_codes.create(setup, hash_code(code), T0 + timedelta(days=1))
+        assert (
+            invite_codes.try_hold(setup, invite.id, "tok", T0, timedelta(minutes=10))
+            is invite_codes.HoldResult.HELD
+        )
         setup.commit()
         invite_id = invite.id
     first, second = Session(engine), Session(engine)
@@ -474,7 +491,7 @@ def test_ac_same_code_used_by_two_google_accounts_at_once_lets_exactly_one_in() 
     def attempt(name: str, session: Session, commit_first: threading.Event | None) -> None:
         identity = Identity(subs[name], f"{name}@example.test", True)
         try:
-            signin.admit(session, identity, invite_id, settings, T0)
+            signin.admit(session, identity, "signup", (invite_id, "tok"), settings, T0)
             if commit_first is not None:
                 commit_first.wait(timeout=5)
             session.commit()
@@ -486,16 +503,17 @@ def test_ac_same_code_used_by_two_google_accounts_at_once_lets_exactly_one_in() 
     release = threading.Event()
     a = threading.Thread(target=attempt, args=("a", first, release))
     a.start()
+    time.sleep(0.3)  # `a` holds the user-cap lock; `b` waits for it, then loses the claim
     b = threading.Thread(target=attempt, args=("b", second, None))
-    b.start()  # blocks on the invite row until `a` commits, then loses the race
+    b.start()
     threading.Timer(0.5, release.set).start()
     a.join(10)
     b.join(10)
     try:
-        assert sorted(outcomes.values()) == ["in", "not_invited"]
+        assert outcomes == {"a": "in", "b": "invite_in_use"}
         with Session(engine) as check:
             created = check.scalars(select(User).where(User.google_sub.in_(subs.values()))).all()
-            assert len(created) == 1
+            assert [u.google_sub for u in created] == [subs["a"]]
     finally:
         first.close()
         second.close()
@@ -504,6 +522,123 @@ def test_ac_same_code_used_by_two_google_accounts_at_once_lets_exactly_one_in() 
             cleanup.execute(delete(User).where(User.google_sub.in_(subs.values())))
             cleanup.commit()
         engine.dispose()
+
+
+# --- two-phase claim: holds, sign-in mode ---------------------------------------------------------
+
+
+def test_hold_same_code_in_two_browsers_gives_409_until_the_hold_expires(env: Env) -> None:  # noqa: F811
+    first, second = Flow(env), Flow(env)
+    code = first.invite()
+    assert first.submit_code(code).status_code == 204
+    busy = second.submit_code(code)
+    assert (busy.status_code, busy.json()) == (409, {"detail": "invite_in_use"})
+    assert "set-cookie" not in busy.headers
+    env.clock.now = T0 + timedelta(minutes=11)
+    assert second.submit_code(code).status_code == 204  # the hold lapsed: available again
+
+
+def test_hold_reentry_in_the_same_browser_refreshes_it(env: Env) -> None:  # noqa: F811
+    first, second = Flow(env), Flow(env)
+    code = first.invite()
+    first.submit_code(code)
+    env.clock.now = T0 + timedelta(minutes=8)
+    assert first.submit_code(code).status_code == 204  # refresh: now held until T0 + 18 min
+    env.clock.now = T0 + timedelta(minutes=12)  # the original hold would be over
+    assert second.submit_code(code).status_code == 409
+    env.clock.now = T0 + timedelta(minutes=19)
+    assert second.submit_code(code).status_code == 204
+
+
+def slow_callback(flow: Flow, email: str, sub: str, at: timedelta) -> Any:
+    """Start Google at T0 + 1 min, then come back (after a slow consent) at T0 + `at`."""
+    flow.env.clock.now = T0 + timedelta(minutes=1)
+    url = flow.start()
+    state = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["state"][0]
+    auth = flow.google.issue_code(url, sub, email)
+    flow.env.clock.now = T0 + at
+    return flow.callback(auth, state)
+
+
+def test_claim_after_the_hold_lapsed_and_was_taken_is_refused_with_nothing_written(
+    env: Env,  # noqa: F811
+) -> None:
+    slow, quick = Flow(env), Flow(env)
+    code = slow.invite()
+    slow.submit_code(code)
+    env.clock.now = T0 + timedelta(seconds=30)
+    start = slow.start()  # the slow browser is already at Google
+    state = urllib.parse.parse_qs(urllib.parse.urlsplit(start).query)["state"][0]
+    auth = slow.google.issue_code(start, "sub-slow", NEW)
+    env.clock.now = T0 + timedelta(minutes=10, seconds=5)
+    quick.submit_code(code)  # takes over the expired hold
+    before = counts(env.db)
+    env.clock.now = T0 + timedelta(minutes=10, seconds=20)
+    assert_rejected(env, slow.callback(auth, state), "invite_in_use", before)
+    assert quick.sign_in("quick@example.test", "sub-quick").headers["location"] == f"{FRONTEND}/app"
+
+
+def test_claim_with_a_lapsed_hold_nobody_took_is_refused(env: Env) -> None:  # noqa: F811
+    flow = Flow(env)
+    flow.submit_code(flow.invite())
+    before = counts(env.db)
+    response = slow_callback(flow, NEW, "sub-1", timedelta(minutes=10, seconds=30))
+    assert_rejected(env, response, "invite_in_use", before)
+
+
+def test_signin_mode_lets_a_registered_user_in_without_a_code(env: Env) -> None:  # noqa: F811
+    flow = Flow(env)
+    env.db.add(User(google_sub="sub-old", email=OLD, setup_completed_at=T0))
+    env.db.flush()
+    response = flow.sign_in(OLD, "sub-old", mode="signin")
+    assert response.headers["location"] == f"{FRONTEND}/app"
+    assert flow.client.get("/me").json()["setup_completed"] is True
+
+
+def test_signin_mode_for_an_unknown_google_account_says_no_account_and_writes_nothing(
+    env: Env,  # noqa: F811
+) -> None:
+    flow = Flow(env)
+    flow.submit_code(flow.invite())  # even with a code in hand, sign in never uses it
+    before = counts(env.db)
+    assert_rejected(env, flow.sign_in(NEW, "sub-1", mode="signin"), "no_account", before)
+    assert env.db.scalars(select(InviteCode)).one().claimed_by_user_id is None
+
+
+def test_start_without_a_mode_behaves_as_sign_in(env: Env) -> None:  # noqa: F811
+    flow = Flow(env)
+    flow.submit_code(flow.invite())
+    url = flow.client.get("/auth/google/start", follow_redirects=False).headers["location"]
+    state = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["state"][0]
+    auth = flow.google.issue_code(url, "sub-1", NEW)
+    before = counts(env.db)
+    assert_rejected(env, flow.callback(auth, state), "no_account", before)
+
+
+def test_pending_user_can_sign_in_again_without_a_code(env: Env) -> None:  # noqa: F811
+    flow = Flow(env)
+    flow.submit_code(flow.invite())
+    flow.sign_in(NEW, "sub-1")
+    again = Flow(env)  # a new browser, no invite cookie
+    assert again.sign_in(NEW, "sub-1", mode="signin").headers["location"] == f"{FRONTEND}/app"
+    me = again.client.get("/me").json()
+    assert me["setup_completed"] is False and me["invite_held_until"] is not None
+
+
+def test_allowlisted_person_is_created_complete_in_either_mode_and_uses_no_code(
+    env: Env,  # noqa: F811
+) -> None:
+    flow = Flow(env, allowlist_emails=NEW)
+    assert flow.sign_in(NEW, "sub-1", mode="signin").headers["location"] == f"{FRONTEND}/app"
+    assert env.db.scalars(select(User)).one().setup_completed_at == T0
+    assert flow.client.get("/me").json()["setup_completed"] is True
+
+
+def test_signup_callback_with_an_existing_account_just_signs_in(env: Env) -> None:  # noqa: F811
+    flow = Flow(env)
+    env.db.add(User(google_sub="sub-old", email=OLD, setup_completed_at=T0))
+    env.db.flush()
+    assert flow.sign_in(OLD, "sub-old", mode="signup").headers["location"] == f"{FRONTEND}/app"
 
 
 def test_ac_signed_cookies_are_bound_to_their_kind(env: Env) -> None:  # noqa: F811
@@ -539,7 +674,9 @@ def test_ac_two_new_users_cannot_both_take_the_last_slot() -> None:
 
     def go(i: int) -> None:
         try:
-            signin.admit(sessions[i], Identity(subs[i], emails[i], True), None, settings, now)
+            signin.admit(
+                sessions[i], Identity(subs[i], emails[i], True), "signin", None, settings, now
+            )
             time.sleep(0.5)  # hold the cap lock: the other admit must wait, not overshoot
             sessions[i].commit()
         except signin.SignInRejected:

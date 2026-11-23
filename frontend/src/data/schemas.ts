@@ -136,6 +136,8 @@ export type SchemaDriftChecks = [
   Assert<Fits<Schemas['SettingsOut'], Settings>>,
   Assert<Fits<GmailStatus, Schemas['GmailStatusOut']>>,
   Assert<Fits<Schemas['GmailStatusOut'], GmailStatus>>,
+  Assert<Fits<Me, Schemas['MeResponse']>>,
+  Assert<Fits<Schemas['MeResponse'], Me>>,
   Assert<Fits<ConnectResult, Schemas['GmailConnectOut']>>,
   Assert<Fits<SyncStart, Schemas['SyncRunOut']>>,
   Assert<Fits<SyncStatus, Schemas['SyncStatusOut']>>,
@@ -170,6 +172,15 @@ export const GmailStatusSchema = z.object({
   followups_enabled: z.boolean(),
 })
 export type GmailStatus = z.infer<typeof GmailStatusSchema>
+
+export const MeSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  timezone: z.string().nullable(),
+  setup_completed: z.boolean(),
+  invite_held_until: timestamp.nullable(),
+})
+export type Me = z.infer<typeof MeSchema>
 
 export const ConnectResultSchema = z.object({
   authorize_url: z

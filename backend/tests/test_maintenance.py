@@ -18,5 +18,11 @@ def test_ac_maintenance_run_purges_old_rate_limit_windows(env: Env) -> None:  # 
     )
     env.db.flush()
     counts = maintenance.run(env.db, T0)
-    assert counts["rate_limits"] == 1 and set(counts) == {"rate_limits", "sessions", "audit"}
+    assert counts["rate_limits"] == 1 and set(counts) == {
+        "invite_holds",
+        "pending_users",
+        "rate_limits",
+        "sessions",
+        "audit",
+    }
     assert env.db.scalars(select(RateLimit.key_hash)).all() == ["b" * 64]

@@ -11,6 +11,8 @@ const CONNECT_ERRORS: Record<string, string> = {
   flow_invalid:
     'That connection attempt expired or did not match this browser. Please start again.',
   session_required: 'Please sign in and try again.',
+  invite_expired:
+    'Your invite is no longer valid, so Gmail was not connected. Ask for a new invite code and sign up again.',
   access_denied: 'You cancelled the connection. Nothing was changed.',
 }
 

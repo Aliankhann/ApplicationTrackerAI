@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     google_revoke_endpoint: str = "https://oauth2.googleapis.com/revoke"
     google_connect_redirect_uri: str = ""
     allowlist_emails: str = ""
+    invite_hold_minutes: int = Field(default=10, ge=1)  # a code entered in a browser is held
+    invite_claim_hours: int = Field(default=24, ge=1)  # a new account has this long to finish
     trusted_proxy_count: int = Field(default=0, ge=0)
     oauth_cookie_name: str = "tracker_oauth"
     invite_cookie_name: str = "tracker_invite"

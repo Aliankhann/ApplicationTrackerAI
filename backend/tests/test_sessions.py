@@ -46,6 +46,7 @@ class Env:
         return TestClient(app, base_url="http://testserver")
 
     def user(self, **kw: object) -> User:
+        kw.setdefault("setup_completed_at", T0)  # a finished account unless a test says otherwise
         user = User(google_sub=uuid.uuid4().hex, email="u@example.test", **kw)
         self.db.add(user)
         self.db.flush()
@@ -97,7 +98,13 @@ def test_me_returns_profile_with_valid_session_and_401_without(env: Env) -> None
     raw, csrf, _ = env.login(user)
     cookies(client, raw, csrf)
     body = client.get("/me").json()
-    assert body == {"id": str(user.id), "email": "u@example.test", "timezone": "UTC"}
+    assert body == {
+        "id": str(user.id),
+        "email": "u@example.test",
+        "timezone": "UTC",
+        "setup_completed": True,
+        "invite_held_until": None,
+    }
 
 
 def test_me_401_for_garbage_revoked_expired_idle_and_disabled(env: Env) -> None:

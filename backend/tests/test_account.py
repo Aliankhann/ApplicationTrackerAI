@@ -104,6 +104,7 @@ def test_us16_audit_user_id_has_no_foreign_key_and_actions_are_checked() -> None
         "account_deleted",
         "followups_enabled",
         "data_exported",
+        "account_setup_completed",
     }
 
 

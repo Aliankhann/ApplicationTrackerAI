@@ -15,7 +15,7 @@ detail is in [threat-model.md](threat-model.md); decisions are in [decisions/](d
 | Repositories | `backend/app/repositories` | Built: all user-scoped queries |
 | Jobs | `backend/app/jobs` | `tick.py` is the single daily dispatcher (sync, follow-ups, digest, maintenance) behind `GET /internal/cron/tick`; `sync`, `scheduler`, `digest`, `maintenance` keep their `python -m app.jobs.*` entry points |
 | Security helpers | `backend/app/security` | Built: token encryption, sessions, invite codes, unsubscribe tokens |
-| CLI | `backend/app/cli.py` | Built: `invite create`, `tokens rotate`, local-only `session create` |
+| CLI | `backend/app/cli.py` | Built: `invite create`, `invite list`, `invite revoke`, `tokens rotate`, local-only `session create` |
 | Postgres | one database shared by API and jobs | Built; migrations in `backend/alembic/versions` |
 
 Every outside call (Gmail, the LLM, the email provider) leaves from the backend, never the browser.
@@ -131,7 +131,7 @@ Every user-owned row carries `user_id` (directly or through its parent), with ca
 | Table | Purpose |
 | --- | --- |
 | `users` | Google ID, email, timezone, digest preference, `disabled_at` |
-| `invite_codes` | Hash of each code, expiry, who used it |
+| `invite_codes` | Hash of each code, expiry, hold (hash of a browser token, `held_until`), claim (`claimed_by_user_id`, `claimed_until`), who used it, `revoked_at` |
 | `oauth_tokens` | AES-GCM encrypted refresh token, nonce, key version, scopes, status |
 | `sessions` | Server-side sessions: token hash, CSRF secret, expiries, revoked time |
 | `sync_state` | `history_id`, last sync, initial sync done, status, lease |

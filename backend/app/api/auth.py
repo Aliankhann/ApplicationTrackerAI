@@ -1,5 +1,6 @@
 import hmac
 import uuid
+from datetime import datetime, timedelta
 from typing import Any, Literal
 from urllib.parse import urlencode
 
@@ -43,6 +44,8 @@ class MeResponse(BaseModel):
     id: uuid.UUID
     email: str
     timezone: str | None
+    setup_completed: bool
+    invite_held_until: datetime | None  # set while the user still has to connect Gmail
 
 
 class DeleteBody(BaseModel):
@@ -57,8 +60,18 @@ class DeleteOut(BaseModel):
 
 
 @router.get("/me", response_model=MeResponse)
-def me(user: CurrentUser) -> MeResponse:
-    return MeResponse(id=user.id, email=user.email, timezone=user.timezone)
+def me(user: CurrentUser, db: Db) -> MeResponse:
+    held_until = None
+    if user.setup_completed_at is None:
+        claim = invite_codes.claim_of(db, user.id)
+        held_until = claim.claimed_until if claim else None
+    return MeResponse(
+        id=user.id,
+        email=user.email,
+        timezone=user.timezone,
+        setup_completed=user.setup_completed_at is not None,
+        invite_held_until=held_until,
+    )
 
 
 @router.delete("/me", response_model=DeleteOut)
@@ -112,7 +125,14 @@ SIGN_IN_LIMIT_PER_IP = 30
 SIGN_IN_FAILED = "sign_in_failed"
 SIGN_IN_CANCELLED = "sign_in_cancelled"
 PUBLIC_ERRORS = frozenset(
-    {signin.NOT_INVITED, signin.ACCOUNT_DISABLED, SIGN_IN_CANCELLED, SIGN_IN_FAILED}
+    {
+        signin.NOT_INVITED,
+        signin.INVITE_IN_USE,
+        signin.NO_ACCOUNT,
+        signin.ACCOUNT_DISABLED,
+        SIGN_IN_CANCELLED,
+        SIGN_IN_FAILED,
+    }
 )
 
 
@@ -130,29 +150,53 @@ class InviteBody(BaseModel):
         limit_by_ip("invite", INVITE_LIMIT_PER_IP, INVITE_LIMIT_GLOBAL),
     ],
 )
-def submit_invite(body: InviteBody, db: Db, settings: Config, now: Now, response: Response) -> None:
-    """Check a code WITHOUT using it; remember it in a signed cookie for the sign-in callback."""
-    invite = invite_codes.find_redeemable(db, body.code, now)
-    if invite is None:  # unknown, used, expired, and malformed look identical
+def submit_invite(
+    body: InviteBody, request: Request, db: Db, settings: Config, now: Now, response: Response
+) -> None:
+    """Hold a code for this browser WITHOUT using it; remember the hold in a signed cookie.
+
+    Unknown, used, expired, revoked, and malformed codes give the identical 400. A code held by
+    another browser (or claimed by someone still setting up) gives a distinct 409 so the
+    legitimate holder's rival knows to wait. That reveals "this code exists" to someone who
+    already has all 160 bits of it, which is no real gain for an attacker.
+    """
+    invite = invite_codes.find_by_code(db, body.code)
+    if invite is None:
         raise HTTPException(status_code=400, detail="invalid_invite")
+    prior = _invite_claim(request, settings, now)
+    token = prior[1] if prior and prior[0] == invite.id else random_token()
+    hold_for = timedelta(minutes=settings.invite_hold_minutes)
+    result = invite_codes.try_hold(db, invite.id, token, now, hold_for)
+    if result is invite_codes.HoldResult.UNAVAILABLE:
+        raise HTTPException(status_code=400, detail="invalid_invite")
+    if result is invite_codes.HoldResult.IN_USE:
+        raise HTTPException(status_code=409, detail="invite_in_use")
+    db.commit()
     claim = signed_cookie.sign(
-        signed_cookie.INVITE_KIND, {"invite_id": str(invite.id)}, now, settings
+        signed_cookie.INVITE_KIND,
+        {"invite_id": str(invite.id), "hold_token": token},
+        now,
+        settings,
     )
     set_cookie(
-        response, settings.invite_cookie, claim, signed_cookie.INVITE_MAX_AGE, True, settings
+        response, settings.invite_cookie, claim, settings.invite_hold_minutes * 60, True, settings
     )
 
 
-def _invite_claim(request: Request, settings: Config, now: Now) -> uuid.UUID | None:
+def _invite_claim(request: Request, settings: Config, now: Now) -> tuple[uuid.UUID, str] | None:
+    """(invite id, hold token) from the browser's invite cookie, if valid."""
     raw = request.cookies.get(settings.invite_cookie)
     payload = (
         signed_cookie.verify(
-            signed_cookie.INVITE_KIND, raw, now, signed_cookie.INVITE_MAX_AGE, settings
+            signed_cookie.INVITE_KIND, raw, now, settings.invite_hold_minutes * 60, settings
         )
         if raw
         else None
     )
-    return _parse_uuid(payload.get("invite_id")) if payload else None
+    if not payload:
+        return None
+    invite_id, token = _parse_uuid(payload.get("invite_id")), payload.get("hold_token")
+    return (invite_id, token) if invite_id and isinstance(token, str) and token else None
 
 
 def _parse_uuid(value: object) -> uuid.UUID | None:
@@ -168,14 +212,19 @@ def _parse_uuid(value: object) -> uuid.UUID | None:
     response_class=RedirectResponse,
     dependencies=[limit_by_ip("signin", SIGN_IN_LIMIT_PER_IP, redirect=True)],
 )
-def google_start(request: Request, settings: Config, now: Now, oidc: OidcDep) -> RedirectResponse:
+def google_start(
+    request: Request, settings: Config, now: Now, oidc: OidcDep, mode: str = signin.SIGN_IN
+) -> RedirectResponse:
+    """`mode=signup` may create an account (with the held invite); anything else only signs in."""
     state, nonce, pkce = random_token(), random_token(), new_pkce()
-    invite_id = _invite_claim(request, settings, now)
+    invite = _invite_claim(request, settings, now) if mode == signin.SIGN_UP else None
     flow = {
         "state": state,
         "verifier": pkce.verifier,
         "nonce": nonce,
-        "invite_id": str(invite_id) if invite_id else None,
+        "mode": signin.SIGN_UP if mode == signin.SIGN_UP else signin.SIGN_IN,
+        "invite_id": str(invite[0]) if invite else None,
+        "hold_token": invite[1] if invite else None,
     }
     url = oidc.build_authorization_url(state, pkce.challenge, nonce)
     response = RedirectResponse(url, status_code=302)
@@ -246,7 +295,9 @@ def _admit_and_start_session(
     request: Request, db: Db, settings: Config, now: Now, identity: Identity, flow: dict[str, Any]
 ) -> RedirectResponse:
     try:
-        user = signin.admit(db, identity, _parse_uuid(flow.get("invite_id")), settings, now)
+        invite_id, token = _parse_uuid(flow.get("invite_id")), flow.get("hold_token")
+        invite = (invite_id, token) if invite_id and isinstance(token, str) else None
+        user = signin.admit(db, identity, str(flow.get("mode")), invite, settings, now)
         # Always a brand-new session: a session id from before sign-in is never promoted.
         raw_token, csrf_token, _ = sessions.create_session(
             db, user.id, now, settings, request.headers.get("user-agent")

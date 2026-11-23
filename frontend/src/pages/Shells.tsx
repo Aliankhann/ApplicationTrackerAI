@@ -4,6 +4,8 @@ import { Link, NavLink, Outlet } from 'react-router'
 import { apiDataSource } from '../data/apiDataSource'
 import { DataSourceProvider } from '../data/DataSourceProvider'
 import { createDemoDataSource } from '../data/demoDataSource'
+import { useMe } from '../data/hooks'
+import FinishSetupPage from './FinishSetupPage'
 
 function Nav({ basePath }: { basePath: string }) {
   const links = [
@@ -22,11 +24,24 @@ function Nav({ basePath }: { basePath: string }) {
   )
 }
 
+// An invited user who has not connected Gmail yet only sees the finish-setup screen. If /me
+// fails (for example a 401), the pages themselves show the error.
+function SetupGate() {
+  const me = useMe()
+  if (me.isPending) return null
+  if (me.data && !me.data.setup_completed) return <FinishSetupPage me={me.data} />
+  return (
+    <>
+      <Nav basePath="/app" />
+      <Outlet />
+    </>
+  )
+}
+
 export function ApiShell() {
   return (
     <DataSourceProvider source={apiDataSource} basePath="/app">
-      <Nav basePath="/app" />
-      <Outlet />
+      <SetupGate />
     </DataSourceProvider>
   )
 }

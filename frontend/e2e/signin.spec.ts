@@ -8,6 +8,7 @@ test('sign-in: a rejected invite code shows an error', async ({ page }) => {
     route.fulfill({ status: 400, json: {} }),
   )
   await page.goto('/sign-in')
+  await page.getByRole('button', { name: 'Sign up' }).click()
   await page.getByRole('textbox', { name: 'Invite code' }).fill(VALID_CODE)
   await page.getByRole('button', { name: 'Check code' }).click()
   await expect(page.getByRole('alert')).toContainText('not valid')
@@ -16,12 +17,23 @@ test('sign-in: a rejected invite code shows an error', async ({ page }) => {
 test('sign-in: an accepted code leads to the Google step pointing at the API', async ({ page }) => {
   await page.route(`${API_BASE_URL}/auth/invite`, (route) => route.fulfill({ status: 204 }))
   await page.goto('/sign-in')
+  await page.getByRole('button', { name: 'Sign up' }).click()
   await page.getByRole('textbox', { name: 'Invite code' }).fill(VALID_CODE)
   await page.getByRole('button', { name: 'Check code' }).click()
   await expect(page.getByRole('heading', { name: 'Your code is accepted' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Continue with Google' })).toHaveAttribute(
     'href',
-    `${API_BASE_URL}/auth/google/start`,
+    `${API_BASE_URL}/auth/google/start?mode=signup`,
+  )
+})
+
+test('sign-in: the Sign in choice goes straight to Google without a code', async ({ page }) => {
+  await page.goto('/sign-in')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('textbox', { name: 'Invite code' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Continue with Google' })).toHaveAttribute(
+    'href',
+    `${API_BASE_URL}/auth/google/start?mode=signin`,
   )
 })
 

@@ -6,6 +6,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
+from app.config import Settings
 from app.log import get_logger
 from app.models import AuditAction, User
 from app.providers.google.revoke import RevokeResult, TokenRevoker
@@ -74,17 +75,57 @@ def disconnect_gmail(
     return DisconnectResult(revoked)
 
 
-def delete_account(session: Session, user_id: uuid.UUID, now: datetime) -> None:
+def delete_account(
+    session: Session, user_id: uuid.UUID, now: datetime, *, forget_invite_email: bool = True
+) -> None:
     """Remove every row of the user in the caller's single transaction; caller commits.
 
     Foreign-key cascades remove everything owned by the user (sessions, token, sync and
     scheduler state, threads, applications, tasks, sequences); invite codes keep their row with
     the user link and any email for them removed. The user's audit rows (no FK) are deleted
     explicitly, then one
-    anonymous `account_deleted` entry is written.
+    anonymous `account_deleted` entry is written. A code the user had claimed becomes available
+    again. `forget_invite_email=False` (expiry cleanup) keeps an operator-set email binding.
     """
     audit_repo.delete_for_user(session, user_id)
     user = session.get(User, user_id)
-    invite_codes_repo.forget_user(session, user_id, user.email if user else None)
+    invite_codes_repo.forget_user(
+        session, user_id, user.email if user and forget_invite_email else None
+    )
     users_repo.delete(session, user_id)
     audit_repo.record(session, None, AuditAction.ACCOUNT_DELETED, now)
+
+
+def delete_expired_pending(session: Session, now: datetime) -> int:
+    """Delete invited users who never connected Gmail before their claim lapsed.
+
+    Each goes through `delete_account`, so every row goes and the code reopens. Allowlisted and
+    completed users are never touched. Caller commits; hold the user-cap lock when racing sign-ups.
+    """
+    expired = invite_codes_repo.expired_pending_user_ids(session, now)
+    for user_id in expired:
+        delete_account(session, user_id, now, forget_invite_email=False)
+    return len(expired)
+
+
+def complete_setup(session: Session, user: User, settings: Settings, now: datetime) -> bool:
+    """Finish a pending user's setup: consume their invite and mark the account complete.
+
+    Called in the transaction that stores the Gmail token. False means the code is gone (revoked,
+    or lapsed with no room left): the caller must not store the token. A lapsed claim is
+    re-claimed when the code is still valid and a slot is free. A user with no claim at all
+    (created outside the invite flow) just completes. Caller commits.
+    """
+    if user.setup_completed_at is not None:
+        return True
+    invite_codes_repo.lock_user_cap(session)
+    held = invite_codes_repo.claim_of(session, user.id)
+    if held is not None:
+        lapsed = held.claimed_until is None or held.claimed_until <= now
+        if lapsed and invite_codes_repo.slots_in_use(session, now) >= settings.max_users:
+            return False
+        if not invite_codes_repo.finalize(session, user.id, now):
+            return False
+    user.setup_completed_at = now
+    audit_repo.record(session, user.id, AuditAction.ACCOUNT_SETUP_COMPLETED, now)
+    return True

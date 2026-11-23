@@ -11,13 +11,16 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.api.deps import get_oidc
-from app.models import AuditLog, OAuthToken, SyncState, TokenStatus, User
+from app.models import AuditLog, InviteCode, OAuthToken, SyncState, TokenStatus, User
 from app.providers.google.scopes import GMAIL_COMPOSE, GMAIL_READONLY, parse_scopes
-from app.repositories import oauth_tokens
+from app.repositories import invite_codes, oauth_tokens
+from app.repositories.invite_codes import HoldResult
 from app.security.crypto import get_keyring
+from app.security.invite_codes import generate_code, hash_code
+from app.services import account
 from tests.fake_google import CONNECT_REDIRECT_URI, FakeGoogle
 from tests.test_applications_api import CSRF
-from tests.test_sessions import Env, cookies, env  # noqa: F401
+from tests.test_sessions import T0, Env, cookies, env  # noqa: F401
 from tests.test_signin import FRONTEND, GOOGLE_ENV
 
 REFRESH = "1//synthetic-refresh-token"
@@ -316,3 +319,96 @@ def test_us31_connect_redirect_uri_defaults_to_the_sign_in_origin_and_can_be_ove
     assert get_settings().connect_redirect_uri == CONNECT_REDIRECT_URI
     env.app(google_connect_redirect_uri="https://api.example.test/custom")
     assert get_settings().connect_redirect_uri == "https://api.example.test/custom"
+
+
+# --- two-phase invite: connecting Gmail completes the sign-up ------------------------------------
+
+HOLD = timedelta(minutes=10)
+CLAIM = timedelta(hours=24)
+SHORT = timedelta(minutes=5)
+
+
+def pending_user(
+    env: Env,  # noqa: F811
+    expires: timedelta = timedelta(days=14),
+    claim: timedelta = CLAIM,
+) -> tuple[User, InviteCode]:
+    """A user created by the sign-up callback: claimed code, setup not complete."""
+    invite = invite_codes.create(env.db, hash_code(generate_code()), T0 + expires)
+    assert invite_codes.try_hold(env.db, invite.id, "tok", T0, HOLD) is HoldResult.HELD
+    user = env.user(setup_completed_at=None)
+    assert invite_codes.claim(env.db, invite.id, "tok", user.id, T0, claim)
+    env.db.refresh(invite)
+    return user, invite
+
+
+def test_finalize_gmail_connect_consumes_the_code_and_completes_setup(env: Env) -> None:  # noqa: F811
+    user, invite = pending_user(env)
+    c = Connect(env, user)
+    assert c.consent().headers["location"] == f"{FRONTEND}/app?connected=1"
+    env.db.expire_all()
+    assert invite.used_by_user_id == user.id and invite.used_at == T0
+    assert invite.claimed_by_user_id is None and invite.claimed_until is None
+    assert user.setup_completed_at == T0
+    assert c.audit() == ["account_setup_completed", "gmail_connected"]
+    assert len(c.tokens()) == 1
+    assert c.client.get("/me").json()["setup_completed"] is True
+
+
+def test_finalize_reclaims_a_lapsed_claim_when_the_code_is_still_free(env: Env) -> None:  # noqa: F811
+    user, invite = pending_user(env, claim=SHORT)
+    env.clock.now = T0 + 2 * SHORT  # the claim lapsed, and nobody cleaned up yet
+    c = Connect(env, user)
+    assert c.consent().headers["location"] == f"{FRONTEND}/app?connected=1"
+    env.db.expire_all()
+    assert invite.used_by_user_id == user.id and user.setup_completed_at is not None
+
+
+def test_finalize_refuses_a_revoked_code_and_stores_no_token(env: Env) -> None:  # noqa: F811
+    user, invite = pending_user(env)
+    invite_codes.revoke(env.db, invite.id, T0)
+    c = Connect(env, user)
+    assert_rejected(c, c.consent(), "invite_expired")
+    env.db.refresh(invite)
+    env.db.refresh(user)
+    assert invite.used_at is None and user.setup_completed_at is None
+
+
+def test_finalize_refuses_a_lapsed_claim_when_the_code_itself_expired(env: Env) -> None:  # noqa: F811
+    user, _ = pending_user(env, expires=timedelta(minutes=3), claim=SHORT)
+    env.clock.now = T0 + 2 * SHORT
+    c = Connect(env, user)
+    assert_rejected(c, c.consent(), "invite_expired")
+
+
+def test_finalize_refuses_a_lapsed_claim_when_the_cap_has_no_room(
+    env: Env,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user, _ = pending_user(env, claim=SHORT)
+    env.clock.now = T0 + 2 * SHORT
+    monkeypatch.setenv("MAX_USERS", str(invite_codes.slots_in_use(env.db, env.clock.now)))
+    c = Connect(env, user)
+    assert_rejected(c, c.consent(), "invite_expired")
+
+
+def test_finalize_after_cleanup_removed_the_pending_user_stores_nothing(env: Env) -> None:  # noqa: F811
+    user, invite = pending_user(env, claim=SHORT)
+    c = Connect(env, user)
+    url = c.start()
+    code = c.google.issue_connect_code(url, user.google_sub, user.email)
+    env.clock.now = T0 + 2 * SHORT
+    assert account.delete_expired_pending(env.db, env.clock.now) == 1
+    env.db.commit()
+    response = c.callback(code, url)  # the session died with the account
+    assert error_of(response) == "session_required"
+    env.db.expire_all()
+    assert c.tokens() == [] and env.db.get(User, user.id) is None
+    env.db.refresh(invite)
+    assert invite.claimed_by_user_id is None and invite.used_at is None
+
+
+def test_connecting_gmail_again_for_a_completed_user_changes_no_invite(env: Env) -> None:  # noqa: F811
+    c = Connect(env)
+    c.consent()
+    assert c.audit() == ["gmail_connected"]  # no account_setup_completed for a finished account

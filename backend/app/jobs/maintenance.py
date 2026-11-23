@@ -1,4 +1,5 @@
-"""Scheduled housekeeping: purge expired rate-limit windows, sessions, and old audit rows.
+"""Scheduled housekeeping: purge expired rate-limit windows, sessions, and old audit rows, drop
+expired invite holds, and delete invited users who never finished setup within their claim.
 
 Run with `python -m app.jobs.maintenance`, or as the once-a-UTC-day part of the cron tick.
 """
@@ -10,15 +11,25 @@ from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
 from app.log import get_logger
-from app.repositories import job_runs
+from app.repositories import invite_codes, job_runs
 from app.repositories.audit import purge_audit
 from app.security import ratelimit, sessions
+from app.services import account
 
 logger = get_logger("app.maintenance")
 
 
+def _release_invites(session: Session, now: datetime) -> dict[str, int]:
+    invite_codes.lock_user_cap(session)  # serialize with sign-ups that claim or count slots
+    return {
+        "invite_holds": invite_codes.clear_expired_holds(session, now),
+        "pending_users": account.delete_expired_pending(session, now),
+    }
+
+
 def run(session: Session, now: datetime) -> dict[str, int]:
     counts = {
+        **_release_invites(session, now),
         "rate_limits": ratelimit.purge_old(session, now),
         "sessions": sessions.purge_expired(session, now),
         "audit": purge_audit(session, now),
