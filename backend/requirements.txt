@@ -70,7 +70,7 @@ psycopg-binary==3.3.9 ; implementation_name != 'pypy'
     # via psycopg
 pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
     # via cffi
-pydantic==2.14.3
+pydantic==2.14.4
     # via
     #   anthropic
     #   fastapi
