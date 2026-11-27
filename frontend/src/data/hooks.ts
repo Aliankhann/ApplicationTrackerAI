@@ -8,6 +8,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { navigateTo } from '../pages/navigate'
 import { useDataSource } from './context'
+import type { DataSource } from './dataSource'
 import type {
   Application,
   ApplicationDetail,
@@ -55,6 +56,8 @@ export function applyPatch<T extends Application>(current: T, patch: Application
   if (patch.status) {
     next.display_status = patch.status
     next.status_locked = true
+    next.needs_review = false
+    next.suggested_label = null
   }
   return next
 }
@@ -102,6 +105,28 @@ export function useUpdateApplication(id: string) {
     },
   })
 }
+
+function useReviewAction(id: string, run: (source: DataSource) => Promise<unknown>) {
+  const source = useDataSource()
+  const client = useQueryClient()
+  return useMutation({
+    scope: { id: `application-${id}` },
+    mutationFn: () => run(source),
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: detailKey(source.kind, id) })
+      void client.invalidateQueries({
+        queryKey: ['applications', source.kind],
+      })
+      void client.invalidateQueries({ queryKey: ['events', source.kind, id] })
+    },
+  })
+}
+
+export const useConfirmApplication = (id: string) =>
+  useReviewAction(id, (source) => source.confirmApplication(id))
+
+export const useDismissApplication = (id: string) =>
+  useReviewAction(id, (source) => source.dismissApplication(id))
 
 export function useFollowUps(state: FollowUpFilter = 'all') {
   const source = useDataSource()

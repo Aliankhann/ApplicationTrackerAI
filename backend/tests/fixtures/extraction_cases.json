@@ -194,7 +194,7 @@
   "from_name": "Maple Grove Recruitment",
   "subject": "Your Application: Marketing Coordinator",
   "snippet": "Thanks",
-  "company": null,
+  "company": "Maple Grove",
   "role": "Marketing Coordinator"
  },
  {
@@ -293,7 +293,7 @@
   "from_name": "Café Lumière Recrutement",
   "subject": "Merci pour votre candidature",
   "snippet": "Nous avons bien reçu",
-  "company": null,
+  "company": "Café Lumière",
   "role": null
  },
  {

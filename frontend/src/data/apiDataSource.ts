@@ -72,6 +72,21 @@ export const apiDataSource: DataSource = {
     })
     return ApplicationDetailSchema.parse(unwrap(result))
   },
+  async confirmApplication(id) {
+    const path = { application_id: id }
+    const result = await api.POST('/applications/{application_id}/confirm', {
+      params: { path },
+    })
+    return ApplicationDetailSchema.parse(unwrap(result))
+  },
+  async dismissApplication(id) {
+    const path = { application_id: id }
+    unwrap(
+      await api.POST('/applications/{application_id}/dismiss', {
+        params: { path },
+      }),
+    )
+  },
   async listFollowUps(state) {
     return FollowUpsSchema.parse(
       unwrap(await api.GET('/follow-ups', { params: { query: { state } } })),

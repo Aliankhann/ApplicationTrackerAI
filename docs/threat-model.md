@@ -23,7 +23,7 @@ exist and are tested against fakes behind interfaces.
 | The 100-user Google cap | Lifetime limit for the unverified app | Invite codes (`invite_codes`, hashes only) and the Google test-user allowlist (planned, US-04) |
 | The operator's reputation and the sender domain | Spam or bulk-send incidents | Gmail drafts only in v1; digest through the email provider (planned) |
 
-Never stored: full bodies, recipient addresses, rendered draft text
+Never stored: full bodies, recipient addresses, rendered draft text. Message text of job threads is read in memory during sync ([0010](decisions/0010-read-job-email-bodies-in-memory.md)) and dropped
 ([models.py](../backend/app/models.py), [sync.py](../backend/app/services/sync.py)).
 
 ## Trust boundaries
@@ -34,6 +34,7 @@ Never stored: full bodies, recipient addresses, rendered draft text
 | API to Postgres | Queries on user-owned rows | Every such query goes through `repositories/` filtered by `user_id`; route-enumerating isolation suite ([test_isolation.py](../backend/tests/test_isolation.py)). Row-level security is **not** implemented |
 | Worker and jobs to Postgres and Gmail | Sync, scheduler, digest | Per-user leases and per-task claims ([ADR 0007](decisions/0007-drafts-guardrails-lease-and-claim.md)), digest claim-before-send. The sync and scheduler have no production entry point or schedule yet (US-05); only the digest job has a `main()` ([jobs/digest.py](../backend/app/jobs/digest.py)) |
 | Backend to Google | OAuth, Gmail reads, draft creation, token revocation | Behind the `GmailClient` and `TokenRevoker` interfaces ([providers/gmail](../backend/app/providers/gmail/client.py), [revoke.py](../backend/app/providers/google/revoke.py)); the real implementations land with US-31, US-04 |
+| Gmail to backend (sync) | Message text of kept job threads, `format=full`, in memory only | Never stored, logged or put in exceptions; attachments never requested; tested in `test_sync_bodies.py` |
 | Backend to LLM vendor (planned) | Sender domain, subject, snippet | Not built (US-45). The classifier input type carries only those three fields ([types.py](../backend/app/providers/classifier/types.py)) |
 | Backend to email provider (planned) | Digest and deletion confirmation, with the user's address | Behind the `EmailSender` interface; production fails closed ("not configured") until a provider is wired ([email.py](../backend/app/providers/email.py)) |
 | Public internet to signed links | Digest unsubscribe | HMAC-signed, expiring token with a purpose-bound key, no session ([unsubscribe.py](../backend/app/security/unsubscribe.py)) |

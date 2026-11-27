@@ -13,6 +13,7 @@ class Msg:
     from_user: bool = False
     draft: bool = False
     tail: str = ""  # text after the snippet window, for the "read more" what-if only
+    body: str = ""  # plain text as the user would see it; "" means derive it (see body_of)
 
 
 @dataclass(frozen=True)
@@ -26,3 +27,11 @@ class Case:
     company: str | None = None
     role: str | None = None
     group: str | None = None  # same real application spread over several threads
+
+
+SNIPPET_CHARS = 200
+
+
+def gmail_snippet(body: str) -> str:
+    """What a Gmail preview shows: the start of the body with whitespace collapsed."""
+    return " ".join(body.split())[:SNIPPET_CHARS]

@@ -32,6 +32,11 @@ class GmailClient(Protocol):
         the threads it did fetch) if some stay rate limited."""
         ...
 
+    def get_message_text(self, message_id: str, max_chars: int = 8000) -> str:
+        """Plain text of one message, read in memory by sync and never stored or logged. Prefers
+        text/plain, else strips HTML; skips attachments; truncated to `max_chars`."""
+        ...
+
     def list_history(self, start_history_id: str, page_token: str | None = None) -> HistoryPage: ...
 
     def get_reply_recipient(self, thread_id: str) -> str:

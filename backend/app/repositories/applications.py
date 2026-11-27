@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from sqlalchemy import (
@@ -14,22 +14,78 @@ from sqlalchemy import (
     cast,
     func,
     not_,
+    or_,
     select,
     tuple_,
 )
 from sqlalchemy.orm import Session
 
-from app.models import Application, Classification, EmailThread, StatusEvent
+from app.errors import NotFound
+from app.models import Application, ApplicationThread, EmailThread, StatusEvent
 from app.services.classification import ApplicationStatus
 
 
 def get_for_thread(
     session: Session, user_id: uuid.UUID, thread_id: uuid.UUID
 ) -> Application | None:
-    stmt = select(Application).where(
-        Application.user_id == user_id, Application.source_thread_id == thread_id
+    """The application a thread belongs to (through the link table)."""
+    stmt = (
+        select(Application)
+        .join(ApplicationThread, ApplicationThread.application_id == Application.id)
+        .where(Application.user_id == user_id, ApplicationThread.thread_id == thread_id)
     )
     return session.scalars(stmt).one_or_none()
+
+
+def link_thread(
+    session: Session, user_id: uuid.UUID, application: Application, thread: EmailThread
+) -> None:
+    """Attach a thread to an application; both must be the user's."""
+    if application.user_id != user_id or thread.user_id != user_id:
+        raise NotFound("application")
+    session.add(
+        ApplicationThread(thread_id=thread.id, application_id=application.id, user_id=user_id)
+    )
+    session.flush()
+
+
+@dataclass(frozen=True)
+class MergeCandidate:
+    application: Application
+    domains: frozenset[str]  # sender domains of its linked threads
+
+
+def merge_candidates(
+    session: Session, user_id: uuid.UUID, thread: EmailThread, window: timedelta
+) -> list[MergeCandidate]:
+    """Live applications with a linked thread within `window` of this thread's messages, plus
+    those with no linked thread left (their mail was disconnected and is being synced again)."""
+    stmt = (
+        select(Application, EmailThread.from_domain)
+        .outerjoin(ApplicationThread, ApplicationThread.application_id == Application.id)
+        .outerjoin(EmailThread, EmailThread.id == ApplicationThread.thread_id)
+        .where(
+            Application.user_id == user_id,
+            Application.needs_review.is_(False),
+            Application.dismissed_at.is_(None),
+            or_(
+                EmailThread.id.is_(None),
+                and_(
+                    EmailThread.user_id == user_id,
+                    EmailThread.id != thread.id,
+                    EmailThread.first_message_at <= thread.last_message_at + window,
+                    EmailThread.last_message_at >= thread.first_message_at - window,
+                ),
+            ),
+        )
+        .order_by(Application.created_at, Application.id)
+    )
+    found: dict[uuid.UUID, tuple[Application, set[str]]] = {}
+    for application, domain in session.execute(stmt):
+        domains = found.setdefault(application.id, (application, set()))[1]
+        if domain is not None:
+            domains.add(domain)
+    return [MergeCandidate(app, frozenset(domains)) for app, domains in found.values()]
 
 
 def get(session: Session, user_id: uuid.UUID, application_id: uuid.UUID) -> Application | None:
@@ -54,6 +110,7 @@ def list_events(
 
 GHOSTABLE = (ApplicationStatus.APPLIED, ApplicationStatus.ONLINE_ASSESSMENT)
 GHOSTED = "ghosted"
+NEEDS_REVIEW = "needs_review"
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 SortField = Literal["last_activity", "applied_at"]
 
@@ -87,6 +144,7 @@ def _key_column(sort: SortField) -> Any:
 
 def _ghosted(cutoff: datetime) -> ColumnElement[bool]:
     return and_(
+        Application.needs_review.is_(False),
         Application.status.in_(GHOSTABLE),
         EmailThread.last_sender_is_user.is_(True),
         Application.last_activity_at < cutoff,
@@ -94,28 +152,27 @@ def _ghosted(cutoff: datetime) -> ColumnElement[bool]:
 
 
 def _view_select(cutoff: datetime) -> Select[Any]:
-    latest_review = (
-        select(Classification.needs_review)
-        .where(Classification.thread_id == Application.source_thread_id)
-        .order_by(Classification.seq.desc())
-        .limit(1)
-        .scalar_subquery()
-    )
-    display = case((_ghosted(cutoff), GHOSTED), else_=cast(Application.status, String)).label(
-        "display_status"
-    )
-    return select(
-        Application,
-        display,
-        func.coalesce(latest_review, False).label("needs_review"),
-        EmailThread.subject,
-        EmailThread.snippet,
-    ).outerjoin(
-        EmailThread,
-        and_(
-            EmailThread.id == Application.source_thread_id,
-            EmailThread.user_id == Application.user_id,
-        ),
+    display = case(
+        (Application.needs_review.is_(True), NEEDS_REVIEW),
+        (_ghosted(cutoff), GHOSTED),
+        else_=cast(Application.status, String),
+    ).label("display_status")
+    return (
+        select(
+            Application,
+            display,
+            Application.needs_review,
+            EmailThread.subject,
+            EmailThread.snippet,
+        )
+        .outerjoin(
+            EmailThread,
+            and_(
+                EmailThread.id == Application.source_thread_id,
+                EmailThread.user_id == Application.user_id,
+            ),
+        )
+        .where(Application.dismissed_at.is_(None))
     )
 
 
@@ -149,8 +206,14 @@ def list_views(
     stmt = _view_select(cutoff).where(Application.user_id == user_id)
     if status == GHOSTED:
         stmt = stmt.where(_ghosted(cutoff))
+    elif status == NEEDS_REVIEW:
+        stmt = stmt.where(Application.needs_review.is_(True))
     elif status is not None:
-        stmt = stmt.where(Application.status == ApplicationStatus(status), not_(_ghosted(cutoff)))
+        stmt = stmt.where(
+            Application.status == ApplicationStatus(status),
+            Application.needs_review.is_(False),
+            not_(_ghosted(cutoff)),
+        )
     if after is not None:
         pair, bound = tuple_(key, Application.id), tuple_(after.key, after.id)
         stmt = stmt.where(pair < bound if descending else pair > bound)

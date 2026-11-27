@@ -133,8 +133,10 @@ def test_every_method_pays_its_own_unit_cost_before_sending(api: FakeGmailApi) -
         DraftRequest("t-interview", "<a@x>", "<a@x>", "Re: Hi", "Body", "to@x.test")
     )
     client.get_draft("d-1")
+    api.payloads["m-1"] = {"mimeType": "text/plain", "body": {"data": "aGk"}}
+    client.get_message_text("m-1")
     names = ["profile.get", "threads.list", "threads.get", "history.list"]
-    names += ["drafts.create", "drafts.get"]
+    names += ["drafts.create", "drafts.get", "messages.get"]
     assert charged == [UNIT_COSTS[name] for name in names]
     assert UNIT_COSTS == {
         "threads.get": 10,
@@ -143,6 +145,7 @@ def test_every_method_pays_its_own_unit_cost_before_sending(api: FakeGmailApi) -
         "profile.get": 1,
         "drafts.create": 10,
         "drafts.get": 5,
+        "messages.get": 5,
     }
 
 

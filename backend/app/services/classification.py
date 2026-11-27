@@ -29,3 +29,8 @@ def apply_result(
     if result.needs_review or result.label is None:
         return None
     return _LABEL_TO_STATUS.get(result.label)
+
+
+def status_for_label(label: Label | None) -> ApplicationStatus | None:
+    """The status a label stands for (None for recruiter, irrelevant and undecided)."""
+    return _LABEL_TO_STATUS.get(label) if label is not None else None

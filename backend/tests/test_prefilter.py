@@ -115,3 +115,37 @@ def test_perf_large_input_is_fast() -> None:
         time.perf_counter() - start < 1.0
     )  # generous for slow CI; catastrophic backtracking takes far longer
     assert not decision.keep
+
+
+def test_ac_myworkday_com_is_an_ats_domain() -> None:
+    from app.services.prefilter import is_ats_domain
+
+    assert is_ats_domain("myworkday.com") and is_ats_domain("wd5.myworkday.com")
+    assert not is_ats_domain("notmyworkday.com") and not is_ats_domain("myworkday.com.evil.example")
+
+
+def test_ac_scheduling_tools_are_kept_as_a_weak_signal() -> None:
+    from app.services.prefilter import EmailMeta, prefilter
+
+    for address in (
+        "notifications@calendly.com",
+        "no-reply@zoom.us",
+        "no-reply@goodtime.io",
+        "hello@modernloop.io",
+        "calendar-notification@google.com",
+    ):
+        decision = prefilter(EmailMeta(address, "Someone", "Confirmed: 30 Minute Chat", "Details"))
+        assert decision.keep and decision.reason == "scheduling_sender"
+    assert not prefilter(EmailMeta("promo@google.com", "Google", "Sale", "Deals")).keep
+    assert not prefilter(EmailMeta("a@evil-calendly.com", "X", "Hello", "Deals")).keep
+
+
+def test_ac_application_signal_is_stricter_than_a_job_keyword() -> None:
+    from app.services.prefilter import has_application_signal
+
+    assert has_application_signal("Update", "your application to Acme was received")
+    assert has_application_signal("Interview invitation")
+    assert not has_application_signal("Weekly digest", "hiring trends and the role model for you")
+    assert not has_application_signal(
+        "Group project", "You applied your skills. Interview with the TA"
+    )

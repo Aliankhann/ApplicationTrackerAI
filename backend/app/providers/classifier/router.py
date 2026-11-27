@@ -5,7 +5,7 @@ failure falls back to the rules result. Logs event names, counts and error codes
 """
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from sqlalchemy.orm import Session
 
@@ -74,7 +74,7 @@ class RoutedClassifier:
         user_id: uuid.UUID | None,
     ) -> ClassificationResult:
         try:
-            answer = self._cached.classify(inp)
+            answer = self._cached.classify(replace(inp, body=""))  # the body never leaves rules
         except LlmError as exc:
             self._record_usage(session, user_id)
             logger.warning("llm.call_failed", extra={"error_code": exc.code})

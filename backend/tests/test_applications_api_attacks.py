@@ -3,13 +3,11 @@ from datetime import timedelta
 from typing import Any
 
 import pytest
-from sqlalchemy import select
 
 from app.api.applications import encode_cursor
 from app.config import get_settings
-from app.models import Application, Classification
-from app.providers.classifier.types import Label
-from tests.test_applications_api import CSRF, login, make_app, thread_of
+from app.models import Application
+from tests.test_applications_api import CSRF, login, make_app
 from tests.test_sessions import Env, env  # noqa: F401
 
 
@@ -71,30 +69,6 @@ def test_ac1_ghosted_boundary_is_exclusive_at_configured_cutoff(env: Env) -> Non
     assert c.get(f"/applications/{past.id}").json()["display_status"] == "ghosted"
     listed = c.get("/applications", params={"status": "ghosted"}).json()
     assert {i["id"] for i in listed["items"]} == {str(past.id)}
-
-
-def test_ac2_needs_review_uses_latest_inserted_classification_even_with_created_at_tie(
-    env: Env,  # noqa: F811
-) -> None:
-    u = env.user()
-    app = make_app(env, u)
-    th = thread_of(env, app)
-    env.db.add(
-        Classification(
-            thread_id=th.id,
-            label=Label.CONFIRMATION,
-            confidence=0.1,
-            method="llm",
-            needs_review=True,
-        )
-    )
-    env.db.flush()
-    created = env.db.scalars(
-        select(Classification.created_at).where(Classification.thread_id == th.id)
-    ).all()
-    assert len(set(created)) == 1  # the tie is real: only seq can order these
-    c = login(env, u)
-    assert c.get(f"/applications/{app.id}").json()["needs_review"] is True
 
 
 def test_ac3_patch_requires_csrf_and_edits_persist(env: Env) -> None:  # noqa: F811

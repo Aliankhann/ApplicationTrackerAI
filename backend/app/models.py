@@ -165,9 +165,17 @@ class EmailThread(TimestampMixin, Base):
 
 
 class Classification(TimestampMixin, Base):
-    """Append-only history; the latest row by seq is current (created_at ties within a txn)."""
+    """Append-only history; the latest row by seq is current (created_at ties within a txn).
+
+    A row with `gmail_message_id` is that message's classification (one per message, no content);
+    rows without it come from before messages were classified one by one."""
 
     __tablename__ = "classifications"
+    __table_args__ = (
+        UniqueConstraint(
+            "thread_id", "gmail_message_id", name="uq_classifications_thread_id_gmail_message_id"
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     seq: Mapped[int] = mapped_column(BigInteger, Identity(), nullable=False)
@@ -182,6 +190,7 @@ class Classification(TimestampMixin, Base):
     rule_id: Mapped[str | None] = mapped_column(String(64))
     model_version: Mapped[str | None] = mapped_column(String(64))
     needs_review: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    gmail_message_id: Mapped[str | None] = mapped_column(String(64))
 
 
 class Application(TimestampMixin, Base):
@@ -210,7 +219,33 @@ class Application(TimestampMixin, Base):
     followups_paused: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
+    # A job thread the pipeline could not decide: shown as "Needs review" with a suggested label
+    # (a classifier label value, or null) until the user confirms, changes or dismisses it.
+    needs_review: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    suggested_label: Mapped[str | None] = mapped_column(String(32))
+    dismissed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = _updated_at()
+
+
+class ApplicationThread(TimestampMixin, Base):
+    """Links an application to every thread that belongs to it (a thread belongs to one)."""
+
+    __tablename__ = "application_threads"
+    __table_args__ = (
+        Index("ix_application_threads_user_id_application_id", "user_id", "application_id"),
+    )
+
+    thread_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("email_threads.id", ondelete="CASCADE"), primary_key=True
+    )
+    application_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("applications.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
 
 class StatusEvent(Base):

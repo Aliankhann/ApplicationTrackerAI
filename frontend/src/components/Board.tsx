@@ -1,6 +1,6 @@
 import type { Application } from '../data/schemas'
 import { ApplicationCard } from './ApplicationCard'
-import { BOARD_COLUMNS, statusLabel } from './format'
+import { BOARD_COLUMNS, REVIEW_COLUMN, statusLabel } from './format'
 
 const OTHER = 'other'
 const isKnown = (value: string) => (BOARD_COLUMNS as readonly string[]).includes(value)
@@ -13,7 +13,10 @@ function columnFor(app: Application): string {
 
 export function Board({ items, hasMore = false }: { items: Application[]; hasMore?: boolean }) {
   const other = items.filter((a) => columnFor(a) === OTHER)
-  const columns = other.length > 0 ? [...BOARD_COLUMNS, OTHER] : BOARD_COLUMNS
+  const shown: readonly string[] = BOARD_COLUMNS.filter(
+    (c) => c !== REVIEW_COLUMN || items.some((a) => columnFor(a) === REVIEW_COLUMN),
+  )
+  const columns = other.length > 0 ? [...shown, OTHER] : shown
   return (
     <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
       {columns.map((status) => {

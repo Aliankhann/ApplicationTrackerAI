@@ -39,6 +39,7 @@ def plannable(session: Session, user_id: uuid.UUID) -> list[tuple[Application, E
             EmailThread.user_id == user_id,
             Application.status.in_(_FOLLOWABLE),
             Application.followups_paused.is_(False),
+            Application.needs_review.is_(False),
             EmailThread.last_sender_is_user.is_(True),
         )
         .order_by(Application.created_at, Application.id)

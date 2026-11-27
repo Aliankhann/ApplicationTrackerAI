@@ -2272,8 +2272,43 @@ def build_corpus() -> list[Case]:
         *_recruiters(),
         *_noise(),
         *_extra(),
+        *_boilerplate(),
     ]
     ids = [c.id for c in cases]
     if len(ids) != len(set(ids)):
         raise ValueError("duplicate case ids")
     return cases
+
+
+def _boilerplate() -> list[Case]:
+    """Confirmations whose bodies carry conditional rejection and interview wording."""
+
+    def conf(cid: str, name: str, subject: str, body: str, company: str, role: str) -> Case:
+        snippet = " ".join(body.split())[:200]
+        msg = Msg(name, GH, subject, snippet, 12, False, False, "", body)
+        return app(cid, "greenhouse", [msg], CONF, APPLIED, company, role)
+
+    return [
+        conf(
+            "bp-conf-1",
+            "Rivergate Freight",
+            "Thank you for applying to Rivergate Freight",
+            "Hi Sam,\n\nWe have received your application for the Fleet Analytics Intern role. "
+            "If we are unable to move forward with your application, you will receive an email. "
+            "If we decide to move forward with other candidates, you will be notified.\n\n"
+            "Best regards,\nThe Rivergate Freight Recruiting Team",
+            "Rivergate Freight",
+            "Fleet Analytics Intern",
+        ),
+        conf(
+            "bp-conf-2",
+            "Skyline Optics",
+            "Your application to Skyline Optics",
+            "Hello Sam,\n\nThanks for applying for the Imaging Software Intern position. "
+            "We will schedule an interview if you are selected. We will contact you to schedule "
+            "an interview if your background is a match. Should we decide to proceed with other "
+            "candidates we will email you.\n\nThe Skyline Optics Talent Team",
+            "Skyline Optics",
+            "Imaging Software Intern",
+        ),
+    ]

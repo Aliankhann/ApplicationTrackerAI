@@ -1,4 +1,4 @@
-import { FILTER_STATUSES } from '../data/schemas'
+import { STATUSES } from '../data/schemas'
 
 export const STATUS_LABELS: Record<string, string> = {
   applied: 'Applied',
@@ -7,9 +7,24 @@ export const STATUS_LABELS: Record<string, string> = {
   offer: 'Offer',
   rejected: 'Rejected',
   ghosted: 'Ghosted',
+  needs_review: 'Needs review',
 }
 
-export const BOARD_COLUMNS = FILTER_STATUSES
+// Labels the pipeline can suggest for a card it could not decide (classifier label values).
+const SUGGESTION_LABELS: Record<string, string> = {
+  confirmation: 'Applied',
+  online_assessment: 'Online assessment',
+  interview: 'Interview',
+  offer: 'Offer',
+  rejection: 'Rejected',
+}
+
+export const suggestionLabel = (label: string | null): string | null =>
+  label === null ? null : (SUGGESTION_LABELS[label] ?? null)
+
+// "Needs review" comes first and the board only shows it while something waits there.
+export const REVIEW_COLUMN = 'needs_review'
+export const BOARD_COLUMNS = [REVIEW_COLUMN, ...STATUSES, 'ghosted'] as const
 
 export const statusLabel = (status: string): string => STATUS_LABELS[status] ?? status
 

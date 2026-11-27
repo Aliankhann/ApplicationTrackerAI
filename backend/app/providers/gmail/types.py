@@ -1,4 +1,4 @@
-"""Gmail data carried through the app. Metadata only: no bodies, no To/Cc fields."""
+"""Message metadata carried through the app: no bodies, no To/Cc fields (text is read on demand)."""
 
 from dataclasses import dataclass
 from datetime import datetime

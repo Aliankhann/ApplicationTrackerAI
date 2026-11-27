@@ -17,6 +17,7 @@ ATS_DOMAINS: tuple[str, ...] = (
     "ashbyhq.com",
     "myworkdayjobs.com",
     "workday.com",
+    "myworkday.com",
     "icims.com",
     "smartrecruiters.com",
     "workable.com",
@@ -30,6 +31,15 @@ ATS_DOMAINS: tuple[str, ...] = (
     "codesignal.com",
     "codility.com",
 )
+
+# Scheduling tools: a message from one is kept as a weak signal (it may confirm an interview).
+SCHEDULING_DOMAINS: tuple[str, ...] = (
+    "calendly.com",
+    "zoom.us",
+    "goodtime.io",
+    "modernloop.io",
+)
+_CALENDAR_SENDER = ("calendar-notification", "calendar-invites")
 
 # Extend here (US-41/US-42). Base forms, lowercase, accent-free; _SUFFIX adds plurals and
 # inflections. "unfortunately" is deliberately absent: rejections are caught by the others.
@@ -152,6 +162,16 @@ def is_ats_domain(domain: str) -> bool:
     return any(domain == ats or domain.endswith("." + ats) for ats in ATS_DOMAINS)
 
 
+def is_scheduling_sender(from_address: str) -> bool:
+    """Calendly, Zoom, GoodTime, ModernLoop, or a Google Calendar notification."""
+    domain = sender_domain(from_address)
+    if any(domain == d or domain.endswith("." + d) for d in SCHEDULING_DOMAINS):
+        return True
+    return domain == "google.com" and sender_local_part(from_address).replace(" ", "-").startswith(
+        _CALENDAR_SENDER
+    )
+
+
 def sender_local_part(from_address: str) -> str:
     """Local part of the address, with separators turned into spaces; '' when unknown."""
     _, addr = parseaddr(from_address or "")
@@ -170,6 +190,21 @@ def _has_keyword(text: str) -> bool:
     return any(not _NON_JOB_RE.match(text, m.start()) for m in _KEYWORD_RE.finditer(text))
 
 
+_APPLICATION_SIGNAL_RE = re.compile(
+    r"\b(?:your|my)\s+(?:job\s+)?application\b|\byou(?:'ve|\s+have)?\s+applied\s+(?:to|for|at)\b"
+    r"|\bapplying\s+(?:to|for)\b|\bcandidacy\b|\byour\s+interview\b"
+    r"|\binterview\s+(?:invitation|request|confirmation)\b|\binvite\s+you\s+(?:to|for)\s+an?\s+interview\b"
+    r"|\bonline\s+assessment\b|\bcoding\s+(?:challenge|test)\b|\boffer\s+(?:letter|of\s+employment)\b"
+    r"|\b(?:position|role)\s+at\b",
+    re.IGNORECASE,
+)
+
+
+def has_application_signal(*texts: str) -> bool:
+    """Wording that is about the reader's own application (stricter than a job keyword)."""
+    return any(_APPLICATION_SIGNAL_RE.search(normalize_text(t)) for t in texts)
+
+
 def has_job_sender(email: EmailMeta) -> bool:
     return any(
         _SENDER_RE.search(normalize_text(t))
@@ -185,4 +220,6 @@ def prefilter(email: EmailMeta) -> Decision:
         return Decision(keep=True, reason="job_keyword")
     if has_job_sender(email):
         return Decision(keep=True, reason="job_sender")
+    if is_scheduling_sender(email.from_address):
+        return Decision(keep=True, reason="scheduling_sender")
     return Decision(keep=False, reason="no_signal")

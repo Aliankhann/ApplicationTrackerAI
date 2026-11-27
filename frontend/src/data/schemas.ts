@@ -8,7 +8,7 @@ export const STATUSES = ['applied', 'online_assessment', 'interview', 'offer', '
 export const StatusSchema = z.enum(STATUSES)
 export type Status = z.infer<typeof StatusSchema>
 
-export const FILTER_STATUSES = [...STATUSES, 'ghosted'] as const
+export const FILTER_STATUSES = [...STATUSES, 'ghosted', 'needs_review'] as const
 export type FilterStatus = (typeof FILTER_STATUSES)[number]
 
 const timestamp = z.iso.datetime({ offset: true })
@@ -23,6 +23,7 @@ export const ApplicationSchema = z.object({
   last_activity_at: timestamp,
   status_locked: z.boolean(),
   needs_review: z.boolean(),
+  suggested_label: z.string().nullable(),
   followups_paused: z.boolean(),
 })
 export type Application = z.infer<typeof ApplicationSchema>

@@ -1,6 +1,6 @@
 # 0002: Metadata-only storage
 
-Status: accepted (implemented)
+Status: accepted (implemented); the "read only metadata" part is superseded by [0010](0010-read-job-email-bodies-in-memory.md). What is stored is unchanged.
 
 ## Context
 

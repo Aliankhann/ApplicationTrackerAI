@@ -15,6 +15,62 @@ JOB = "careers.example.com"
 
 # rule id -> (positive, negative), all synthetic
 EXAMPLES: dict[str, tuple[Case, Case]] = {
+    "irr.job_digest_wording": (
+        (JOB, "Your weekly roundup", "12 new jobs match your search"),
+        (JOB, "Your weekly roundup", "Manage your Indeed job alerts"),
+    ),
+    "rej.proceed_with_applicants": (
+        (JOB, "Update", "We have chosen to proceed with applicants whose skills fit better"),
+        (JOB, "Update", "We have chosen to proceed with your application"),
+    ),
+    "int.pick_a_time": (
+        (JOB, "Next steps", "Thanks for applying. Please pick a time for a call"),
+        (JOB, "Next steps", "Please pick a time for a haircut"),
+    ),
+    "int.love_to_chat": (
+        (JOB, "Hello", "Thanks for applying, we'd love to chat about the role"),
+        (JOB, "Hello", "We'd love to chat about our new product"),
+    ),
+    "int.move_you_forward": (
+        (JOB, "Update", "We would like to move you to the next round"),
+        (JOB, "Update", "We would like to move the meeting"),
+    ),
+    "int.share_availability": (
+        (JOB, "Update", "Please share your availability for next week"),
+        (JOB, "Update", "Please share your photos"),
+    ),
+    "int.interview_confirmation": (
+        (JOB, "Interview Confirmation", ""),
+        (JOB, "Interview tips", ""),
+    ),
+    "int.scheduled_chat": (
+        (JOB, "Confirmed: 30 Minute Chat with Dana", ""),
+        (JOB, "Confirmed: Haircut with Joe", ""),
+    ),
+    "off.would_like_to_offer": (
+        (JOB, "Congratulations", "We would like to offer you the Backend Intern position"),
+        (JOB, "Congratulations", "We would like to offer you a discount"),
+    ),
+    "oa.complete_assessment": (
+        (JOB, "Next step", "As the next step in your application, complete the assessment"),
+        (JOB, "Your course", "Complete the final assessment to earn your certificate"),
+    ),
+    "conf.application_sent": (
+        (JOB, "Your application was sent to Acme", ""),
+        (JOB, "Your package was sent to Acme", ""),
+    ),
+    "conf.successfully_applied": (
+        (JOB, "Update", "You've successfully applied to Intern at Acme"),
+        (JOB, "Update", "You've successfully logged in"),
+    ),
+    "conf.thanks_applying": (
+        (JOB, "Update", "Thanks for applying!"),
+        (JOB, "Update", "Thanks for shopping!"),
+    ),
+    "conf.well_review": (
+        (JOB, "Update", "We'll review your application and get back to you"),
+        (JOB, "Update", "We'll review your order and get back to you"),
+    ),
     "irr.job_alert_digest": ((JOB, "New jobs for you", ""), (JOB, "Your new job", "")),
     "rej.not_moving_forward": (
         (JOB, "Update", "We will not be moving forward with your application"),
@@ -197,7 +253,7 @@ def test_us41_ac1_positive_and_negative_examples(rule: object) -> None:
 
     def texts(case: Case) -> dict[str, str]:
         d, s, n = (normalize_text(x).lower() for x in case)
-        return {"from_domain": d, "subject": s, "snippet": n}
+        return {"from_domain": d, "subject": s, "snippet": n, "body": ""}
 
     assert _matches(rule, texts(positive))
     assert not _matches(rule, texts(negative))

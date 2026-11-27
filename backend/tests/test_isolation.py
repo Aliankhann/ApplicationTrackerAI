@@ -69,6 +69,8 @@ def build_world(env: Env, tag: str) -> World:  # noqa: F811
 PARAM_MAP: dict[str, dict[str, str]] = {
     "/applications/{application_id}": {"application_id": "application"},
     "/applications/{application_id}/events": {"application_id": "application"},
+    "/applications/{application_id}/confirm": {"application_id": "application"},
+    "/applications/{application_id}/dismiss": {"application_id": "application"},
     "/follow-ups/{task_id}/skip": {"task_id": "task"},
     "/follow-ups/{task_id}/delay": {"task_id": "task"},
     "/sequences/{sequence_id}": {"sequence_id": "sequence"},

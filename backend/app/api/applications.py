@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api.deps import Config, CurrentUser, Db, Now
-from app.errors import NotFound
+from app.errors import InvalidOperation, NotFound
 from app.repositories import applications as repo
 from app.services import applications as service
 from app.services.classification import ApplicationStatus
@@ -16,7 +16,9 @@ from app.services.templates import strip_unsafe
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
-StatusFilter = Literal["applied", "online_assessment", "interview", "offer", "rejected", "ghosted"]
+StatusFilter = Literal[
+    "applied", "online_assessment", "interview", "offer", "rejected", "ghosted", "needs_review"
+]
 CURSOR_PARTS = 3
 
 
@@ -30,6 +32,7 @@ class ApplicationOut(BaseModel):
     last_activity_at: datetime
     status_locked: bool
     needs_review: bool
+    suggested_label: str | None  # for a needs-review card: the label the pipeline leans to
     followups_paused: bool
 
 
@@ -90,6 +93,7 @@ def _fields(view: repo.ApplicationView) -> dict[str, object]:
         "last_activity_at": a.last_activity_at,
         "status_locked": a.status_locked,
         "needs_review": view.needs_review,
+        "suggested_label": a.suggested_label if view.needs_review else None,
         "followups_paused": a.followups_paused,
     }
 
@@ -205,3 +209,34 @@ def patch_application(
         raise HTTPException(status_code=404, detail="not_found") from None
     db.commit()
     return _detail(_require_view(db, user, settings, now, application_id))
+
+
+@router.post("/{application_id}/confirm", response_model=ApplicationDetail)
+def confirm_application(
+    application_id: uuid.UUID, user: CurrentUser, db: Db, settings: Config, now: Now
+) -> ApplicationDetail:
+    """Accept the suggested label of a needs-review card as its status."""
+    try:
+        service.confirm_review(db, user.id, application_id, now)
+    except NotFound:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="not_found") from None
+    except InvalidOperation:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="nothing_to_confirm") from None
+    db.commit()
+    return _detail(_require_view(db, user, settings, now, application_id))
+
+
+@router.post("/{application_id}/dismiss", status_code=204)
+def dismiss_application(application_id: uuid.UUID, user: CurrentUser, db: Db, now: Now) -> None:
+    """Hide a needs-review card for good (it is not recreated by later syncs)."""
+    try:
+        service.dismiss_review(db, user.id, application_id, now)
+    except NotFound:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="not_found") from None
+    except InvalidOperation:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="not_in_review") from None
+    db.commit()

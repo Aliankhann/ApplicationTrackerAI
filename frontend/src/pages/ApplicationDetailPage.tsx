@@ -1,10 +1,22 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { ErrorState, LoadingSkeleton } from '../components/QueryStates'
-import { reasonText, relativeDate, shortDate, statusLabel } from '../components/format'
+import {
+  reasonText,
+  relativeDate,
+  shortDate,
+  statusLabel,
+  suggestionLabel,
+} from '../components/format'
 import { useBasePath } from '../data/context'
 import { ApiError } from '../data/dataSource'
-import { useApplication, useEvents, useUpdateApplication } from '../data/hooks'
+import {
+  useApplication,
+  useConfirmApplication,
+  useDismissApplication,
+  useEvents,
+  useUpdateApplication,
+} from '../data/hooks'
 import {
   COMPANY_MAX,
   ROLE_MAX,
@@ -92,6 +104,48 @@ function EditDetails({
   )
 }
 
+function ReviewPanel({ app }: { app: ApplicationDetail }) {
+  const confirm = useConfirmApplication(app.id)
+  const dismiss = useDismissApplication(app.id)
+  const navigate = useNavigate()
+  const base = useBasePath()
+  const suggestion = suggestionLabel(app.suggested_label)
+  const busy = confirm.isPending || dismiss.isPending
+  return (
+    <section
+      role="note"
+      aria-label="Needs review"
+      className="mt-4 rounded border border-amber-500 p-3"
+    >
+      <p>
+        Needs review: this looks like a job email, but its status could not be decided.
+        {suggestion ? ` Suggested status: ${suggestion}.` : ' There is no suggestion.'}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {suggestion && (
+          <button type="button" className="btn" disabled={busy} onClick={() => confirm.mutate()}>
+            Confirm {suggestion}
+          </button>
+        )}
+        <span className="text-sm">Or pick a status with Change status below.</span>
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={() => dismiss.mutate(undefined, { onSuccess: () => void navigate(base) })}
+        >
+          Dismiss
+        </button>
+      </div>
+      {(confirm.isError || dismiss.isError) && (
+        <p role="alert" className="mt-2 text-red-800 dark:text-red-300">
+          Could not complete that. Nothing was changed.
+        </p>
+      )}
+    </section>
+  )
+}
+
 function Timeline({ id }: { id: string }) {
   const events = useEvents(id)
   if (events.isPending) return <LoadingSkeleton label="Loading timeline" />
@@ -125,11 +179,7 @@ function Detail({ app }: { app: ApplicationDetail }) {
       <h1 className="text-2xl font-bold">{app.company ?? 'Unknown company'}</h1>
       <p className="text-gray-700 dark:text-gray-300">{app.role ?? 'Role not detected'}</p>
 
-      {app.needs_review && (
-        <p role="note" className="mt-4 rounded border border-amber-500 p-3">
-          Needs review: some details could not be detected with confidence. Check them below.
-        </p>
-      )}
+      {app.needs_review && <ReviewPanel app={app} />}
       {update.isError && (
         <p
           role="alert"
@@ -148,9 +198,14 @@ function Detail({ app }: { app: ApplicationDetail }) {
             <select
               className="field"
               disabled={update.isPending}
-              value={app.status}
+              value={app.needs_review ? '' : app.status}
               onChange={(e) => update.mutate({ status: e.target.value as Status })}
             >
+              {app.needs_review && (
+                <option value="" disabled>
+                  Choose a status
+                </option>
+              )}
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {statusLabel(s)}

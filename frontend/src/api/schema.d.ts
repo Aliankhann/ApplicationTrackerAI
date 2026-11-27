@@ -173,6 +173,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/applications/{application_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Application
+         * @description Accept the suggested label of a needs-review card as its status.
+         */
+        post: operations["confirm_application_applications__application_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications/{application_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss Application
+         * @description Hide a needs-review card for good (it is not recreated by later syncs).
+         */
+        post: operations["dismiss_application_applications__application_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/follow-ups": {
         parameters: {
             query?: never;
@@ -423,6 +463,8 @@ export interface components {
             status_locked: boolean;
             /** Needs Review */
             needs_review: boolean;
+            /** Suggested Label */
+            suggested_label: string | null;
             /** Followups Paused */
             followups_paused: boolean;
             /** Subject */
@@ -455,6 +497,8 @@ export interface components {
             status_locked: boolean;
             /** Needs Review */
             needs_review: boolean;
+            /** Suggested Label */
+            suggested_label: string | null;
             /** Followups Paused */
             followups_paused: boolean;
         };
@@ -923,7 +967,7 @@ export interface operations {
     list_applications_applications_get: {
         parameters: {
             query?: {
-                status?: ("applied" | "online_assessment" | "interview" | "offer" | "rejected" | "ghosted") | null;
+                status?: ("applied" | "online_assessment" | "interview" | "offer" | "rejected" | "ghosted" | "needs_review") | null;
                 sort?: "last_activity" | "applied_at";
                 order?: "desc" | "asc";
                 limit?: number;
@@ -1040,6 +1084,66 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["EventOut"][];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_application_applications__application_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_application_applications__application_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

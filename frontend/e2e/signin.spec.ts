@@ -56,6 +56,7 @@ const APPLICATION = {
   last_activity_at: NOW,
   status_locked: false,
   needs_review: false,
+  suggested_label: null,
   followups_paused: false,
 }
 

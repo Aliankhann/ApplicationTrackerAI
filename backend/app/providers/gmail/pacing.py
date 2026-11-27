@@ -15,6 +15,7 @@ from collections.abc import Callable
 UNIT_COSTS: dict[str, int] = {
     "threads.get": 10,
     "threads.list": 10,
+    "messages.get": 5,
     "history.list": 2,
     "profile.get": 1,
     "drafts.create": 10,

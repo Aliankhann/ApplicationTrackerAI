@@ -144,7 +144,7 @@ Every user-owned row carries `user_id` (directly or through its parent), with ca
 | `digest_log` | One row per user and local date; makes the digest at-most-once |
 | `audit_log` | Action and time only; `user_id` is not a foreign key so one anonymous `account_deleted` row can remain |
 
-Not stored: email bodies, recipient addresses, or rendered draft text.
+Not stored: email bodies, recipient addresses, or rendered draft text. Sync reads the text of recent messages of kept job threads in memory (ADR 0010) to classify and extract, then drops it. Also stored: `application_threads` (one card owns many threads), per-message classification rows keyed by Gmail message id (no content), and the needs-review state on `applications`.
 
 ## Where each security control lives
 

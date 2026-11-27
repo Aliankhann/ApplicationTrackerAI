@@ -8,9 +8,9 @@
     "auto_error_rate": 0.0
   },
   "holdout": {
-    "accuracy": 0.4925,
+    "accuracy": 0.5224,
     "rejection_precision": 1.0,
-    "rejection_recall": 0.4444,
+    "rejection_recall": 0.4815,
     "interview_precision": 1.0,
     "offer_precision": 1.0,
     "auto_error_rate": 0.0

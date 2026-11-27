@@ -1,4 +1,5 @@
-"""Shared classifier types. Input carries only what an LLM fallback may ever see."""
+"""Shared classifier types. The LLM fallback only ever sees domain, subject and snippet; `body`
+is for the rules and is stripped before any LLM call."""
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -20,6 +21,7 @@ class ClassificationInput:
     from_domain: str
     subject: str
     snippet: str
+    body: str = ""  # cleaned, bounded body text; rules read it, an LLM never sees it
 
 
 @dataclass(frozen=True)

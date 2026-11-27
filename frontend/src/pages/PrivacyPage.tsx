@@ -45,9 +45,12 @@ export default function PrivacyPage() {
       <Section id="reads" title="What we read from Gmail">
         <p>
           When you connect Gmail we look at threads from the last {DEFAULT_INITIAL_SYNC_DAYS} days,
-          and after that at threads that changed. For each thread we read metadata only: the sender,
-          the subject, a short snippet (cut to 200 characters), message dates, and whether the last
-          message was yours. We do not read full message bodies.
+          and after that at threads that changed. For each thread we read the sender, the
+          subject, a short snippet (cut to 200 characters), message dates, and whether the last
+          message was yours. For threads that look job related we also read the text of recent
+          messages from others, in memory only, to find the company, role and status. That text is
+          never saved, logged, or sent to the AI model, and it is dropped as soon as the card is
+          updated.
         </p>
         <p>
           Permissions: <code>gmail.readonly</code> when you connect Gmail. Follow-up drafts need

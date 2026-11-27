@@ -1,12 +1,15 @@
 import { Link } from 'react-router'
 import type { Application } from '../data/schemas'
 import { useBasePath } from '../data/context'
-import { relativeDate } from './format'
+import { relativeDate, suggestionLabel } from './format'
 
 export function Badges({ app }: { app: Application }) {
   return (
     <>
       {app.needs_review && <span className="badge badge-warn">Needs review</span>}
+      {app.needs_review && suggestionLabel(app.suggested_label) && (
+        <span className="badge">Suggested: {suggestionLabel(app.suggested_label)}</span>
+      )}
       {app.followups_paused && <span className="badge">Follow-ups paused</span>}
     </>
   )

@@ -32,3 +32,11 @@ is meant to resolve), so the gate enforces only the precision floor and no regre
 Two holdout cases were inspected during QA of US-42, so holdout is partly seen and numbers
 measured on it after that change are slightly optimistic. Refresh it periodically with new,
 unseen synthetic cases (and rewrite the baseline once when you do).
+
+## Pipeline corpus (end to end)
+
+`uv run python -m eval.pipeline --split tune|holdout [--show-cases]` runs synthetic threads with
+message bodies through the real sync and reports the funnel, the targets and every miss.
+`tune` is for writing rules; `holdout` (`eval/pipeline_corpus/holdout.py`) is frozen, measurement
+only, and its hash is pinned in `tests/test_eval_pipeline.py`. Do not read its misses to decide
+what to add; if it is ever contaminated, write a fresh one. Results: `docs/pipeline-diagnosis.md`.

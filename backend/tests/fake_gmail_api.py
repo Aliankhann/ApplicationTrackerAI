@@ -54,6 +54,7 @@ class FakeGmailApi:
     in_flight: int = 0
     max_in_flight: int = 0
     history: list[dict[str, Any]] = field(default_factory=list)
+    payloads: dict[str, dict[str, Any]] = field(default_factory=dict)  # message id -> full payload
     _lock: threading.Lock = field(default_factory=threading.Lock)
 
     @classmethod
@@ -130,6 +131,8 @@ class FakeGmailApi:
             if thread is None:
                 return httpx.Response(404, json={"error": {"code": 404}})
             return self._json({"id": path.split("/")[2], "historyId": "42", "messages": thread})
+        if path.startswith("/messages/"):
+            return self._message(path.split("/")[2], query)
         if path == "/history":
             return self._json(self._history(query))
         if path == "/drafts" and request.method == "POST":
@@ -143,6 +146,12 @@ class FakeGmailApi:
                 return httpx.Response(404, json={"error": {"code": 404}})
             return self._json({"id": draft_id})
         return httpx.Response(404)
+
+    def _message(self, message_id: str, query: httpx.QueryParams) -> httpx.Response:
+        payload = self.payloads.get(message_id)
+        if payload is None or query.get("format") != "full":
+            return httpx.Response(404, json={"error": {"code": 404}})
+        return self._json({"id": message_id, "threadId": "t", "payload": payload})
 
     def _json(self, body: dict[str, Any]) -> httpx.Response:
         return httpx.Response(200, json=body)

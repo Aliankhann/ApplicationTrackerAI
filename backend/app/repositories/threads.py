@@ -87,29 +87,71 @@ def _same_result(row: Classification, result: ClassificationResult) -> bool:
     )
 
 
-def add_classification(
-    session: Session, user_id: uuid.UUID, thread: EmailThread, result: ClassificationResult
-) -> Classification:
-    """Append a row unless the latest one already holds the identical result."""
+def classifications_of(
+    session: Session, user_id: uuid.UUID, thread: EmailThread
+) -> list[Classification]:
+    """All classification rows of the thread, oldest first."""
     if thread.user_id != user_id:
         raise NotFound("thread")
-    latest = session.scalars(
+    stmt = (
         select(Classification)
         .where(Classification.thread_id == thread.id)
-        .order_by(Classification.seq.desc())
-        .limit(1)
-    ).one_or_none()
-    if latest is not None and _same_result(latest, result):
-        return latest
-    row = Classification(
-        thread_id=thread.id,
-        label=result.label,
-        confidence=result.confidence,
-        method=result.method,
-        rule_id=result.rule_id,
-        model_version=result.model_version,
-        needs_review=result.needs_review,
+        .order_by(Classification.seq)
     )
+    return list(session.scalars(stmt))
+
+
+def classified_message_ids(session: Session, user_id: uuid.UUID, thread: EmailThread) -> set[str]:
+    """Gmail ids of the thread's messages that already have a classification row."""
+    return {
+        row.gmail_message_id
+        for row in classifications_of(session, user_id, thread)
+        if row.gmail_message_id is not None
+    }
+
+
+def _fill(row: Classification, result: ClassificationResult) -> None:
+    row.label = result.label
+    row.confidence = result.confidence
+    row.method = result.method
+    row.rule_id = result.rule_id
+    row.model_version = result.model_version
+    row.needs_review = result.needs_review
+
+
+def add_classification(
+    session: Session,
+    user_id: uuid.UUID,
+    thread: EmailThread,
+    result: ClassificationResult,
+    message_id: str | None = None,
+) -> Classification:
+    """Store a result. With `message_id` there is one row per message (a re-run replaces its
+    values); without, a row is appended unless the latest one already holds the same result."""
+    if thread.user_id != user_id:
+        raise NotFound("thread")
+    if message_id is not None:
+        existing = session.scalars(
+            select(Classification).where(
+                Classification.thread_id == thread.id,
+                Classification.gmail_message_id == message_id,
+            )
+        ).one_or_none()
+        if existing is not None:
+            _fill(existing, result)
+            session.flush()
+            return existing
+    else:
+        latest = session.scalars(
+            select(Classification)
+            .where(Classification.thread_id == thread.id)
+            .order_by(Classification.seq.desc())
+            .limit(1)
+        ).one_or_none()
+        if latest is not None and _same_result(latest, result):
+            return latest
+    row = Classification(thread_id=thread.id, gmail_message_id=message_id)
+    _fill(row, result)
     session.add(row)
     session.flush()
     return row

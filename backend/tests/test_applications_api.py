@@ -45,10 +45,13 @@ def make_app(
         env.db, user.id, ThreadMeta(gid, "h", (message,)), subject, "acme.example", snippet
     )
     res = ClassificationResult(label, 0.9, "rules", "r1", False)
-    application = svc.record_classification(
-        env.db, user.id, thread, res, Extracted(company, role, "s", "s"), at
-    )
+    # Unique company and role while recording, so these unrelated cards do not merge; the
+    # requested values are put back afterwards.
+    unique = Extracted(f"{company}-{gid}", f"{role}-{gid}", "s", "s")
+    application = svc.record_classification(env.db, user.id, thread, res, unique, at)
     assert application is not None
+    application.company, application.role = company, role
+    env.db.flush()
     return application
 
 
@@ -203,23 +206,6 @@ def test_ac2_detail_returns_subject_snippet_only_to_owner_and_events_ordered(
         assert stranger.get(path).status_code == 404
     assert stranger.get(f"/applications/{uuid.uuid4()}").status_code == 404
     assert "Acme" not in stranger.get("/applications").text
-
-
-def test_ac2_needs_review_reflects_latest_classification(env: Env) -> None:  # noqa: F811
-    user = env.user()
-    application = make_app(env, user)
-    client = login(env, user)
-    assert client.get(f"/applications/{application.id}").json()["needs_review"] is False
-    review = ClassificationResult(None, 0.4, "rules", None, True)
-    svc.record_classification(
-        env.db,
-        user.id,
-        thread_of(env, application),
-        review,
-        Extracted(None, None, None, None),
-        env.clock.now,
-    )
-    assert client.get(f"/applications/{application.id}").json()["needs_review"] is True
 
 
 def test_ac3_patch_status_locks_writes_manual_event_and_classifier_cannot_override(

@@ -7,8 +7,18 @@ import {
 import { DEFAULT_INITIAL_SYNC_DAYS } from '../constants'
 import { renderPreview } from '../demo/preview'
 import { ApiError, type DataSource } from './dataSource'
-import type { ApplicationDetail, FollowUp, ListParams, Sequence } from './schemas'
+import type { ApplicationDetail, FollowUp, ListParams, Sequence, Status } from './schemas'
 import { validateSteps, validateTemplate } from './sequenceValidation'
+
+const SUGGESTED_STATUS: Record<string, Status> = {
+  confirmation: 'applied',
+  online_assessment: 'online_assessment',
+  interview: 'interview',
+  offer: 'offer',
+  rejection: 'rejected',
+}
+const statusOfSuggestion = (label: string | null): Status | undefined =>
+  label === null ? undefined : SUGGESTED_STATUS[label]
 
 const DEFAULT_LIMIT = 50
 const NOT_IN_DEMO = 'Not available in the demo'
@@ -82,9 +92,11 @@ export function createDemoDataSource(now: Date = new Date()): DataSource {
       const record = find(id)
       const previous = record.detail
       const next: ApplicationDetail = { ...previous, ...patch }
-      if (patch.status && patch.status !== previous.status) {
+      if (patch.status && (patch.status !== previous.status || previous.needs_review)) {
         next.display_status = patch.status
         next.status_locked = true
+        next.needs_review = false
+        next.suggested_label = null
         record.events = [
           ...record.events,
           {
@@ -97,6 +109,35 @@ export function createDemoDataSource(now: Date = new Date()): DataSource {
       }
       record.detail = next
       return { ...next }
+    },
+    async confirmApplication(id) {
+      const record = find(id)
+      const previous = record.detail
+      const status = statusOfSuggestion(previous.suggested_label)
+      if (!previous.needs_review || !status) throw new ApiError(409, 'Nothing to confirm')
+      record.detail = {
+        ...previous,
+        status,
+        display_status: status,
+        status_locked: true,
+        needs_review: false,
+        suggested_label: null,
+      }
+      record.events = [
+        ...record.events,
+        {
+          from_status: null,
+          to_status: status,
+          reason: 'manual',
+          at: new Date().toISOString(),
+        },
+      ]
+      return { ...record.detail }
+    },
+    async dismissApplication(id) {
+      const record = find(id)
+      if (!record.detail.needs_review) throw new ApiError(409, 'Not in review')
+      records.splice(records.indexOf(record), 1)
     },
     async listFollowUps(state = 'all') {
       const wanted = state === 'all' ? ['pending', 'drafted'] : [state]

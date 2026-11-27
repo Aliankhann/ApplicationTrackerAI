@@ -29,6 +29,8 @@ export interface DataSource {
   getApplication(id: string): Promise<ApplicationDetail>
   listEvents(id: string): Promise<StatusEvent[]>
   updateApplication(id: string, patch: ApplicationPatch): Promise<ApplicationDetail>
+  confirmApplication(id: string): Promise<ApplicationDetail>
+  dismissApplication(id: string): Promise<void>
   listFollowUps(state?: FollowUpFilter): Promise<FollowUp[]>
   skipFollowUp(id: string): Promise<FollowUp>
   delayFollowUp(id: string, days: number): Promise<FollowUp>

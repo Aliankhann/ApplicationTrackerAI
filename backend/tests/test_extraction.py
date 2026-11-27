@@ -180,11 +180,17 @@ def test_adversarial_input_is_linear_time(unit: str) -> None:
     assert time.perf_counter() - start <= 1.0
 
 
-def test_person_display_name_needs_corroboration() -> None:
-    assert extract("a@greenhouse.io", "Priya Natarajan", "Hello", "").company is None
-    assert extract("a@greenhouse.io", "Priya Natarajan", "Applying to Wavecrest", "").company == (
+def test_person_display_name_needs_corroboration_unless_the_sender_is_an_ats() -> None:
+    assert extract("a@gmail.com", "Priya Natarajan", "Hello", "").company is None
+    assert extract("a@gmail.com", "Priya Natarajan", "Applying to Wavecrest", "").company == (
         "Wavecrest"
     )
+    ats = extract("a@greenhouse.io", "Pied Piper", "Hello", "")
+    assert (ats.company, ats.company_source) == ("Pied Piper", "display_name")
+
+
+def test_ats_person_via_ats_is_not_trusted_as_company() -> None:
+    assert extract("a@greenhouse.io", "Priya Natarajan via Greenhouse", "Hello", "").company is None
 
 
 def test_explicit_subject_company_beats_display_and_domain() -> None:

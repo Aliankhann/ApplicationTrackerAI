@@ -1,7 +1,14 @@
 """Gmail sync: initial pull (last `initial_sync_days`, default 30) and incremental from history.
 
 Only job threads are written; everything else is dropped before any write. Nothing here logs
-or stores exception messages, subjects, or snippets.
+or stores exception messages, subjects, snippets, or message text.
+
+Per kept thread, each new message from someone else (at most the last MAX_MESSAGES) is classified
+once, oldest first, and its result applied forward-only, so a later acknowledgement cannot hide an
+earlier interview invite. A message's text is fetched, cleaned and read in memory for
+classification and extraction, then dropped: only the derived label, company and role are stored.
+When the text cannot be fetched (or time is up) the message is read from its snippet alone. A
+kept thread no message decided becomes a needs-review card (see `applications.record_undecided`).
 
 Transactions: work is committed per batch through the `commit` callable (default
 `session.commit`), so a crash keeps completed batches and reprocessing is idempotent. The per-user
@@ -29,9 +36,9 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.log import get_logger
-from app.models import EmailThread, SyncState, SyncStatus
+from app.models import Application, Classification, EmailThread, SyncState, SyncStatus
 from app.providers.classifier.base import ClassifierProvider, UserBoundClassifier
-from app.providers.classifier.types import ClassificationInput, ClassificationResult
+from app.providers.classifier.types import ClassificationInput, ClassificationResult, Label
 from app.providers.gmail import (
     GmailAuthRevoked,
     GmailClient,
@@ -45,17 +52,28 @@ from app.providers.gmail import (
 from app.repositories import applications as applications_repo
 from app.repositories import oauth_tokens as tokens_repo
 from app.repositories import threads as threads_repo
-from app.services.applications import record_classification
+from app.services.applications import record_classification, record_undecided
+from app.services.body_text import prepare_body
+from app.services.classification import status_for_label
 from app.services.extraction import SOURCE_LLM, Extracted, extract
-from app.services.prefilter import EmailMeta, prefilter, sender_domain
+from app.services.prefilter import (
+    EmailMeta,
+    has_application_signal,
+    is_ats_domain,
+    prefilter,
+    sender_domain,
+)
 
 MAX_CONSECUTIVE_RATE_LIMITS = 3  # rate-limited runs in a row before the sync is shown as an error
 BATCH_SIZE = 50
 MAX_ATTEMPTS = 5
 BACKOFF_BASE_SECONDS = 1.0
 MAX_SNIPPET = 200
+MAX_MESSAGES = 5  # per thread and sync: the newest messages from others that are classified
+REVIEW_SUGGESTION_MIN = 0.65  # weakest rule confidence offered as a needs-review suggestion
+MAX_BODY_CHARS = 8000  # fetched per message; cleaned and bounded again before use
 MAX_RETRY_AFTER = 60.0
-PIPELINE_VERSION = "1"  # bump when prefilter, classifier, or extraction change
+PIPELINE_VERSION = "2"  # bump when prefilter, classifier, or extraction change
 
 ERROR_AUTH_REVOKED = "auth_revoked"
 ERROR_RATE_LIMITED = "rate_limited"
@@ -252,42 +270,126 @@ def _batches(items: list[str]) -> Iterator[list[str]]:
         yield items[i : i + BATCH_SIZE]
 
 
-def _chosen_message(meta: ThreadMeta) -> MessageMeta | None:
-    """Latest non-draft message from someone else; else the first non-draft; None if drafts only."""
+def _candidate_messages(meta: ThreadMeta) -> list[MessageMeta]:
+    """The newest MAX_MESSAGES non-draft messages from someone else, oldest first; else the first
+    non-draft message (a thread only the user wrote); empty when there are only drafts."""
     real = [m for m in meta.messages if not m.is_draft]
-    if not real:
-        return None
     others = [m for m in real if not m.from_user]
-    return others[-1] if others else real[0]
+    return others[-MAX_MESSAGES:] if others else real[:1]
+
+
+def _email(message: MessageMeta) -> EmailMeta:
+    return EmailMeta(
+        message.from_address, message.from_name, message.subject, message.snippet[:MAX_SNIPPET]
+    )
+
+
+def _message_text(ctx: _Context, message: MessageMeta) -> str:
+    """Cleaned, bounded text of one message; empty when unavailable. Rate limits and a revoked
+    grant propagate like any other Gmail call; other failures (message gone, malformed) and an
+    exhausted time budget fall back to the snippet alone."""
+    if ctx.out_of_time():
+        return ""
+    try:
+        raw = ctx.call(partial(ctx.client.get_message_text, message.message_id, MAX_BODY_CHARS))
+    except (GmailAuthRevoked, GmailRateLimited):
+        raise
+    except GmailError:
+        return ""
+    return prepare_body(raw)
+
+
+@dataclass(frozen=True)
+class _Read:
+    """What one message yielded; the text itself is already gone."""
+
+    result: ClassificationResult
+    extracted: Extracted
+    signal: bool  # reads like an application email (for the needs-review fallback)
+
+
+def _read_message(ctx: _Context, message: MessageMeta) -> _Read:
+    domain = sender_domain(message.from_address)
+    snippet = message.snippet[:MAX_SNIPPET]
+    body = _message_text(ctx, message)
+    result = ctx.classifier.classify(ClassificationInput(domain, message.subject, snippet, body))
+    extracted = _with_llm_fields(
+        extract(message.from_address, message.from_name, message.subject, snippet, body), result
+    )
+    signal = is_ats_domain(domain) or has_application_signal(message.subject, snippet, body)
+    return _Read(result, extracted, signal)
 
 
 def _process_thread(ctx: _Context, meta: ThreadMeta, counts: _Counts) -> None:
     counts.seen += 1
-    message = _chosen_message(meta)
-    if message is None:
-        return
-    snippet = message.snippet[:MAX_SNIPPET]
-    email = EmailMeta(message.from_address, message.from_name, message.subject, snippet)
-    if not prefilter(email).keep:
+    messages = _candidate_messages(meta)
+    if not any(prefilter(_email(m)).keep for m in messages):
         return
     counts.kept += 1
     existing = threads_repo.get_by_gmail_id(ctx.session, ctx.user_id, meta.thread_id)
-    if (
-        existing is not None
-        and not ctx.force
-        and threads_repo.is_unchanged(existing, meta, PIPELINE_VERSION)
-    ):
+    unchanged = existing is not None and threads_repo.is_unchanged(existing, meta, PIPELINE_VERSION)
+    if unchanged and not ctx.force:
         return
-    domain = sender_domain(message.from_address)
+    redo = ctx.force or existing is None or existing.pipeline_version != PIPELINE_VERSION
+    latest = messages[-1]
     thread = threads_repo.upsert_thread(
-        ctx.session, ctx.user_id, meta, message.subject, domain, snippet, PIPELINE_VERSION
+        ctx.session,
+        ctx.user_id,
+        meta,
+        latest.subject,
+        sender_domain(latest.from_address),
+        latest.snippet[:MAX_SNIPPET],
+        PIPELINE_VERSION,
     )
-    result = ctx.classifier.classify(ClassificationInput(domain, message.subject, snippet))
-    extracted = _with_llm_fields(
-        extract(message.from_address, message.from_name, message.subject, snippet), result
+    done: set[str] = (
+        set() if redo else threads_repo.classified_message_ids(ctx.session, ctx.user_id, thread)
     )
-    if _record(ctx, thread, result, extracted):
-        counts.changed += 1
+    before = applications_repo.get_for_thread(ctx.session, ctx.user_id, thread.id)
+    before_status = before.status if before else None
+    reads = [(m, _read_message(ctx, m)) for m in messages if m.message_id not in done]
+    for message, read in reads:
+        record_classification(
+            ctx.session,
+            ctx.user_id,
+            thread,
+            read.result,
+            read.extracted,
+            ctx.now,
+            message.message_id,
+            message.sent_at,
+        )
+    application = _settle_undecided(ctx, thread, [read for _, read in reads])
+    if application is not None and not application.needs_review:
+        counts.changed += application.status != before_status
+
+
+def _settle_undecided(ctx: _Context, thread: EmailThread, reads: list[_Read]) -> Application | None:
+    """The thread's card; a thread no message decided gets a needs-review card when it reads like
+    an application email (or comes from an ATS), carrying its best weak label as the suggestion."""
+    application = applications_repo.get_for_thread(ctx.session, ctx.user_id, thread.id)
+    if application is not None and not application.needs_review:
+        return application
+    rows = threads_repo.classifications_of(ctx.session, ctx.user_id, thread)
+    if any(r.label is not None and not r.needs_review for r in rows):
+        return application
+    suggestion = _suggestion(rows)
+    if suggestion is None and not any(read.signal for read in reads):
+        return application
+    best = next((r for r in reversed(reads) if r.extracted.company or r.extracted.role), reads[-1])
+    return record_undecided(ctx.session, ctx.user_id, thread, suggestion, best.extracted, ctx.now)
+
+
+def _suggestion(rows: list[Classification]) -> Label | None:
+    """The most confident weak label that stands for a status (not recruiter or irrelevant); a
+    guess below REVIEW_SUGGESTION_MIN (a bare "on-site") is no suggestion."""
+    weak = [
+        r
+        for r in rows
+        if r.label is not None
+        and status_for_label(r.label) is not None
+        and r.confidence >= REVIEW_SUGGESTION_MIN
+    ]
+    return max(weak, key=lambda r: r.confidence).label if weak else None
 
 
 def _with_llm_fields(extracted: Extracted, result: ClassificationResult) -> Extracted:
@@ -301,17 +403,6 @@ def _with_llm_fields(extracted: Extracted, result: ClassificationResult) -> Extr
         company_source=extracted.company_source or (SOURCE_LLM if result.company else None),
         role_source=extracted.role_source or (SOURCE_LLM if result.role else None),
     )
-
-
-def _record(
-    ctx: _Context, thread: EmailThread, result: ClassificationResult, extracted: Extracted
-) -> bool:
-    before = applications_repo.get_for_thread(ctx.session, ctx.user_id, thread.id)
-    before_status = before.status if before else None
-    application = record_classification(
-        ctx.session, ctx.user_id, thread, result, extracted, ctx.now
-    )
-    return application is not None and application.status != before_status
 
 
 def _fetched_prefix(batch: list[str], metas: list[ThreadMeta]) -> int:

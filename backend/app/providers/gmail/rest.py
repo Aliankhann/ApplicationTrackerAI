@@ -1,7 +1,9 @@
 """Gmail REST client behind the `GmailClient` protocol.
 
-Metadata only: threads are fetched with `format=metadata` and a fixed header allowlist, never
-`full` or `raw`, and no body is ever parsed. Nothing here logs; error messages are constants.
+Threads are fetched with `format=metadata` and a fixed header allowlist. The only `format=full`
+call is `get_message_text`, which reads one message's text in memory for the caller (never
+stored or logged here) and never requests attachments. Nothing here logs; error messages are
+constants.
 
 Batch fetching: `get_threads` issues individual `threads.get` calls from a small thread pool
 (`max_concurrency` in flight) instead of Gmail's multipart batch endpoint. Every request first
@@ -23,6 +25,7 @@ from typing import Any, NoReturn
 
 import httpx
 
+from app.providers.gmail.body import message_text
 from app.providers.gmail.draft_message import build_raw_message
 from app.providers.gmail.errors import (
     GmailAuthRevoked,
@@ -51,6 +54,7 @@ PAGE_SIZE = 100
 TIMEOUT = httpx.Timeout(20.0, connect=5.0)
 METADATA_HEADERS = ("From", "Subject", "Message-ID", "References", "In-Reply-To")
 RECIPIENT_HEADERS = ("From", "Reply-To")
+MESSAGE_FIELDS = "payload(mimeType,filename,headers,body/data,parts)"  # no ids, labels, snippet
 RATE_REASONS = frozenset(
     {"rateLimitExceeded", "userRateLimitExceeded", "dailyLimitExceeded", "quotaExceeded"}
 )
@@ -276,6 +280,19 @@ class RestGmailClient:
                 next_page_token=data.get("nextPageToken") or None,
             )
         except (KeyError, TypeError, AttributeError):
+            raise GmailError("malformed response") from None
+
+    def get_message_text(self, message_id: str, max_chars: int = 8000) -> str:
+        """Readable text of one message (plain text, else HTML stripped), at most `max_chars`."""
+        data = self._get(
+            "messages.get",
+            f"/messages/{message_id}",
+            [("format", "full"), ("fields", MESSAGE_FIELDS)],
+            missing=GmailNotFound,
+        )
+        try:
+            return message_text(data.get("payload"), max_chars)
+        except (AttributeError, TypeError):
             raise GmailError("malformed response") from None
 
     def get_reply_recipient(self, thread_id: str) -> str:

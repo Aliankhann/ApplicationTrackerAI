@@ -9,6 +9,7 @@ interface Seed {
   appliedDaysAgo: number | null
   lastDaysAgo: number
   needsReview?: boolean
+  suggested?: string // the label a needs-review card leans to
   paused?: boolean
   subject: string
   snippet: string
@@ -127,6 +128,7 @@ const SEEDS: Seed[] = [
     appliedDaysAgo: 28,
     lastDaysAgo: 9,
     needsReview: true,
+    suggested: 'interview',
     subject: 'Let us find a time to chat',
     snippet: 'Are you free for a quick call next week?',
     path: ['applied', 'interview'],
@@ -189,6 +191,7 @@ const SEEDS: Seed[] = [
     appliedDaysAgo: 9,
     lastDaysAgo: 2,
     needsReview: true,
+    suggested: 'online_assessment',
     subject: 'Assessment invitation',
     snippet: 'Complete the skills assessment at your convenience.',
     path: ['applied', 'online_assessment'],
@@ -199,7 +202,6 @@ const SEEDS: Seed[] = [
     status: 'applied',
     appliedDaysAgo: 8,
     lastDaysAgo: 8,
-    needsReview: true,
     subject: 'Application update',
     snippet: 'We are still reviewing applications for this role.',
     path: ['applied'],
@@ -236,11 +238,12 @@ export function buildDemoRecords(now: Date = new Date()): DemoRecord[] {
       company: seed.company,
       role: seed.role,
       status: seed.status,
-      display_status: seed.ghosted ? 'ghosted' : seed.status,
+      display_status: seed.needsReview ? 'needs_review' : seed.ghosted ? 'ghosted' : seed.status,
       applied_at: seed.appliedDaysAgo === null ? null : iso(now, seed.appliedDaysAgo),
       last_activity_at: iso(now, seed.lastDaysAgo),
       status_locked: false,
       needs_review: seed.needsReview ?? false,
+      suggested_label: seed.needsReview ? (seed.suggested ?? null) : null,
       followups_paused: seed.paused ?? false,
       subject: seed.subject,
       snippet: seed.snippet,

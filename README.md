@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Connect Gmail and see every internship application with its status, get follow-up drafts in the
-right thread, and a short daily digest, without the app ever storing your email bodies.
+right thread, and a short daily digest, without the app ever storing your email bodies (job email text is read in memory only).
 
 > **Status:** feature-complete for v1 in code and tested end to end against fakes of Google and
 > Gmail. Not deployed yet: the live demo link and Google project are the remaining launch steps. Hosting
@@ -67,8 +67,9 @@ Gmail, email, and the database. Details: [architecture](docs/architecture.md),
 
 ## Security highlights
 
-- **Minimal data.** Thread metadata and a 200-character snippet only; no bodies, no recipient
-  addresses. Gmail is read with `format=metadata`.
+- **Minimal data.** Thread metadata and a 200-character snippet are stored; no bodies, no
+  recipient addresses. Threads are listed with `format=metadata`; message text of kept job threads
+  is read with `format=full` in memory and dropped (ADR 0010).
 - **Encrypted tokens.** Refresh tokens are AES-256-GCM encrypted, with versioned keys outside the
   database and a rotation command.
 - **Isolation tested.** Every query is scoped by user, and a route-walking test proves user B

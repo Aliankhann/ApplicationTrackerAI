@@ -14,6 +14,7 @@ today, because some decisions are made but not implemented yet.
 | [0007](0007-drafts-guardrails-lease-and-claim.md) | Draft guardrails: lease plus claim | Accepted, implemented |
 | [0008](0008-classifier-precision-over-recall.md) | Classifier favours precision over recall | Accepted; rules and gate built |
 | [0009](0009-hosting-on-vercel.md) | Hosting everything on Vercel Hobby, one daily cron | Accepted; code and workflow built, first deploy needs the operator |
+| [0010](0010-read-job-email-bodies-in-memory.md) | Read job email bodies in memory, store only derived fields | Accepted, implemented; supersedes the read side of 0002 |
 
 Add new records with the next number. Do not rewrite an accepted record; supersede it with a new
 one and update its status.

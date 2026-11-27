@@ -67,6 +67,7 @@ def replies_since(
         .where(
             Application.user_id == user_id,
             EmailThread.user_id == user_id,
+            Application.needs_review.is_(False),
             EmailThread.last_sender_is_user.is_(False),
             Application.last_activity_at > since,
             Application.last_activity_at <= now,
@@ -105,6 +106,7 @@ def awaiting_reply(
             Application.user_id == user_id,
             EmailThread.user_id == user_id,
             Application.status.in_(_FOLLOWABLE),
+            Application.needs_review.is_(False),
             EmailThread.last_sender_is_user.is_(True),
             Application.last_activity_at > newer_than,
             Application.last_activity_at <= older_than,

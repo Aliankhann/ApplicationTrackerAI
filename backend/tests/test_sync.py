@@ -408,7 +408,7 @@ def test_unchanged_threads_are_not_reclassified_but_force_reprocesses(
     force_full_pass(db_session, user_id)
     assert run_counted(db_session, user_id, client).calls == 0
     force_full_pass(db_session, user_id)
-    assert run_counted(db_session, user_id, client, force=True).calls == 4
+    assert run_counted(db_session, user_id, client, force=True).calls == 5  # one per message
 
 
 def test_pipeline_version_change_reprocesses_threads(
@@ -416,15 +416,15 @@ def test_pipeline_version_change_reprocesses_threads(
 ) -> None:
     client = fake()
     sync_once(db_session, user_id, client)
-    monkeypatch.setattr(sync, "PIPELINE_VERSION", "2")
+    monkeypatch.setattr(sync, "PIPELINE_VERSION", "next")
     force_full_pass(db_session, user_id)
-    assert run_counted(db_session, user_id, client).calls == 4
+    assert run_counted(db_session, user_id, client).calls == 5
     versions = set(
         db_session.scalars(
             select(EmailThread.pipeline_version).where(EmailThread.user_id == user_id)
         )
     )
-    assert versions == {"2"}
+    assert versions == {"next"}
 
 
 def test_fallback_full_reprocesses_unchanged_threads(
@@ -433,7 +433,7 @@ def test_fallback_full_reprocesses_unchanged_threads(
     client = fake()
     sync_once(db_session, user_id, client)
     client.fail_next(GmailHistoryExpired("old"))
-    assert run_counted(db_session, user_id, client).calls == 4
+    assert run_counted(db_session, user_id, client).calls == 5
 
 
 def test_identical_classification_is_not_appended_twice(

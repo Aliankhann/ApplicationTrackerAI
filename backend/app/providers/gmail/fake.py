@@ -78,10 +78,17 @@ class FakeGmailClient:
         self._rate_limited: dict[str, int | None] = {}  # thread id -> fetches left to refuse
         self.rate_limit_hits = 0
         self.fetched_thread_ids: list[str] = []  # every thread successfully returned, in order
+        self._bodies: dict[str, str] = {}  # message id -> plain text
+        self.body_fetches: list[str] = []  # message ids whose text was requested, in order
+        self.body_error: GmailError | None = None  # raised by every get_message_text until cleared
 
     @property
     def drafts(self) -> tuple[DraftRequest, ...]:
         return tuple(self._drafts)
+
+    def set_body(self, message_id: str, text: str) -> None:
+        """Plain-text body served by `get_message_text` (messages without one read as empty)."""
+        self._bodies[message_id] = text
 
     # Fault injection
 
@@ -257,6 +264,13 @@ class FakeGmailClient:
         if limited:
             raise GmailRateLimited(fetched=tuple(found))
         return found
+
+    def get_message_text(self, message_id: str, max_chars: int = 8000) -> str:
+        self._guard()
+        self.body_fetches.append(message_id)
+        if self.body_error is not None:
+            raise self.body_error
+        return self._bodies.get(message_id, "")[:max_chars]
 
     def list_history(self, start_history_id: str, page_token: str | None = None) -> HistoryPage:
         self._guard()
